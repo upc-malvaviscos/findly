@@ -11,7 +11,7 @@ Garantizar el cumplimiento estricto del Reglamento General de Protección de Dat
 - **DynamoDB TTL**: Atributo `ttl` (epoch en segundos).
 - **S3 Lifecycle Rules**: Reglas de expiración automática de objetos.
 - **EventBridge Scheduler & Lambda `RetentionPurger`**: Cron diario (`cron(0 3 * * ? *)`) que invoca `DeleteCollectionCommand` para eventos caducados.
-- **Derecho al Olvido (`DELETE /registrations/{registrationId}`)**: Invoca `DeleteFacesCommand` en Rekognition, elimina la selfie en S3 y borra los registros `REG#*`, `MATCH#*` y `TOKEN#*` en DynamoDB.
+- **Derecho al Olvido (`DELETE /registrations/{registrationId}`)**: Requiere el `X-Gallery-Token` opaco; su SHA-256 debe pertenecer a la inscripción solicitada. Invoca `DeleteFacesCommand` en Rekognition, elimina la selfie en S3 y borra los registros `REG#*`, `MATCH#*` y `TOKEN#*` en DynamoDB.
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 

@@ -8,7 +8,7 @@ Establecer la estrategia completa de verificación técnica y calidad del sistem
 
 ## Estrategia de Pruebas
 1. **Unitario & Componentes**: Vitest + `@testing-library/react`.
-2. **Integración Lambda**: `aws-sdk-client-mock` en Node.js 22.
+2. **Integración Lambda**: `aws-sdk-client-mock` en Node.js 24.
 3. **E2E**: Playwright sobre la compilación estática `dist/`.
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior

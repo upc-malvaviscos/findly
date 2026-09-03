@@ -63,7 +63,7 @@ La documentación debe describir exactamente lo implementado y validado, no el d
 
 ## Validación y entrega
 
-Usa Node.js 22. Cuando estén disponibles, ejecuta los comandos definidos en la spec de fundación:
+Usa Node.js 24. Cuando estén disponibles, ejecuta los comandos definidos en la spec de fundación:
 
 ```sh
 npm run lint
@@ -77,5 +77,7 @@ Ejecuta además `npm run test:e2e` cuando cambie un flujo de usuario. Para Terra
 Al finalizar, informa de: cambio realizado, documentación sincronizada, specs/ADR afectados, comandos ejecutados y resultado, evidencia generada, y riesgos o trabajo pendiente. No afirmes que un requisito está completado sin una prueba o evidencia verificable.
 
 ## Convenciones de Git
+
+Trabaja siempre en una feature branch con el prefijo `codex/`; nunca implementes, hagas commit ni fusiones directamente sobre `main`. Integra cambios en `main` exclusivamente mediante una pull request revisable y el ruleset del repositorio; no uses merges locales contra `main`.
 
 Mantén commits pequeños con Conventional Commits. No borres, restaures ni sobrescribas cambios existentes que no pertenezcan a la tarea. Antes de una acción destructiva, identifica los objetivos exactos y solicita autorización.

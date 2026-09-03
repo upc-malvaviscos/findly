@@ -39,11 +39,27 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - **Request Body**: `{ email?: string; consentBiometrics: true; consentTerms: true; }`
 - **Response (201 Created)**: `{ registrationId: string; uploadUrl: string; expiresInSeconds: number; }`
 
+### 0. Descubrimiento de eventos públicos (`GET /events`)
+- Devuelve únicamente eventos con `status = 'OPEN'`: `{ events: Array<{ eventId: string; name: string; date: string; }> }`.
+- El selector de evento usa esta respuesta cuando no recibe `?event={eventId}`.
+
 ### 2. Estado de Registro (`GET /registrations/{registrationId}/status`)
 - **Response (200 OK)**: `{ registrationId: string; status: 'UPLOAD_PENDING' | 'PROCESSING' | 'ENROLLED' | 'FAILED'; failureReason?: string; }`
 
 ### 3. Galería Privada (`GET /gallery?token={token}`)
 - **Response (200 OK)**: `{ eventId: string; eventName: string; photos: Array<{ photoId: string; url: string; matchedAt: string; }>; expiresAt: string; }`
+
+### 4. Administración de eventos (JWT de Cognito obligatorio)
+- `GET /admin/events`: lista eventos administrables.
+- `POST /admin/events`: crea un evento con `{ name: string; date: string; retentionDays: number; }` y devuelve `201` con el `eventId`.
+- `POST /admin/events/{eventId}/photos/uploads`: recibe `{ files: Array<{ fileName: string; contentType: 'image/jpeg'; }> }` y devuelve una URL `PUT` prefirmada y `photoId` por archivo. Solo acepta JWT válido y eventos existentes.
+
+### 5. Derecho al olvido (`DELETE /registrations/{registrationId}`)
+- Requiere la cabecera `X-Gallery-Token` con el token opaco de la galería. El backend calcula su SHA-256 y solo continúa si pertenece al `registrationId` solicitado.
+- La respuesta es `204 No Content`. El token nunca se escribe en logs, trazas o mensajes de error.
+
+### Errores comunes de API
+Todas las respuestas de error usan `{ code: string; message: string; requestId: string; }` sin PII ni tokens. Los códigos mínimos son: `400 INVALID_REQUEST`, `401 UNAUTHENTICATED`, `403 FORBIDDEN`, `404 EVENT_NOT_FOUND | REGISTRATION_NOT_FOUND | GALLERY_NOT_FOUND`, `409 INVALID_REGISTRATION_STATE` y `410 GALLERY_EXPIRED`.
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 

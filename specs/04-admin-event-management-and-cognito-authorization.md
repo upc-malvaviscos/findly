@@ -25,7 +25,8 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
 
 ### Paso 3: Construir el Subidor Masivo (`BulkPhotoUploader`)
 - En `src/components/admin/BulkPhotoUploader.tsx`, implementa la cola de subida.
-- Usa un bucle/pool de concurrencia que procese máximo 3 archivos simultáneamente invocando `uploadFileToS3`.
+- Solicita las URLs mediante `POST /admin/events/{eventId}/photos/uploads` y usa un pool que procese máximo 3 archivos simultáneamente invocando `uploadFileToS3`.
+- La creación y lista de eventos usan `POST /admin/events` y `GET /admin/events` respectivamente.
 
 ## Errores Comunes a Evitar (Pitfalls)
 - ❌ **ERROR**: Almacenar los tokens JWT en `localStorage`.
