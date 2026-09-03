@@ -8,9 +8,9 @@ Estructurar la documentación técnica y académica del proyecto en la carpeta `
 - `01-resumen-ejecutivo.md`: Contexto de negocio y valor de la solución Serverless.
 - `02-contexto-objetivos-y-alcance.md`: Objetivos cuantitativos y matriz de alcance.
 - `03-requisitos-y-viabilidad.md`: Análisis de viabilidad técnica, económica y legal (GDPR).
-- `04-arquitectura-y-decisiones.md`: Diagramas C4, flujo de datos y referencias a ADRs.
+- `04-arquitectura-y-decisiones.md`: Diagramas C4, flujo de datos AWS y referencias a ADRs.
 - `05-implementacion-y-cicd.md`: Estructura del repositorio, pipelines CI/CD y despliegues OIDC.
-- `06-seguridad-privacidad-y-gobierno.md`: IAM mínimo privilegio, cifrado y cumplimiento GDPR.
+- `06-seguridad-privacidad-y-gobierno.md`: IAM mínimo privilegio, cifrado SSE-S3 y cumplimiento GDPR.
 - `07-finops-observabilidad-y-sostenibilidad.md`: Estimación de costes, Budgets y CloudWatch.
 - `08-validacion-y-resultados.md`: Resultados de pruebas Vitest, Playwright y benchmarks.
 - `09-conclusiones-y-trabajo-futuro.md`: Lecciones aprendidas y evolución futura.
