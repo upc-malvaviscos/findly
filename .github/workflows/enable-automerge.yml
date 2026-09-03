@@ -12,7 +12,10 @@ jobs:
   enable:
     if: >-
       github.event.pull_request.draft == false &&
-      contains(github.event.pull_request.labels.*.name, 'automerge')
+      contains(
+        fromJSON('["anyulled", "orLuzuriaga", "surinyach", "raati5674"]'),
+        github.event.pull_request.user.login
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v8
