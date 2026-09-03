@@ -3,31 +3,35 @@
 ## Objetivo
 Procesar asíncronamente las fotografías publicadas por los fotógrafos/organizadores del evento mediante un patrón desacoplado S3 -> SQS -> Lambda, detectando todos los rostros presentes con AWS Rekognition y relacionándolos de forma segura con los asistentes inscritos que hayan otorgado su consentimiento.
 
+## Alineación con AWS Well-Architected Framework
+- **Fiabilidad**: Desacoplamiento de eventos S3 mediante Amazon SQS (`findly-photos-queue`) y Dead-Letter Queue (DLQ) para absorber picos masivos de fotos sin perder mensajes.
+- **Eficiencia del Rendimiento**: Procesamiento por lotes en Lambda (`batch_size = 5`) y búsqueda vectorial acelerada con Rekognition `SearchFacesByImage`.
+
 ## Arquitectura de Desacoplamiento y Resiliencia (AWS Best Practices)
+- **Pipeline**: `S3 Event` -> `SQS Queue` (`VisibilityTimeout = 180s`) -> `Lambda PhotoMatcher` (`512 MB`, `timeout = 30s`).
+- **DLQ**: `findly-photos-dlq` con `maxReceiveCount = 3` y alarma CloudWatch.
+- **Rekognition**: `SearchFacesByImageCommand` con `FaceMatchThreshold = 95.0` y `MaxFaces = 50`.
 
-### Pipeline de Eventos: S3 -> SQS -> Lambda
-1. La carga de fotos en `events/{eventId}/photos/{photoId}.jpg` genera un evento `ObjectCreated:Put` en S3.
-2. S3 envía una notificación a la cola de Amazon SQS `findly-photos-queue-${var.environment}`.
-3. La Lambda `PhotoMatcher` consume los mensajes de SQS en lotes (`batch_size = 5`).
-4. **Cola Dead-Letter (DLQ)**: Configurada `findly-photos-dlq-${var.environment}` con `maxReceiveCount = 3` y alarma CloudWatch asociada para capturar mensajes no procesados tras fallos persistentes.
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Configuración de Servicios AWS
-- **Lambda `PhotoMatcher`**: Memoria = `512 MB`, Timeout = `30 segundos`.
-- **SQS Queue**: `VisibilityTimeoutSeconds = 180` (6 veces el timeout de la Lambda para evitar duplicidad durante la ejecución).
-- **Retención SQS**: `14 días` (`MessageRetentionSeconds = 1209600`).
+### Paso 1: Configurar el Consumidor SQS en Lambda
+- En `build/lambdas/matcher/index.ts`, itera sobre `event.Records` (mensajes SQS).
+- Parsea el cuerpo JSON para obtener los datos del evento de S3 (`ObjectCreated:Put`).
 
-### Invocación Rekognition `SearchFacesByImage`
-- Parámetros de `SearchFacesByImageCommand`:
-  - `CollectionId`: `findly-event-{eventId}`
-  - `FaceMatchThreshold`: `95.0` (configurable vía variable Terraform `var.matching_threshold`).
-  - `MaxFaces`: `50` (para soportar fotos grupales).
+### Paso 2: Invocar SearchFacesByImage y Consultar GSI1
+- Por cada rostro detectado con similitud >= 95.0%, extrae el `faceId`.
+- Realiza una consulta `Query` en DynamoDB sobre el `GSI1` usando `GSI1PK = FACE#{faceId}` para recuperar el `registrationId`.
 
-### Persistencia de Coincidencias (DynamoDB)
-- Por cada rostro coincidente devuelto por Rekognition con similitud >= 95%, la Lambda consulta el `registrationId` en el `GSI1` usando `GSI1PK = FACE#{faceId}`.
-- Escribe una entidad `Match` en DynamoDB con `PK = REG#{registrationId}` y `SK = MATCH#{photoId}`.
-- Campos almacenados: `eventId`, `photoId`, `similarity` (ej: 98.42), `matchedAt` (ISO-8601), y `ttl` para purga automática.
+### Paso 3: Guardar Coincidencia
+- Escribe el registro `Match` en DynamoDB con `PK = REG#{registrationId}` y `SK = MATCH#{photoId}`.
 
-## Criterios de Aceptación
-- Una foto de evento con coincidencia >= 95% crea el registro `Match` correspondiente en DynamoDB asociándolo al asistente.
-- Si no hay coincidencias o el nivel de confianza es < 95%, no se crean registros de coincidencia.
-- Ante fallos de red o de Rekognition, SQS reintenta automáticamente hasta 3 veces antes de desviar el mensaje a la DLQ de forma observable.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Configurar el `VisibilityTimeout` de SQS menor que el `timeout` de la Lambda.
+  - *Solución*: El `VisibilityTimeoutSeconds` de SQS debe ser al menos 6 veces mayor que el timeout de la Lambda (ej. SQS 180s vs Lambda 30s). De lo contrario, los mensajes se reprocesarán duplicados.
+- ❌ **ERROR**: Guardar coincidencias con confianza menor al 95%.
+  - *Solución*: Comprueba estrictamente `FaceMatch.Similarity >= 95.0`.
+
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] Fotos con confianza >= 95% guardan la coincidencia en DynamoDB.
+- [ ] Fotos sin coincidencias no generan registros `Match` erróneos.
+- [ ] Ante fallos, SQS desvía el mensaje a la DLQ tras 3 reintentos.
