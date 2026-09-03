@@ -3,42 +3,40 @@
 ## Objetivo
 Procesar asíncronamente las selfies subidas por los asistentes, indexando la información vectorial del rostro en AWS Rekognition de forma segura y actualizando el estado de la inscripción.
 
+## Alineación con AWS Well-Architected Framework
+- **Fiabilidad**: Procesamiento asíncrono activado por eventos S3 con control de reintentos idempotentes.
+- **Seguridad**: Prohibido almacenar imágenes crudas biométricas en base de datos; solo se almacena el identificador `FaceId`.
+
 ## Arquitectura de Procesamiento Asíncrono Backend
 
 ### Configuración Lambda (`SelfieIndexer`)
 - **Runtime**: Node.js 22.x LTS.
-- **Memoria**: `512 MB`.
-- **Timeout**: `10 segundos`.
+- **Memoria**: `512 MB`, **Timeout**: `10 segundos`.
 - **Variables de Entorno**: `TABLE_NAME`, `REKOGNITION_COLLECTION_PREFIX`.
 
 ### Flujo de Eventos S3 -> Lambda -> Rekognition
 1. La subida finalizada del archivo selfie a S3 (`events/{eventId}/selfies/{registrationId}.jpg`) dispara un evento `ObjectCreated:Put` a la Lambda de inscripción facial.
-2. La Lambda ejecuta la API `IndexFaces` de AWS Rekognition sobre la colección del evento (`findly-event-{eventId}`).
-3. Parámetros de `IndexFacesCommand`:
-   - `CollectionId`: `findly-event-{eventId}`
-   - `ExternalImageId`: `{registrationId}`
-   - `MaxFaces`: 1
-   - `QualityFilter`: `"AUTO"`
-4. Transiciones deterministas del registro en DynamoDB:
-   - `UPLOAD_PENDING` -> `PROCESSING` -> `ENROLLED` (en caso de éxito).
-   - `UPLOAD_PENDING` -> `PROCESSING` -> `FAILED` (si no se detecta ningún rostro o la calidad es insuficiente).
+2. La Lambda ejecuta `IndexFacesCommand` de AWS Rekognition sobre `findly-event-{eventId}` con `ExternalImageId = registrationId`, `MaxFaces = 1`, `QualityFilter = "AUTO"`.
+3. Transiciones en DynamoDB: `UPLOAD_PENDING` -> `PROCESSING` -> `ENROLLED` (éxito) / `FAILED` (error o sin cara).
 
-### Ciclo de Vida de Colecciones de Rekognition
-- La colección de Rekognition se crea automáticamente al dar de alta el evento vía API Admin mediante `CreateCollectionCommand({ CollectionId: 'findly-event-' + eventId })`.
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Principios de Idempotencia y Resiliencia
-- Si el evento S3 se reintenta, la Lambda comprueba si `registrationId` ya posee `status == 'ENROLLED'`, evitando llamadas redundantes a Rekognition.
-- Guardar únicamente el `FaceId` devuelto por Rekognition en DynamoDB. Nunca almacenar vectores biométricos crudos en la base de datos.
+### Paso 1: Configurar el Handler de Lambda
+- En `build/lambdas/enrollment/index.ts`, parsea la clave S3 del evento (`event.Records[0].s3.object.key`).
+- Extrae `eventId` y `registrationId`.
 
-## Especificación del Polling de Estado en Frontend
+### Paso 2: Invocar Rekognition e Idempotencia
+- Consulta en DynamoDB si `status == 'ENROLLED'`. Si ya está inscrito, retorna inmediatamente.
+- Ejecuta `IndexFacesCommand`. Si `FaceRecords.length === 0`, actualiza a `status = 'FAILED'`.
+- Si se detecta un rostro, guarda `faceId` y actualiza a `status = 'ENROLLED'`.
 
-### Hook de Polling (`useEnrollmentStatus`)
-- Tras completar la subida a S3, el cliente web invoca `GET /registrations/{registrationId}/status` a intervalos de 1.5 segundos.
-- Límite de reintentos: Máximo 10 intentos (15 segundos totales).
-- Si la respuesta es `ENROLLED`, la UI transiciona a la pantalla de éxito.
-- Si la respuesta es `FAILED`, la UI muestra el motivo de fallo (ej: "No se detectó un rostro claro. Por favor, sube otra imagen con mejor iluminación").
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Volver a indexar un rostro cuando el evento S3 se reintenta.
+  - *Solución*: Verifica el estado previo en DynamoDB antes de llamar a Rekognition.
+- ❌ **ERROR**: Dejar la Lambda en ciclo infinito de reintentos si no hay rostros.
+  - *Solución*: Si no hay rostro, marca la inscripción como `FAILED` de forma limpia sin lanzar una excepción sin capturar.
 
-## Criterios de Aceptación
-- Un archivo con un rostro válido indexa correctamente en Rekognition y actualiza DynamoDB a `ENROLLED`.
-- Una imagen sin rostro o corrupta transiciona a `FAILED` de forma segura sin romper la ejecución de la Lambda.
-- Los reintentos de eventos S3 duplicados son idempotentes y no duplican vectores en Rekognition.
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] Una selfie válida indexa y transiciona el estado a `ENROLLED`.
+- [ ] Una selfie borrosa o sin cara transiciona a `FAILED` sin fallar la Lambda.
+- [ ] Las pruebas de integración con `aws-sdk-client-mock` pasan en verde.
