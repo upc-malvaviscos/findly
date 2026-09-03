@@ -78,6 +78,6 @@ Al finalizar, informa de: cambio realizado, documentación sincronizada, specs/A
 
 ## Convenciones de Git
 
-Trabaja siempre en una feature branch con el prefijo `codex/`; nunca implementes, hagas commit ni fusiones directamente sobre `main`. Integra cambios en `main` exclusivamente mediante una pull request revisable y el ruleset del repositorio; no uses merges locales contra `main`.
+Trabaja siempre en una rama descriptiva según el tipo de cambio: `feature/` para funcionalidad nueva, `fix/` para correcciones, `docs/` para documentación, `chore/` para mantenimiento y `refactor/` para reorganización sin cambio funcional. Nunca implementes, hagas commit ni fusiones directamente sobre `main`. Integra cambios en `main` exclusivamente mediante una pull request revisable y el ruleset del repositorio; no uses merges locales contra `main`.
 
 Mantén commits pequeños con Conventional Commits. No borres, restaures ni sobrescribas cambios existentes que no pertenezcan a la tarea. Antes de una acción destructiva, identifica los objetivos exactos y solicita autorización.
