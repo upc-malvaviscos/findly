@@ -1,7 +1,7 @@
 # 16 - Validación integral, pruebas unitarias, contratos y E2E
 
 ## Objetivo
-Establecer la estrategia completa de verificación técnica y calidad del sistema, cubriendo desde pruebas unitarias aisladas hasta pruebas de integración de Lambdas con mocks de AWS y flujos End-to-End en navegadores reales con Playwright.
+Establecer la estrategia completa de verificación técnica y calidad del sistema, cubriendo desde pruebas unitarias aisladas hasta pruebas de integración de Lambdas con mocks del AWS SDK v3 y flujos End-to-End en navegadores reales con Playwright.
 
 ## Niveles de Validación y Cobertura
 
@@ -10,9 +10,9 @@ Establecer la estrategia completa de verificación técnica y calidad del sistem
 - Pruebas unitarias de componentes React en Frontend utilizando `@testing-library/react`.
 - Cobertura de código mínima exigida: **90%** en componentes de lógica de negocio e integraciones.
 
-### 2. Pruebas de Integración de Lambdas
+### 2. Pruebas de Integración de Lambdas y AWS SDK Mocks
 - Ejecución de Lambdas localmente simulando clientes AWS con `aws-sdk-client-mock`.
-- Verificación de la manipulación de eventos S3 (`ObjectCreated:Put`), indexación en Rekognition y escrituras DynamoDB Single-Table.
+- Verificación de la manipulación de eventos S3 (`ObjectCreated:Put`), consumo de SQS, indexación en Rekognition y escrituras DynamoDB Single-Table.
 
 ### 3. Pruebas End-to-End (Playwright E2E)
 - Suite completa en Playwright ejecutada contra la compilación estática `out/`.
