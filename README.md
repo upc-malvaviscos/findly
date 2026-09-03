@@ -1,2 +1,63 @@
-# findly
-Proyecto final del Postrgado en Arquitectura Cloud &amp; Kubernetes @ UPC
+# Findly
+
+Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la UPC. Permite a asistentes de un evento inscribirse con consentimiento explícito y una selfie, localizar coincidencias en fotografías de evento y recibir una galería privada de duración limitada.
+
+> **Límite de producto:** Findly es una demostración académica con imágenes sintéticas o autorizadas. No es un sistema de vigilancia ni publica fotos o datos biométricos.
+
+## Flujo del MVP
+
+1. El asistente acepta el consentimiento biométrico y carga una selfie mediante una URL prefirmada.
+2. Una Lambda indexa el rostro en Amazon Rekognition y actualiza el estado de inscripción.
+3. El organizador autenticado carga fotos del evento; una Lambda busca coincidencias.
+4. Findly crea una galería temporal con URLs S3 prefirmadas y permite retirar los datos.
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+  A[Asistente] --> W[Web Next.js estática]
+  O[Organizador] --> W
+  W --> CF[CloudFront + S3 web]
+  W -->|Admin| C[Cognito]
+  W --> G[API Gateway HTTP]
+  G --> API[Lambda API]
+  API <--> D[(DynamoDB on-demand)]
+  API -->|URLs prefirmadas| S1[S3 selfies privado]
+  API -->|URLs prefirmadas| S2[S3 fotos privado]
+  S1 --> E[Lambda inscripción]
+  E --> R[Rekognition]
+  S2 --> M[Lambda matching]
+  M --> R
+  E --> D
+  M --> D
+  EB[EventBridge] --> X[Lambda retención]
+  X --> S1
+  X --> S2
+  X --> R
+  CW[CloudWatch + AWS Budgets] -. observabilidad y coste .-> API
+```
+
+## Stack y recursos AWS
+
+Next.js 16 con exportación estática, TypeScript, API Gateway HTTP, Lambda Node.js 22, DynamoDB on-demand, S3 privado, CloudFront, Cognito, Rekognition, EventBridge Scheduler, CloudWatch, AWS Budgets y Terraform. No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
+
+Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
+
+## Siguiente paso
+
+La implementación se distribuye mediante las issues derivadas de [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md). La primera entrega de código deberá añadir la herramienta de construcción y los comandos de validación definidos en la issue de fundación.
+
+## Operación y CI/CD
+
+GitHub Actions valida commits convencionales, Markdown y workflows. Los workflows de despliegue y limpieza cada 12 horas son handoffs seguros: no ejecutan AWS hasta que el equipo de plataforma implemente y revise las correspondientes specs.
+
+## Equipo
+
+| Rol | Integrante |
+| --- | --- |
+| Frontend y experiencia de usuario | `Pendiente de asignar` |
+| Backend, datos y matching | `Pendiente de asignar` |
+| Plataforma AWS y FinOps | `Pendiente de asignar` |
+| Calidad, CI/CD y memoria | `Pendiente de asignar` |
+
+La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyulled/IdeaProjects/findly/docs/README.md) y [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md).

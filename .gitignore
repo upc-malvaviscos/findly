@@ -1,5 +1,16 @@
 # Local .terraform directories
 .terraform/
+.next/
+*.tsbuildinfo
+node_modules/
+out/
+build/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
 
 # .tfstate files
 *.tfstate
