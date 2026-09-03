@@ -1,7 +1,7 @@
 # 02 - Dominio, contratos de API y diseño DynamoDB Single-Table
 
 ## Objetivo
-Establecer los contratos de datos compartidos entre frontend y backend (DTOs), esquemas Zod de validación y el diseño de la tabla única (Single-Table Design) en DynamoDB sin ambigüedades.
+Establecer los contratos de datos compartidos entre frontend y backend (DTOs), esquemas Zod de validación y la arquitectura detallada de la tabla única (Single-Table Design) en Amazon DynamoDB sin ambigüedades.
 
 ## Modelo de Dominio de Datos
 
@@ -12,9 +12,9 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 - **Match**: `matchId`, `eventId`, `registrationId`, `photoId`, `similarity`, `matchedAt`, `ttl`.
 - **GalleryToken**: `tokenHash` (SHA-256), `registrationId`, `eventId`, `expiresAt`, `ttl`.
 
-## Patrones de Claves DynamoDB (Single-Table Design)
+## Arquitectura de Tabla Única DynamoDB (Single-Table Design)
 
-Se adopta una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK` (Partition Key) y `SK` (Sort Key) de tipo String:
+Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK` (Partition Key) y `SK` (Sort Key) de tipo String:
 
 | Entidad | Partition Key (`PK`) | Sort Key (`SK`) | Atributos Principales / GSIs |
 | --- | --- | --- | --- |
@@ -24,7 +24,16 @@ Se adopta una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK`
 | **Match** | `REG#{registrationId}` | `MATCH#{photoId}` | `eventId`, `similarity`, `matchedAt`, `ttl` |
 | **GalleryToken** | `TOKEN#{tokenHash}` | `METADATA` | `registrationId`, `eventId`, `expiresAt`, `ttl` |
 
-- **GSI1 (Búsqueda por FaceID)**: `GSI1PK = FACE#{faceId}`, `GSI1SK = REG#{registrationId}`.
+### Índice Secundario Global (GSI1)
+- `GSI1PK`: `FACE#{faceId}`
+- `GSI1SK`: `REG#{registrationId}`
+- **Propósito Arquitectónico**: Permite consultar rápidamente el `registrationId` del asistente a partir del `FaceId` devuelto por Rekognition en `SearchFacesByImage`.
+
+### Configuración de la Tabla en Terraform
+- Modo de Capacidad: `PAY_PER_REQUEST` (On-Demand).
+- Cifrado en Reposo: Habilitado con clave por defecto AWS KMS (`SSE-S3`).
+- Atributo TTL: Habilitado en la columna `ttl` (timestamp Epoch en segundos).
+- Point-In-Time Recovery (PITR): Activado en entornos `demo` y `production`.
 
 ## Contratos DTO de API REST (TypeScript / Zod)
 
@@ -88,4 +97,4 @@ Se adopta una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK`
 ## Criterios de Aceptación
 - Todos los DTOs y tipos están exportados en un paquete o archivo compartido (`@/types/api.ts`).
 - Las pruebas unitarias validan la serialización/deserialización Zod en cliente y Lambdas.
-- No se exponen tokens de galería ni FaceIds en claro en la API pública ni en logs.
+- No se exponen tokens de galería ni FaceIds en claro en la API pública ni en logs de CloudWatch.
