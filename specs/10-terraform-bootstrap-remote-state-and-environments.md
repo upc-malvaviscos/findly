@@ -1,19 +1,14 @@
 # 10 - Estado remoto de Terraform y aislamiento de entornos
 
 ## Objetivo
-Configurar la gestión del estado remoto de Terraform mediante Amazon S3 y Amazon DynamoDB, definiendo la estructura del repositorio de infraestructura y garantizando el aislamiento completo entre los entornos de desarrollo (`sandbox`), demostración (`demo`) y producción (`production`).
+Configurar la gestión del estado remoto de Terraform mediante Amazon S3 y Amazon DynamoDB, definendo la estructura del repositorio de infraestructura y garantizando el aislamiento completo entre los entornos de desarrollo (`sandbox`), demostración (`demo`) y producción (`production`).
 
-## Requisitos de Infraestructura de Estado (Bootstrap)
+## Alineación con AWS Well-Architected Framework
+- **Excelencia Operativa**: Aislamiento estricto de entornos por carpetas y prefijos S3; etiquetado estándar vía `default_tags`.
+- **Fiabilidad**: Bloqueo concurrente con DynamoDB `findly-tflock` para prevenir sobrescrituras colisionadas en el equipo.
+- **Seguridad**: Versionado y cifrado en reposo SSE-S3 del estado remoto con `prevent_destroy = true`.
 
-### Bucket de Estado Remoto (S3 Backend)
-- Bucket de S3 dedicado `findly-tfstate-${var.aws_account_id}` para almacenar los archivos `.tfstate` con versionado activado (`versioning { enabled = true }`).
-- Cifrado del lado del servidor habilitado por defecto (`SSE-S3`).
-- Bloqueo de destrucción activado (`prevent_destroy = true`) en el módulo de bootstrap para evitar el borrado del estado remoto.
-
-### Tabla de Bloqueo Concurrente (DynamoDB Lock Table)
-- Tabla de DynamoDB `findly-tflock` con clave primaria `LockID` (String) para coordinar ejecuciones concurrentes entre los miembros del equipo.
-
-## Estructura de Carpetas del Repositorio de Infraestructura
+## Estructura de Carpetas e Infraestructura Terraform
 
 ```
 infra/
@@ -35,30 +30,25 @@ infra/
     └── production/
 ```
 
-## Configuración de Proveedor con Etiquetas Obligatorias (`providers.tf`)
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-```hcl
-provider "aws" {
-  region = var.aws_region
+### Paso 1: Configurar el Proveedor AWS
+- En `infra/environments/sandbox/main.tf`, define el bloque `provider "aws"` con `default_tags` obligatorio.
 
-  default_tags {
-    tags = {
-      Project     = "findly"
-      Environment = var.environment
-      ManagedBy   = "Terraform"
-      Repository  = "upc-malvaviscos/findly"
-    }
-  }
-}
-```
+### Paso 2: Inicializar el Backend Remoto
+- Configura `backend "s3"` con `bucket = "findly-tfstate-ACCOUNT_ID"`, `key = "findly/sandbox/terraform.tfstate"` y `dynamodb_table = "findly-tflock"`.
+- Ejecuta `terraform init`.
 
-### Aislamiento de Entornos
-- Prefijos de clave S3 separados por entorno:
-  - `findly/sandbox/terraform.tfstate`
-  - `findly/demo/terraform.tfstate`
-  - `findly/production/terraform.tfstate`
-- Flag explícito de protección contra destrucción de buckets `allow_bucket_destroy = false` por defecto en entornos productivos y de demo.
+### Paso 3: Validar la Separación de Entornos
+- Ejecuta `terraform plan`. Verifica que los nombres de los recursos contienen el sufijo `-sandbox`.
 
-## Criterios de Aceptación
-- Una ejecución de `terraform plan` en el entorno `sandbox` no interfiere con el estado de `demo` o `production`.
-- La configuración de variables secretas solo se documenta mediante plantillas `terraform.tfvars.example`, sin subir secretos al control de versiones.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Modificar manualmente el archivo `terraform.tfstate` en S3.
+  - *Solución*: Nunca edites el archivo de estado directamente. Usa comandos `terraform state`.
+- ❌ **ERROR**: Olvidar incluir `allow_bucket_destroy = false` en entornos demo o producción.
+  - *Solución*: Esta bandera previene la pérdida accidental de datos en buckets productivos.
+
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] `terraform fmt -check`, `terraform validate` y `tflint` pasan en verde.
+- [ ] El plan de `sandbox` no interfiere con `demo` o `production`.
+- [ ] `terraform.tfvars` no contiene contraseñas o secretos en texto claro subidos al repositorio.
