@@ -2,8 +2,6 @@
 
 Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la UPC. Permite a asistentes de un evento inscribirse con consentimiento explícito y una selfie, localizar coincidencias en fotografías de evento y recibir una galería privada de duración limitada.
 
-> **Límite de producto:** Findly es una demostración académica con imágenes sintéticas o autorizadas. No es un sistema de vigilancia ni publica fotos o datos biométricos.
-
 ## Flujo del MVP
 
 1. El asistente acepta el consentimiento biométrico y carga una selfie mediante una URL prefirmada.
@@ -39,7 +37,17 @@ flowchart LR
 
 ## Stack y recursos AWS
 
-Next.js 16 con exportación estática, TypeScript, API Gateway HTTP, Lambda Node.js 22, DynamoDB on-demand, S3 privado, CloudFront, Cognito, Rekognition, EventBridge Scheduler, CloudWatch, AWS Budgets y Terraform. No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
+| Dominio | Tecnologías y recursos |
+| --- | --- |
+| Frontend y distribución | React con Vite, TypeScript, Amazon S3 para la web y Amazon CloudFront. |
+| Seguridad e identidad | Amazon Cognito para autenticar a los organizadores. |
+| API y procesamiento | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 22. |
+| Datos, imágenes y matching | Amazon DynamoDB on-demand, buckets privados de Amazon S3 y Amazon Rekognition. |
+| Automatización y retención | Amazon EventBridge Scheduler y Lambda de retención. |
+| Observabilidad y FinOps | Amazon CloudWatch y AWS Budgets. |
+| Infraestructura y entrega | Terraform y GitHub Actions. |
+
+No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
 
 Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
 
@@ -51,13 +59,13 @@ La implementación se distribuye mediante las issues derivadas de [`specs/`](/Us
 
 GitHub Actions valida commits convencionales, Markdown y workflows. Los workflows de despliegue y limpieza cada 12 horas son handoffs seguros: no ejecutan AWS hasta que el equipo de plataforma implemente y revise las correspondientes specs.
 
-## Equipo
+## Participantes del equipo
 
-| Rol | Integrante |
-| --- | --- |
-| Frontend y experiencia de usuario | `Pendiente de asignar` |
-| Backend, datos y matching | `Pendiente de asignar` |
-| Plataforma AWS y FinOps | `Pendiente de asignar` |
-| Calidad, CI/CD y memoria | `Pendiente de asignar` |
+| Participante |
+| --- |
+| Anyul Rivas |
+| Renato Luzuriaga |
+| Martí Fabregat Pous |
+| Santiago Oliver Surinyach |
 
 La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyulled/IdeaProjects/findly/docs/README.md) y [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md).

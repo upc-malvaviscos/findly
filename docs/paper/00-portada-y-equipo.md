@@ -4,4 +4,9 @@
 
 Proyecto final del Postgrado en Cloud Computing Architecture · UPC · 2026
 
-**Autores:** Integrante 1, Integrante 2, Integrante 3 e Integrante 4 (pendiente de completar).
+## Participantes del equipo
+
+- Anyul Rivas
+- Renato Luzuriaga
+- Martí Fabregat Pous
+- Santiago Oliver Surinyach
