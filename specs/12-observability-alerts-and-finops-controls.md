@@ -3,61 +3,31 @@
 ## Objetivo
 Implementar trazabilidad integral, monitoreo estructurado en CloudWatch Logs mediante la declaración explícita de grupos de logs en Terraform y alertas de presupuestos con AWS Budgets y SNS para detectar errores, controlar costes y garantizar la privacidad.
 
-## Requisitos de Observabilidad y Declaración de Log Groups en Terraform
-- **Declaración Explícita de Log Groups**: Para prevenir que AWS cree grupos de logs sin caducidad por defecto, declarar en Terraform `aws_cloudwatch_log_group` por cada Lambda con `retention_in_days = 14`.
-```hcl
-resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${aws_lambda_function.selfie_indexer.function_name}"
-  retention_in_days = 14
-}
-```
-- **Formato JSON Estructurado**: Todas las funciones Lambda emiten logs en JSON con contexto: `correlationId`, `eventId`, `timestamp`, `level`, `action`, `durationMs`.
-- **Privacidad Estricta (No PII)**: Prohibición absoluta de registrar nombres, correos electrónicos, imágenes o vectores biométricos en CloudWatch Logs.
+## Alineación con AWS Well-Architected Framework
+- **Optimización de Costes (FinOps)**: Retención explícita de CloudWatch Logs configurada a 14 días para evitar gastos acumulativos de almacenamiento y presupuesto en AWS Budgets.
+- **Excelencia Operativa**: Formato JSON estructurado para logs con `correlationId` para trazabilidad completa sin almacenar datos personales (PII).
 
-## Alertas y Presupuestos (AWS Budgets & CloudWatch Alarms)
+## Declaración de Recursos IaC en Terraform
+- `aws_cloudwatch_log_group` explícito con `retention_in_days = 14`.
+- `aws_sns_topic.alerts` para desviar notificaciones críticas.
+- `aws_cloudwatch_metric_alarm` vigilando la cola SQS DLQ (`ApproximateNumberOfMessagesVisible >= 1`).
+- `aws_budgets_budget.finops` con alerta por email al alcanzar el 80% del presupuesto.
 
-### Alarma CloudWatch de SQS DLQ con Notificación SNS
-```hcl
-resource "aws_sns_topic" "alerts" {
-  name = "findly-alerts-topic-${var.environment}"
-}
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-resource "aws_cloudwatch_metric_alarm" "sqs_dlq_alarm" {
-  alarm_name          = "findly-sqs-dlq-has-messages-${var.environment}"
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = 1
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 60
-  statistic           = "Sum"
-  threshold           = 1
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+### Paso 1: Declarar Log Groups Explícitos
+- En `infra/modules/lambda/main.tf`, incluye `resource "aws_cloudwatch_log_group"` con `retention_in_days = 14` por cada función Lambda.
 
-  dimensions = {
-    QueueName = aws_sqs_queue.photos_dlq.name
-  }
-}
-```
+### Paso 2: Crear el Módulo de Alertas y Presupuestos
+- En `infra/modules/monitoring/main.tf`, declara el tema SNS, la alarma de la cola DLQ y el recurso `aws_budgets_budget`.
 
-### FinOps Controls (`aws_budgets_budget`)
-```hcl
-resource "aws_budgets_budget" "finops" {
-  name              = "findly-budget-${var.environment}"
-  budget_type       = "COST"
-  limit_amount      = var.environment == "production" ? "20" : "5"
-  limit_unit        = "USD"
-  time_unit         = "MONTHLY"
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Dejar los grupos de logs de CloudWatch sin el atributo `retention_in_days`.
+  - *Solución*: Si omitas este atributo, los logs se almacenarán indefinidamente, generando costes crecientes en AWS.
+- ❌ **ERROR**: Imprimir datos personales identificables (nombres, emails, selfies) en `console.log`.
+  - *Solución*: Registra solo metadatos (`correlationId`, `eventId`, `status`, `durationMs`).
 
-  notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 80
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.alert_email]
-  }
-}
-```
-
-## Criterios de Aceptación
-- La matriz de costes por entorno queda documentada en la memoria técnica (`docs/paper/07-finops-observabilidad-y-sostenibilidad.md`).
-- Un fallo provocado en Lambda permite rastrear el `correlationId` en CloudWatch sin exponer información personal identificable (PII).
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] Todos los Log Groups de CloudWatch tienen retención fijada a 14 días.
+- [ ] La alarma SQS DLQ está vinculada al tema SNS.
+- [ ] El presupuesto de AWS Budgets está configurado para avisar al 80%.
