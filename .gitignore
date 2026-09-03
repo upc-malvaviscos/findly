@@ -5,12 +5,11 @@
 node_modules/
 out/
 build/
+dist/
+artifacts/
 coverage/
 playwright-report/
 test-results/
-.env
-.env.*
-!.env.example
 
 # .tfstate files
 *.tfstate
@@ -53,3 +52,7 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+
+.env
+.env.*
+!.env.example

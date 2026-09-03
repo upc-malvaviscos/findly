@@ -13,7 +13,7 @@ Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la 
 
 ```mermaid
 flowchart LR
-  A[Asistente] --> W[Web Next.js estática]
+  A[Asistente] --> W[Web React + Vite estática]
   O[Organizador] --> W
   W --> CF[CloudFront + S3 web]
   W -->|Admin| C[Cognito]

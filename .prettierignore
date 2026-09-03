@@ -1,0 +1,10 @@
+artifacts/
+build/
+coverage/
+dist/
+node_modules/
+out/
+package-lock.json
+playwright-report/
+test-results/
+.next/
