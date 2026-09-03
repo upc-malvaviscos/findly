@@ -3,40 +3,31 @@
 ## Objetivo
 Garantizar la política de FinOps de coste cero eliminando periódicamente mediante automatizaciones programadas todos los recursos desplegados en los entornos temporales de desarrollo (`sandbox` / `development`), incluyendo el vaciado previo de buckets S3 y la verificación técnica post-destrucción, garantizando la protección de los entornos de `demo` y `production`.
 
+## Alineación con AWS Well-Architected Framework
+- **Optimización de Costes (FinOps)**: Purga programada cada 12 horas para mantener la infraestructura no productiva en coste $0.
+- **Excelencia Operativa**: Guardas de seguridad automatizadas que impiden la destrucción en `demo` o `production`.
+
 ## Requisitos de Automatización (`.github/workflows/scheduled-teardown.yml`)
+- Cron de GitHub Actions (`0 */12 * * *`) y disparo manual `workflow_dispatch`.
+- Script Bash `scripts/empty-buckets.sh` para vaciar objetos en S3 antes de invocar `terraform destroy`.
+- Ejecución `terraform destroy -auto-approve -var="allow_bucket_destroy=true"`.
+- Script Bash `scripts/verify-teardown.sh` para comprobar cero recursos residuales.
 
-### Frecuencia y Disparo
-- Programación mediante Cron de GitHub Actions ejecutado cada 12 horas (`0 */12 * * *`) y disponible para ejecución manual vía `workflow_dispatch`.
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Guardas de Seguridad contra Errores
-- Comprobación estricta de entorno: Si el objetivo es `demo` o `production`, la ejecución se aborta de inmediato.
+### Paso 1: Crear el Script de Pre-vaciado S3 (`scripts/empty-buckets.sh`)
+- En el script, incluye una guarda explícita que aborte la ejecución si el argumento no es `sandbox` o `development`.
 
-### Script Bash de Pre-Vaciado de Buckets S3 (`scripts/empty-buckets.sh`)
-```bash
-set -e
+### Paso 2: Crear el Script de Verificación (`scripts/verify-teardown.sh`)
+- Usa la AWS CLI (`aws lambda list-functions`, `aws apigatewayv2 get-apis`) para comprobar que no quedan recursos con la etiqueta `Environment = sandbox`.
 
-ENV=$1
-if [ "$ENV" != "sandbox" ] && [ "$ENV" != "development" ]; then
-  echo "Error: Solo se permite vaciar entornos no productivos"
-  exit 1
-fi
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Permitir que `empty-buckets.sh` acepte por error la cadena `production`.
+  - *Solución*: Implementa una validación `if` estricta que solo acepte `sandbox` o `development`.
+- ❌ **ERROR**: Olvidar preservar la tabla de bloqueo DynamoDB `findly-tflock` o el bucket de estado `.tfstate`.
+  - *Solución*: La infraestructura de bootstrap está en un estado Terraform independiente que nunca se destruye.
 
-BUCKETS=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'findly') && contains(Name, '$ENV')].Name" --output text)
-
-for BUCKET in $BUCKETS; do
-  echo "Vaciando bucket $BUCKET..."
-  aws s3 rm "s3://$BUCKET" --recursive
-done
-```
-
-### Reglas Estrictas de Teardown
-1. Ejecutar `scripts/empty-buckets.sh sandbox` antes de invocar Terraform.
-2. Ejecución de Destrucción: `terraform destroy -auto-approve -var="allow_bucket_destroy=true"`.
-3. Preservación del Bootstrap: El bucket de estado remoto de Terraform y la tabla de bloqueo DynamoDB nunca son eliminados por esta automatización.
-
-### Script Bash de Post-Verificación (`scripts/verify-teardown.sh`)
-- Comprobación vía AWS CLI (`aws apigatewayv2 get-apis`, `aws lambda list-functions`, `aws dynamodb list-tables`, `aws sqs list-queues`) confirmando que no quedan recursos residuales en la región para ese entorno.
-
-## Criterios de Aceptación
-- Una ejecución completa del teardown demuestra la eliminación de todos los recursos no productivos sin afectar al entorno de `demo` ni a `production`.
-- La comprobación `dry-run` enumera con precisión los recursos a destruir antes de su ejecución real.
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] El script de vaciado falla limpiamente si se invoca con `demo` o `production`.
+- [ ] `terraform destroy` se completa sin errores de S3 bucket no vacío.
+- [ ] La verificación posterior confirma la destrucción total de recursos de desarrollo.
