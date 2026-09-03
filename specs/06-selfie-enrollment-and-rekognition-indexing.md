@@ -5,12 +5,26 @@ Procesar asíncronamente las selfies subidas por los asistentes, indexando la in
 
 ## Arquitectura de Procesamiento Asíncrono Backend
 
-### Flujo de Eventos S3 -> Lambda
+### Configuración Lambda (`SelfieIndexer`)
+- **Runtime**: Node.js 22.x LTS.
+- **Memoria**: `512 MB`.
+- **Timeout**: `10 segundos`.
+- **Variables de Entorno**: `TABLE_NAME`, `REKOGNITION_COLLECTION_PREFIX`.
+
+### Flujo de Eventos S3 -> Lambda -> Rekognition
 1. La subida finalizada del archivo selfie a S3 (`events/{eventId}/selfies/{registrationId}.jpg`) dispara un evento `ObjectCreated:Put` a la Lambda de inscripción facial.
-2. La Lambda ejecuta la API `IndexFaces` de AWS Rekognition sobre la colección del evento (`findly-collection-{eventId}`), pasando `ExternalImageId = registrationId`.
-3. Transiciones deterministas del registro en DynamoDB:
+2. La Lambda ejecuta la API `IndexFaces` de AWS Rekognition sobre la colección del evento (`findly-event-{eventId}`).
+3. Parámetros de `IndexFacesCommand`:
+   - `CollectionId`: `findly-event-{eventId}`
+   - `ExternalImageId`: `{registrationId}`
+   - `MaxFaces`: 1
+   - `QualityFilter`: `"AUTO"`
+4. Transiciones deterministas del registro en DynamoDB:
    - `UPLOAD_PENDING` -> `PROCESSING` -> `ENROLLED` (en caso de éxito).
    - `UPLOAD_PENDING` -> `PROCESSING` -> `FAILED` (si no se detecta ningún rostro o la calidad es insuficiente).
+
+### Ciclo de Vida de Colecciones de Rekognition
+- La colección de Rekognition se crea automáticamente al dar de alta el evento vía API Admin mediante `CreateCollectionCommand({ CollectionId: 'findly-event-' + eventId })`.
 
 ### Principios de Idempotencia y Resiliencia
 - Si el evento S3 se reintenta, la Lambda comprueba si `registrationId` ya posee `status == 'ENROLLED'`, evitando llamadas redundantes a Rekognition.
