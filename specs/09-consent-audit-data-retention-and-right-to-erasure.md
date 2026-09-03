@@ -3,33 +3,36 @@
 ## Objetivo
 Garantizar el cumplimiento estricto del Reglamento General de Protección de Datos (GDPR), minimizando los datos biométricos, auditando el consentimiento y proporcionando mecanismos automatizados mediante AWS EventBridge Scheduler, DynamoDB TTL y Rekognition `DeleteFaces` para la purga y derecho al olvido.
 
-## Requisitos de Consentimiento y Auditoría
-- **Trazabilidad de Consentimiento**: Cada registro almacena la versión del texto legal aceptado, fecha/hora exacta en formato ISO-8601 (`consentTimestamp`), dirección IP/User-Agent anonimizados y alcance del propósito.
-- **Minimización de Datos**: Prohibido almacenar imágenes originales de selfies de forma indefinida. Tras la indexación en Rekognition, la selfie original se elimina o se marca con ciclo de vida corto en S3.
+## Alineación con AWS Well-Architected Framework
+- **Seguridad y Privacidad**: Cumplimiento legal GDPR, minimización biométrica y trazabilidad auditable de consentimiento.
+- **Sostenibilidad y FinOps**: Purga automatizada de datos vencidos en S3, Rekognition y DynamoDB mediante EventBridge Scheduler y TTL.
 
-## Política de Retención y Borrado Automático en AWS
+## Especificación Técnica de Retención y Purgado AWS
+- **DynamoDB TTL**: Atributo `ttl` (epoch en segundos).
+- **S3 Lifecycle Rules**: Reglas de expiración automática de objetos.
+- **EventBridge Scheduler & Lambda `RetentionPurger`**: Cron diario (`cron(0 3 * * ? *)`) que invoca `DeleteCollectionCommand` para eventos caducados.
+- **Derecho al Olvido (`DELETE /registrations/{registrationId}`)**: Invoca `DeleteFacesCommand` en Rekognition, elimina la selfie en S3 y borra los registros `REG#*`, `MATCH#*` y `TOKEN#*` en DynamoDB.
 
-### 1. DynamoDB TTL
-- Todos los ítems de registro, fotos y matches incluyen el atributo `ttl` (epoch en segundos). DynamoDB elimina automáticamente los ítems caducados sin coste operativo.
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### 2. S3 Lifecycle Rules
-- Reglas automatizadas en los buckets S3 para expirar y purgar objetos al cumplirse el período de retención del evento (`retentionDays`).
+### Paso 1: Implementar la Lambda de Purga por Retención
+- En `build/lambdas/retention/index.ts`, consulta eventos caducados en DynamoDB.
+- Llama a `DeleteCollectionCommand` de Rekognition y borra el prefijo S3 del evento.
 
-### 3. Purga Automática via EventBridge Scheduler & Lambda `RetentionPurger`
-- **Cron EventBridge Scheduler**: Ejecución programada diaria (`cron(0 3 * * ? *)` a las 3:00 AM UTC).
-- Dispara la Lambda `RetentionPurger` (Memoria = `256 MB`, Timeout = `60 segundos`).
-- Busca eventos vencidos (`date + retentionDays < hoy`), ejecuta `DeleteCollectionCommand` en Rekognition para eliminar la colección del evento y purga los objetos S3 restantes.
+### Paso 2: Crear el Handler de Derecho al Olvido
+- En `build/lambdas/api/deleteRegistration.ts`, procesa la petición `DELETE /registrations/{id}`.
+- Borra de Rekognition, S3 y DynamoDB en una secuencia limpia con registro de auditoría sin PII.
 
-## Especificación del Derecho al Olvido (Right to Erasure)
+### Paso 3: Componente Frontend de Revocación
+- En React, crea `ErasureModal.tsx` con advertencia explicativa antes de enviar la petición de borrado.
 
-### Flujo de Revocación de Consentimiento en Backend (`DELETE /registrations/{registrationId}`)
-1. El usuario hace clic en "Eliminar mis datos biométricos" desde el pie de página de la galería o modal.
-2. La API Gateway encamina la petición `DELETE /registrations/{registrationId}` a la Lambda `RightToErasureHandler`.
-3. Acción en AWS Rekognition: Invocar `DeleteFacesCommand({ CollectionId: 'findly-event-' + eventId, FaceIds: [faceId] })`.
-4. Acción en Amazon S3: Borrar el objeto selfie `events/{eventId}/selfies/{registrationId}.jpg`.
-5. Acción en Amazon DynamoDB: Eliminar los registros `REG#{registrationId}`, `MATCH#*` y el token de galería asociado `TOKEN#{tokenHash}`.
-6. Confirmación al usuario y registro de auditoría sin PII.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Olvidar eliminar el vector facial de Rekognition (`DeleteFacesCommand`) al procesar el derecho al olvido.
+  - *Solución*: La imagen en S3 y el vector en Rekognition deben eliminarse simultáneamente.
+- ❌ **ERROR**: Dejar registros huérfanos en DynamoDB.
+  - *Solución*: Asegúrate de borrar `REG#{id}`, todas las coincidencias `MATCH#{photoId}` asociadas y el `TOKEN#{tokenHash}`.
 
-## Criterios de Aceptación
-- Un test de revocación demuestra la eliminación completa verificable: borrado de la selfie en S3, eliminación de `FaceId` en Rekognition, purga de registros en DynamoDB y anulación del token de galería.
-- Ningún dato personal o biométrico permanece accesible tras la ejecución del derecho al olvido.
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] Ejecutar el flujo de borrado desde el cliente elimina selfie en S3, `FaceId` en Rekognition y registros en DynamoDB.
+- [ ] La consulta posterior de la galería con ese token devuelve HTTP 404 Not Found.
+- [ ] Las pruebas unitarias del purgador de retención pasan en verde.
