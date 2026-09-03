@@ -3,6 +3,10 @@
 ## Objetivo
 Permitir el despliegue controlado de infraestructura y código hacia AWS sin utilizar credenciales ni claves de acceso de larga duración (`AWS_ACCESS_KEY_ID`), integrando autenticación federada OpenID Connect (OIDC) entre GitHub Actions y AWS IAM.
 
+## Alineación con AWS Well-Architected Framework
+- **Seguridad**: Cero credenciales de acceso de larga duración guardadas en GitHub Secrets; uso de asunción de rol temporal mediante OIDC IAM.
+- **Excelencia Operativa**: Despliegue automatizado con sincronización S3 (`aws s3 sync dist/`) e invalidación de caché en CloudFront.
+
 ## Especificación del Workflow de Despliegue Continuo (`.github/workflows/cd.yml`)
 
 ```yaml
@@ -42,7 +46,7 @@ jobs:
       - name: Deploy Static Web to S3
         run: |
           npm run build
-          aws s3 sync out/ s3://findly-web-${{ inputs.environment }} --delete
+          aws s3 sync dist/ s3://findly-web-${{ inputs.environment }} --delete
           
       - name: Invalidate CloudFront Cache
         run: |
@@ -50,15 +54,23 @@ jobs:
           aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
 ```
 
-## Requisitos de Seguridad y Control
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Configuración OIDC en AWS IAM
-- Asunción de rol mediante `aws-actions/configure-aws-credentials` configurado con OIDC sin credenciales estáticas.
-- Trust Policy restringida exclusivamente al repositorio `upc-malvaviscos/findly` y al entorno correspondiente.
+### Paso 1: Configurar el Workflow YAML
+- En `.github/workflows/cd.yml`, copia la especificación YAML.
+- Asegúrate de sustituir `ACCOUNT_ID` por el secreto o variable de entorno de AWS Account.
 
-### Aprobación de Entornos Protegidos
-- Exigencia de aprobación manual previa en los GitHub Environments para despliegues en `demo` o `production`.
+### Paso 2: Probar el Despliegue en Sandbox
+- Ejecuta manualmente el workflow mediante `workflow_dispatch` seleccionando `sandbox`.
+- Comprueba que la compilación `dist/` se transfiere a S3 y que CloudFront recibe la invalidación `/*`.
 
-## Criterios de Aceptación
-- La ejecución del despliegue queda registrada con SHA de Git, usuario aprobador, outputs de Terraform no sensibles y confirmación de invalidación de CloudFront.
-- No existen claves estáticas de AWS almacenadas en los secretos del repositorio de GitHub.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Intentar sincronizar la carpeta antigua `out/` en lugar de `dist/`.
+  - *Solución*: Dado que migramos a Vite (ADR-001), el directorio estático es `dist/`.
+- ❌ **ERROR**: Olvidar la bandera `--delete` en `aws s3 sync`.
+  - *Solución*: De lo contrario, archivos obsoletos o borrados permanecerán en S3.
+
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] El workflow CD usa OIDC para asumir el rol IAM sin credenciales estáticas.
+- [ ] La carpeta `dist/` se sincroniza correctamente con S3.
+- [ ] La invalidación de caché de CloudFront se ejecuta al finalizar la sincronización.
