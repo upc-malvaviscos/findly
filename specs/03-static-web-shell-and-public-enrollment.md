@@ -1,13 +1,14 @@
 # 03 - Web estática e inscripción pública
 
 ## Objetivo
-Entregar una experiencia de usuario estática, rápida, accesible e intuitiva en Next.js (`output: export`) para el registro de asistentes y captura/subida de selfies de forma segura sin requerir servidores Node.js en ejecución.
+Entregar una experiencia de usuario estática, rápida, accesible e intuitiva en Next.js (`output: export`) servida a través de Amazon CloudFront y Amazon S3 con Origin Access Control (OAC), permitiendo el registro de asistentes y captura/subida de selfies sin servidores Node.js en ejecución.
 
-## Requisitos de Arquitectura Frontend
+## Requisitos de Arquitectura Frontend y AWS CDN
 
-### Configuración Next.js
-- Utilizar `output: export` en `next.config.mjs` para generación de sitio web 100% estático servido desde AWS CloudFront + S3.
-- Sin Server-Side Rendering (SSR) dinámico ni API Routes de Next.js. Las llamadas a API se realizan directamente a Amazon API Gateway desde el cliente.
+### Configuración Next.js & CloudFront OAC
+- Utilizar `output: export` en `next.config.mjs` para generación de sitio web 100% estático.
+- Distribución de CloudFront configurada con Origin Access Control (OAC) impidiendo el acceso directo al bucket S3 de la web.
+- Redirección automática de HTTP a HTTPS y política de TLS `TLSv1.2_2021`.
 
 ### Árbol de Componentes React
 - `EnrollmentPage`: Página contenedora principal en `/` o `/enroll`.
@@ -21,7 +22,7 @@ Entregar una experiencia de usuario estática, rápida, accesible e intuitiva en
 ### Máquina de Estados de la Interfaz (UI State Machine)
 - `IDLE`: Esperando que el usuario cargue o capture una foto y complete el formulario.
 - `VALIDATING`: Comprobación local de restricciones (tamaño <= 10 MB, tipo `image/jpeg` / `image/png`).
-- `REQUESTING_URL`: Llamada HTTP `POST /events/{eventId}/registrations` para obtener `registrationId` y `uploadUrl`.
+- `REQUESTING_URL`: Llamada HTTP `POST /events/{eventId}/registrations` a API Gateway para obtener `registrationId` y `uploadUrl`.
 - `UPLOADING_S3`: Petición `PUT` directa con binario a la URL prefirmada de S3 con listener de progreso `onprogress`.
 - `POLLING_INDEX`: Consultas periódicas a `GET /registrations/{id}/status` (cada 1.5s, máx 10 reintentos) hasta estado `ENROLLED`.
 - `SUCCESS`: Muestra el código de inscripción, confirmación de guardado y botón para guardar/copiar el enlace de la futura galería.
@@ -58,4 +59,4 @@ export const enrollmentFormSchema = z.object({
 ## Criterios de Aceptación
 - La compilación `npm run build` genera un sitio estático correcto en `out/`.
 - Pruebas E2E en Playwright verifican: formulario semántico, validación de 10 MB, consentimiento requerido y simulación de subida exitosa.
-- Cero almacenamiento de claves AWS o código privileged dentro del paquete JavaScript cliente.
+- Cero almacenamiento de claves AWS o código privilegiado dentro del paquete JavaScript cliente.
