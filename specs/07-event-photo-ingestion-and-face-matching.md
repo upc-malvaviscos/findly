@@ -1,23 +1,33 @@
 # 07 - Ingesta de fotos de evento y matching facial
 
 ## Objetivo
-Procesar asíncronamente las fotografías publicadas por los fotógrafos/organizadores del evento, detectando todos los rostros presentes mediante AWS Rekognition y relacionándolos de forma segura con los asistentes inscritos que hayan otorgado su consentimiento.
+Procesar asíncronamente las fotografías publicadas por los fotógrafos/organizadores del evento mediante un patrón desacoplado S3 -> SQS -> Lambda, detectando todos los rostros presentes con AWS Rekognition y relacionándolos de forma segura con los asistentes inscritos que hayan otorgado su consentimiento.
 
-## Arquitectura del Pipeline de Matching
+## Arquitectura de Desacoplamiento y Resiliencia (AWS Best Practices)
 
-### Ingesta y Disparo Lambda
-1. La carga de una foto de evento en `events/{eventId}/photos/{photoId}.jpg` dispara la Lambda de matching facial via eventos de S3.
-2. La Lambda ejecuta la API `SearchFacesByImage` de AWS Rekognition sobre la colección del evento (`findly-collection-{eventId}`).
-3. Umbral de Similitud: Configurado por defecto al **95.0%** (`FaceMatchThreshold`), definido como variable configurable en Terraform (`var.matching_threshold`).
+### Pipeline de Eventos: S3 -> SQS -> Lambda
+1. La carga de fotos en `events/{eventId}/photos/{photoId}.jpg` genera un evento `ObjectCreated:Put` en S3.
+2. S3 envía una notificación a la cola de Amazon SQS `findly-photos-queue-${var.environment}`.
+3. La Lambda `PhotoMatcher` consume los mensajes de SQS en lotes (`batch_size = 5`).
+4. **Cola Dead-Letter (DLQ)**: Configurada `findly-photos-dlq-${var.environment}` con `maxReceiveCount = 3` y alarma CloudWatch asociada para capturar mensajes no procesados tras fallos persistentes.
+
+### Configuración de Servicios AWS
+- **Lambda `PhotoMatcher`**: Memoria = `512 MB`, Timeout = `30 segundos`.
+- **SQS Queue**: `VisibilityTimeoutSeconds = 180` (6 veces el timeout de la Lambda para evitar duplicidad durante la ejecución).
+- **Retención SQS**: `14 días` (`MessageRetentionSeconds = 1209600`).
+
+### Invocación Rekognition `SearchFacesByImage`
+- Parámetros de `SearchFacesByImageCommand`:
+  - `CollectionId`: `findly-event-{eventId}`
+  - `FaceMatchThreshold`: `95.0` (configurable vía variable Terraform `var.matching_threshold`).
+  - `MaxFaces`: `50` (para soportar fotos grupales).
 
 ### Persistencia de Coincidencias (DynamoDB)
-- Para cada coincidencia por encima del umbral (95%), la Lambda escribe una entidad `Match` en DynamoDB con clave `PK = REG#{registrationId}` y `SK = MATCH#{photoId}`.
+- Por cada rostro coincidente devuelto por Rekognition con similitud >= 95%, la Lambda consulta el `registrationId` en el `GSI1` usando `GSI1PK = FACE#{faceId}`.
+- Escribe una entidad `Match` en DynamoDB con `PK = REG#{registrationId}` y `SK = MATCH#{photoId}`.
 - Campos almacenados: `eventId`, `photoId`, `similarity` (ej: 98.42), `matchedAt` (ISO-8601), y `ttl` para purga automática.
-
-### Resiliencia y Control de Errores
-- Evaluación de cola SQS/DLQ: En caso de picos masivos de fotos subidas por administradores, los mensajes no procesados reintentan automáticamente y se desvían a una cola Dead-Letter Queue (DLQ) con alarma CloudWatch.
 
 ## Criterios de Aceptación
 - Una foto de evento con coincidencia >= 95% crea el registro `Match` correspondiente en DynamoDB asociándolo al asistente.
-- Si no hay coincidencias o el nivel de confianza es < 95%, no se crean registros de coincidencia ni se genera token de galería vacía.
-- La ejecución ante imágenes masivas o corruptas no interrumpe el pipeline y queda registrada con su identificador de correlación.
+- Si no hay coincidencias o el nivel de confianza es < 95%, no se crean registros de coincidencia.
+- Ante fallos de red o de Rekognition, SQS reintenta automáticamente hasta 3 veces antes de desviar el mensaje a la DLQ de forma observable.
