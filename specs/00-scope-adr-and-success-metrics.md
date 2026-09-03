@@ -59,6 +59,6 @@ Se exige registrar los siguientes ADRs en `docs/adr/`:
   - *Solución*: Mantiene el alcance estrictamente acotado al MVP serverless definido.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] La lista de inclusiones y exclusiones coincide con `README.md` y `docs/paper/`.
-- [ ] Todos los ADRs listados existen en la carpeta `docs/adr/`.
-- [ ] Cada métrica tiene definida su fuente de telemetría y responsable.
+- [x] La lista de inclusiones y exclusiones coincide con `README.md` y `docs/paper/`.
+- [x] Todos los ADRs listados existen en la carpeta `docs/adr/`.
+- [x] Cada métrica tiene definida su fuente de telemetría y responsable.

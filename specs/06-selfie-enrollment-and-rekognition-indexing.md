@@ -10,7 +10,7 @@ Procesar asíncronamente las selfies subidas por los asistentes, indexando la in
 ## Arquitectura de Procesamiento Asíncrono Backend
 
 ### Configuración Lambda (`SelfieIndexer`)
-- **Runtime**: Node.js 22.x LTS.
+- **Runtime**: Node.js 24.x LTS.
 - **Memoria**: `512 MB`, **Timeout**: `10 segundos`.
 - **Variables de Entorno**: `TABLE_NAME`, `REKOGNITION_COLLECTION_PREFIX`.
 
