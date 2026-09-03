@@ -39,6 +39,10 @@ Presenta un plan breve y concreto antes de modificar código. Incluye:
 
 El plan debe ser lo bastante pequeño como para revisar cada paso, pero completo para que no deje cambios implícitos. Para cambios que alteren arquitectura, datos, permisos, coste o comportamiento público, espera confirmación del plan antes de empezar la fase de implementación. Para tareas mecánicas y acotadas, indica el plan y continúa.
 
+### Decisiones con la persona responsable
+
+Mantén a la persona responsable en el circuito de decisión. Si durante la investigación o implementación aparece una alternativa que cambie la reproducibilidad, arquitectura, seguridad, privacidad, coste, CI/CD, contratos o alcance, no adoptes un atajo ni una solución temporal de forma unilateral. Expón el problema, las opciones relevantes y sus consecuencias, y espera la decisión antes de modificar el enfoque. Ante una ambigüedad material, pregunta: es preferible detenerse a introducir una corrección que oculte la causa.
+
 ### 3. Implement
 
 Implementa solo lo planificado. Mantén TypeScript estricto: no uses `any`, supresiones de ESLint ni atajos que oculten errores. Prefiere módulos pequeños, contratos tipados y comentarios que expliquen decisiones no evidentes, no el funcionamiento literal.
