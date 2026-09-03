@@ -1,27 +1,30 @@
 # 16 - Validación integral, pruebas unitarias, contratos y E2E
 
 ## Objetivo
-Establecer la estrategia completa de verificación técnica y calidad del sistema, cubriendo desde pruebas unitarias aisladas hasta pruebas de integración de Lambdas con mocks del AWS SDK v3 y flujos End-to-End en navegadores reales con Playwright.
+Establecer la estrategia completa de verificación técnica y calidad del sistema en React + Vite, cubriendo desde pruebas unitarias aisladas hasta pruebas de integración de Lambdas con mocks del AWS SDK v3 y flujos End-to-End en navegadores reales con Playwright.
 
-## Niveles de Validación y Cobertura
+## Alineación con AWS Well-Architected Framework
+- **Excelencia Operativa**: Verificación técnica automatizada multi-capa (Vitest + React Testing Library + Playwright E2E) con cobertura del 90%.
 
-### 1. Pruebas Unitarias y de Contratos (Vitest)
-- Validación de serialización Zod y DTOs en cliente y backend.
-- Pruebas unitarias de componentes React en Frontend utilizando `@testing-library/react`.
-- Cobertura de código mínima exigida: **90%** en componentes de lógica de negocio e integraciones.
+## Estrategia de Pruebas
+1. **Unitario & Componentes**: Vitest + `@testing-library/react`.
+2. **Integración Lambda**: `aws-sdk-client-mock` en Node.js 22.
+3. **E2E**: Playwright sobre la compilación estática `dist/`.
 
-### 2. Pruebas de Integración de Lambdas y AWS SDK Mocks
-- Ejecución de Lambdas localmente simulando clientes AWS con `aws-sdk-client-mock`.
-- Verificación de la manipulación de eventos S3 (`ObjectCreated:Put`), consumo de SQS, indexación en Rekognition y escrituras DynamoDB Single-Table.
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### 3. Pruebas End-to-End (Playwright E2E)
-- Suite completa en Playwright ejecutada contra la compilación estática `out/`.
-- Flujos probados:
-  - Registro de asistente con captura de selfie (con mocks de respuesta de presigned URL y polling).
-  - Carga masiva de fotos en el panel de administración.
-  - Visualización de la galería privada `/gallery?token=valid-token`.
-  - Ejercicio del derecho al olvido (solicitud de borrado).
+### Paso 1: Configurar Vitest y Mocks de AWS
+- En `vitest.config.ts`, configura los alias de módulo.
+- Usa `aws-sdk-client-mock` para simular respuestas de Rekognition, DynamoDB y S3 en los tests de Lambdas.
 
-## Criterios de Aceptación
-- La matriz de pruebas documentada en `docs/paper/08-validacion-y-resultados.md` está completa con evidencias de ejecución en verde.
-- Todos los comandos de prueba (`npm run test`, `npm run test:e2e`) finalizan con código de salida 0 en el CI.
+### Paso 2: Crear la Suite E2E en Playwright
+- En `e2e/enrollment.spec.ts`, escribe las pruebas que simulen la navegación y registro.
+- Ejecuta `npm run test:e2e`.
+
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Realizar llamadas reales a las APIs de AWS (Rekognition/DynamoDB) durante las pruebas unitarias.
+  - *Solución*: Utiliza siempre `aws-sdk-client-mock` para aislar las pruebas y evitar costes en AWS.
+
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] `npm run test` alcanza una cobertura >= 90% en la lógica de negocio.
+- [ ] `npm run test:e2e` completa exitosamente sin errores de tiempo de espera.
