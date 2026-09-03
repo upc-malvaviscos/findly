@@ -1,0 +1,17 @@
+name: Non-production teardown handoff
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  guarded-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo "No resources are destroyed until the platform team implements and approves specs/15-scheduled-nonproduction-teardown.md."

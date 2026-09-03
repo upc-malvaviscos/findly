@@ -1,0 +1,21 @@
+name: Deployment handoff
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [sandbox, demo, production]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo "Deployment is intentionally pending the platform team's Terraform implementation for ${{ inputs.environment }}."
