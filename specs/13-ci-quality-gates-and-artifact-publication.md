@@ -3,28 +3,30 @@
 ## Objetivo
 Configurar pipelines automatizados en GitHub Actions para validar la calidad del código, verificar la sintaxis de infraestructura Terraform con caché de dependencias y publicar artefactos probados antes de integrar en la rama principal.
 
+## Alineación con AWS Well-Architected Framework
+- **Excelencia Operativa**: Puertas de calidad automatizadas mediante matriz de trabajos paralelos (`job_lint`, `job_types`, `job_unit_tests`, `job_e2e_tests`, `job_terraform`), caching de dependencias y empaquetado zip de Lambdas.
+
 ## Requisitos del Pipeline de CI (`.github/workflows/ci.yml`)
+- Caching con `actions/cache@v4` para dependencias Node.
+- Matriz de validación: Linting (ESLint, Markdownlint, `tflint`, `actionlint`), comprobación de tipos, tests Vitest, E2E Playwright y empaquetado Lambda.
+- Publicación de artefactos `dist/` e informes de cobertura.
 
-### Estrategia de Caché de Dependencias
-```yaml
-- uses: actions/cache@v4
-  with:
-    path: ~/.npm
-    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-```
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Trabajos Paralelos (Quality Gates)
-1. **Validación de Commits y Sintaxis (`job_lint`)**: `commitlint`, `actionlint` y `markdownlint`.
-2. **Análisis Estático y Tipos (`job_types`)**: ESLint en modo estricto y chequeo de tipos TypeScript (`tsc --noEmit`).
-3. **Pruebas Unitarias e Integración (`job_unit_tests`)**: Vitest con `aws-sdk-client-mock` y reporte de cobertura.
-4. **Pruebas E2E (`job_e2e_tests`)**: Suite de Playwright ejecutada contra el build estático.
-5. **Validación de Infraestructura (`job_terraform`)**: `terraform fmt -check`, `terraform validate` y `tflint`.
-6. **Empaquetado Lambda (`job_package`)**: Verificación de empaquetado de artefactos `.zip` para funciones Lambda.
+### Paso 1: Crear la Estructura del Workflow
+- En `.github/workflows/ci.yml`, configura el disparo `on: [push, pull_request]`.
 
-### Publicación de Artefactos de CI
-- Publicar el build estático `out/` como artefacto descargable en GitHub Actions.
-- Guardar reportes de cobertura de código y resultados de Playwright HTML para trazabilidad y auditoría.
+### Paso 2: Implementar la Matriz de Trabajos
+- Define trabajos paralelos independientes para acelerar el pipeline de CI.
+- Añade el paso de caching con `actions/cache@v4`.
 
-## Criterios de Aceptación
-- Una Pull Request con errores de lint, tipos o pruebas fallidas es bloqueada automáticamente por las puertas de calidad de GitHub.
-- Los artefactos generados son reproducibles y descargables desde el resumen de la ejecución del workflow en GitHub Actions.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Olvidar instalar o validar `tflint` en el pipeline de CI.
+  - *Solución*: Asegúrate de ejecutar `tflint` para detectar errores de sintaxis y buenas prácticas en Terraform antes del merge.
+- ❌ **ERROR**: Hacer que todos los trabajos se ejecuten de forma secuencial lenta.
+  - *Solución*: Declara trabajos (`jobs`) independientes para aprovechar el paralelismo de GitHub Actions.
+
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] El pipeline de CI se ejecuta en paralelo y completa en menos de 3 minutos.
+- [ ] La compilación estática de React + Vite en `dist/` se sube como artefacto de CI.
+- [ ] `actionlint` no detecta sintaxis inválida en los workflows YAML.
