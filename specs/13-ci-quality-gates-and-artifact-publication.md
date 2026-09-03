@@ -1,12 +1,22 @@
-# 13 - CI y artefactos
+# 13 - Integración continua (CI), puertas de calidad y publicación de artefactos
 
 ## Objetivo
-Bloquear regresiones antes de integrar cambios.
+Configurar pipelines automatizados en GitHub Actions para validar la calidad del código, prevenir regresiones y publicar artefactos probados antes de cualquier integración en la rama principal.
 
-## Requisitos
-- Ejecutar commitlint, ESLint, TypeScript, Vitest, Playwright, Markdownlint, actionlint, Terraform fmt/validate y empaquetado Lambda.
-- Publicar `out/`, zips Lambda y documentación como artefactos versionados de GitHub Actions.
-- Fallar ante YAML inválido, Markdown sin formato o infraestructura sin validar.
+## Requisitos del Pipeline de CI (`.github/workflows/ci.yml`)
 
-## Aceptación
-Una PR defectuosa falla en la puerta correspondiente y una PR válida conserva artefactos descargables.
+### Puertas de Calidad (Quality Gates)
+1. **Validación de Commits y Sintaxis**: `commitlint`, `actionlint` y `markdownlint`.
+2. **Análisis Estático y Tipos**: ESLint en modo estricto y chequeo de tipos TypeScript (`tsc --noEmit`).
+3. **Pruebas Unitarias e Integración**: Vitest con reporte de cobertura.
+4. **Pruebas E2E**: Suite de Playwright ejecutada contra el build estático.
+5. **Validación de Infraestructura**: `terraform fmt -check`, `terraform validate` y `tflint`.
+6. **Empaquetado Lambda**: Verificación de empaquetado de artefactos `.zip` para funciones Lambda.
+
+### Publicación de Artefactos de CI
+- Publicar el build estático `out/` como artefacto descargable en GitHub Actions.
+- Guardar reportes de cobertura de código y resultados de Playwright HTML para trazabilidad y auditoría.
+
+## Criterios de Aceptación
+- Una Pull Request con errores de lint, tipos o pruebas fallidas es bloqueada automáticamente por las puertas de calidad de GitHub.
+- Los artefactos generados son reproducibles y descargables desde el resumen de la ejecución del workflow en GitHub Actions.
