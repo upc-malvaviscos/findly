@@ -3,62 +3,34 @@
 ## Objetivo
 Declarar de forma segura toda la arquitectura de la aplicación en Terraform aplicando el principio de mínimo privilegio en los roles IAM, configurando la autenticación federada OIDC para GitHub Actions y garantizando la ausencia de costes fijos mensuales.
 
-## Recursos de Infraestructura Serverless
-- **Almacenamiento (S3)**: Buckets privados para frontend (`out/`), selfies y fotos de eventos con cifrado SSE-S3 y bloqueo público.
-- **Base de Datos (DynamoDB)**: Tabla única con facturación On-Demand (`PAY_PER_REQUEST`) e índice secundario global (GSI1).
-- **Cómputo (AWS Lambda)**: Funciones Node.js 22.x para pre-firmado, indexación facial, matching, consulta de galería y purga.
-- **Desacoplamiento (Amazon SQS & DLQ)**: Colas SQS para desacoplar la ingesta de fotos con cola Dead-Letter (DLQ) para reintentos seguros.
-- **API Management (Amazon API Gateway HTTP API)**: Rutas HTTP REST con autorizador JWT de Cognito para administración, throttling y CORS estricto.
-- **Distribución de Contenidos (AWS CloudFront)**: CDN global servida a través de HTTPS con Origin Access Control (OAC) hacia S3.
-- **Autenticación (AWS Cognito)**: User Pool y App Client sin secreto para Single Page Application.
-- **Motor Biométrico (AWS Rekognition)**: Colección de vectores faciales por evento.
+## Alineación con AWS Well-Architected Framework
+- **Seguridad**: Autenticación OIDC federada sin claves de acceso estáticas; Origin Access Control (OAC) en CloudFront; roles IAM asignados individualmente por función Lambda.
+- **Optimización de Costes (FinOps)**: Ausencia total de recursos con coste por hora (RDS, NAT Gateways, ALB, EC2).
 
-## Especificaciones de Seguridad e IAM (DevOps Best Practices)
+## Declaración de Recursos IaC (Terraform)
+- **S3 & CloudFront OAC**: Buckets privados y política restringida a CloudFront mediante `aws_cloudfront_origin_access_control`.
+- **Cognito & API Gateway**: User Pool sin secreto cliente y `aws_apigatewayv2_authorizer` de tipo JWT.
+- **OIDC Provider (`oidc.tf`)**: `aws_iam_openid_connect_provider` federando `token.actions.githubusercontent.com`.
+- **Lambda Permissions**: Permisos `aws_lambda_permission` explícitos por endpoint.
 
-### Configuración del OIDC Provider para GitHub Actions (`oidc.tf`)
-```hcl
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
-}
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-resource "aws_iam_role" "github_ci_cd" {
-  name = "findly-github-actions-${var.environment}"
+### Paso 1: Configurar el Proveedor OIDC
+- En `infra/modules/iam/oidc.tf`, declara el rol `aws_iam_role.github_ci_cd` con la política de confianza restringida al repositorio `upc-malvaviscos/findly`.
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
-        }
-        Action = "sts:AssumeRoleWithWebIdentity"
-        Condition = {
-          StringLike = {
-            "token.actions.githubusercontent.com:sub" : "repo:upc-malvaviscos/findly:*"
-          }
-        }
-      }
-    ]
-  })
-}
-```
+### Paso 2: Crear la Configuración de CloudFront OAC
+- En `infra/modules/cloudfront/main.tf`, declara `aws_cloudfront_origin_access_control` y adjunta la política S3 correspondiente en el bucket de la web.
 
-### CloudFront Origin Access Control (OAC)
-```hcl
-resource "aws_cloudfront_origin_access_control" "website" {
-  name                              = "findly-oac-${var.environment}"
-  origin_access_control_origin_type = "s3"
-  signing_behavior                  = "always"
-  signing_protocol                  = "sigv4"
-}
-```
+### Paso 3: Asignar Roles de Ejecución a Lambdas
+- Asegúrate de que cada función Lambda usa su propio rol IAM con permisos restrictivos por ARN de bucket y tabla.
 
-### Permisos de Invocación de API Gateway a Lambda (`aws_lambda_permission`)
-- Declarar explícitamente `aws_lambda_permission` por cada función invocada desde API Gateway, restringiendo el `source_arn` al API Gateway del entorno objetivo.
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Usar `Action = "*"` o `Resource = "*"` en las políticas IAM de las Lambdas.
+  - *Solución*: Especifica siempre las acciones exactas (`s3:PutObject`, `dynamodb:PutItem`) y los ARNs de los recursos.
+- ❌ **ERROR**: Olvidar agregar `aws_lambda_permission` para autorizar a API Gateway.
+  - *Solución*: De lo contrario API Gateway devolverá error `500 Internal Server Error` al no poder invocar la Lambda.
 
-## Criterios de Aceptación
-- La ejecución de `terraform fmt -check`, `terraform validate` y `tflint` pasa sin errores.
-- El comando `terraform plan` no incluye recursos con coste fijo por hora (RDS, NAT Gateway, instancias EC2).
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] `terraform fmt -check`, `terraform validate` y `tflint` pasan sin advertencias.
+- [ ] `terraform plan` no aprovisiona recursos con costes fijos (VPCs, RDS, EC2).
+- [ ] Los buckets S3 son 100% privados y usan cifrado SSE-S3.
