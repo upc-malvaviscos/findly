@@ -1,7 +1,7 @@
 # 11 - Infraestructura serverless segura y políticas IAM
 
 ## Objetivo
-Declarar de forma segura toda la arquitectura de la aplicación en Terraform aplicando el principio de mínimo privilegio en los roles IAM y garantizando la ausencia de costes fijos mensuales (sin VPCs ni instancias RDS).
+Declarar de forma segura toda la arquitectura de la aplicación en Terraform aplicando el principio de mínimo privilegio en los roles IAM, configurando la autenticación federada OIDC para GitHub Actions y garantizando la ausencia de costes fijos mensuales.
 
 ## Recursos de Infraestructura Serverless
 - **Almacenamiento (S3)**: Buckets privados para frontend (`out/`), selfies y fotos de eventos con cifrado SSE-S3 y bloqueo público.
@@ -13,7 +13,38 @@ Declarar de forma segura toda la arquitectura de la aplicación en Terraform apl
 - **Autenticación (AWS Cognito)**: User Pool y App Client sin secreto para Single Page Application.
 - **Motor Biométrico (AWS Rekognition)**: Colección de vectores faciales por evento.
 
-## Especificaciones de Seguridad e IAM (AWS Best Practices)
+## Especificaciones de Seguridad e IAM (DevOps Best Practices)
+
+### Configuración del OIDC Provider para GitHub Actions (`oidc.tf`)
+```hcl
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}
+
+resource "aws_iam_role" "github_ci_cd" {
+  name = "findly-github-actions-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" : "repo:upc-malvaviscos/findly:*"
+          }
+        }
+      }
+    ]
+  })
+}
+```
 
 ### CloudFront Origin Access Control (OAC)
 ```hcl
@@ -25,33 +56,8 @@ resource "aws_cloudfront_origin_access_control" "website" {
 }
 ```
 
-### Política de Bucket S3 Restringida a CloudFront
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowCloudFrontServicePrincipalReadOnly",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "cloudfront.amazonaws.com"
-      },
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::findly-web-${var.environment}/*",
-      "Condition": {
-        "StringEquals": {
-          "AWS:SourceArn": "arn:aws:cloudfront::${var.aws_account_id}:distribution/${aws_cloudfront_distribution.website.id}"
-        }
-      }
-    }
-  ]
-}
-```
-
-### Principios de Seguridad IAM
-- Cada función Lambda dispone de su propio rol de ejecución IAM asignado explícitamente (`Least Privilege`).
-- Restricción de permisos S3 por prefijo exacto (`arn:aws:s3:::bucket/events/${eventId}/*`).
-- Prohibición de otorgar permisos `AdministratorAccess` ni comodines desprotegidos (`*`) salvo excepciones registradas por ADR.
+### Permisos de Invocación de API Gateway a Lambda (`aws_lambda_permission`)
+- Declarar explícitamente `aws_lambda_permission` por cada función invocada desde API Gateway, restringiendo el `source_arn` al API Gateway del entorno objetivo.
 
 ## Criterios de Aceptación
 - La ejecución de `terraform fmt -check`, `terraform validate` y `tflint` pasa sin errores.
