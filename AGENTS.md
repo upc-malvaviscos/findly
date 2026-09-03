@@ -57,6 +57,7 @@ Revisa y actualiza, cuando aplique:
 - los ADRs en `docs/adr/` cuando la implementación confirme, modifique o introduzca una decisión arquitectónica;
 - el `README.md`, la memoria en `docs/paper/` y la evidencia en `docs/evidence/`;
 - diagramas de arquitectura, flujos, contratos, modelos de datos y recursos AWS representados.
+- la GitHub Issue en la que se ha trabajado: añade un comentario con alcance, PR, validaciones, evidencia y pendientes; ciérrala únicamente cuando todos sus criterios estén verificados.
 
 La documentación debe describir exactamente lo implementado y validado, no el diseño anterior ni trabajo futuro presentado como hecho. Si existe una discrepancia que no se pueda resolver sin cambiar alcance o tomar una decisión, documéntala como pendiente y solicita la decisión necesaria antes de declararla sincronizada.
 

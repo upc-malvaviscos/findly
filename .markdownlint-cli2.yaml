@@ -4,4 +4,6 @@ config:
   MD032: false
   MD033: false
   MD034: false
+  MD040: false
   MD041: false
+  MD009: false

@@ -1,0 +1,4 @@
+# Valores no sensibles de ejemplo para los futuros entornos Terraform.
+# No añadas secretos, credenciales ni estados a este fichero.
+project = "findly"
+environment = "sandbox"
