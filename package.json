@@ -43,6 +43,7 @@
     "@playwright/test": "1.62.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
+    "aws-sdk-client-mock": "4.1.0",
     "@types/node": "24.11.1",
     "@types/react": "19.2.8",
     "@types/react-dom": "19.2.3",

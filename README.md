@@ -2,6 +2,10 @@
 
 Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la UPC. Permite a asistentes de un evento inscribirse con consentimiento explícito y una selfie, localizar coincidencias en fotografías de evento y recibir una galería privada de duración limitada.
 
+## Alcance del MVP
+
+El MVP usa únicamente imágenes sintéticas o autorizadas y consentimiento biométrico explícito. Excluye vigilancia o vídeo en tiempo real, tratamiento de datos de menores, alta disponibilidad o despliegue multirregión, RDS, EC2, VPC, NAT, EKS, notificaciones masivas por correo/SMS y otros servicios persistentes de coste fijo.
+
 ## Flujo del MVP
 
 1. El asistente acepta el consentimiento biométrico y carga una selfie mediante una URL prefirmada.

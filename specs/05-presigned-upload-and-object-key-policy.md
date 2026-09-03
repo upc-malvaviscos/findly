@@ -25,7 +25,7 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
 ### Paso 1: Implementar el Generador de URLs en Lambda
-- Usa `@aws-sdk/s3-request-presigner` y `PutObjectCommand` en Node.js 22.
+- Usa `@aws-sdk/s3-request-presigner` y `PutObjectCommand` en Node.js 24.
 - Configura `expiresIn: 300` y pasa el `ContentType` de la imagen.
 
 ### Paso 2: Crear el Helper Frontend (`uploadFileToS3`)

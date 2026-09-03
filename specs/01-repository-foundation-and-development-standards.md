@@ -10,7 +10,7 @@ Establecer y mantener una base de código reproducible, robusta y con calidad au
 ## Requisitos Técnicos y Estándares Cloud
 
 ### Entorno y Herramientas Base
-- **Runtime**: Node.js 22.x LTS.
+- **Runtime**: Node.js 24.x LTS.
 - **Lenguaje**: TypeScript en modo estricto (`strict: true`, `noImplicitAny: true`).
 - **Framework Web**: React 18+ empaquetado con **Vite** (generación estática SPA en `dist/`).
 - **Testing**:
@@ -32,7 +32,7 @@ El archivo `package.json` debe exponer los siguientes comandos unificados:
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
 ### Paso 1: Configurar Node y Vite
-- Verifica que usas Node 22 (`node -v`).
+- Verifica que usas Node 24 (`node -v`).
 - Inicializa el proyecto con Vite si es necesario o ajusta `vite.config.ts` para que la salida de compilación sea la carpeta `dist/`.
 
 ### Paso 2: Configurar Linters y Git Hooks
@@ -49,6 +49,6 @@ El archivo `package.json` debe exponer los siguientes comandos unificados:
   - *Solución*: Define las interfaces o tipos genéricos adecuados. El modo estricto rechazará el uso de `any`.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] `npm run verify` se ejecuta localmente y finaliza en verde sin advertencias.
-- [ ] No se incluyen comentarios en código que expliquen "QUÉ" hace la función (solo explicaciones de decisiones no obvias de "POR QUÉ").
-- [ ] Ningún secreto ni archivo `.env` ha sido incluido en el commit.
+- [x] `npm run verify` se ejecuta localmente y finaliza en verde sin advertencias.
+- [x] No se incluyen comentarios en código que expliquen "QUÉ" hace la función (solo explicaciones de decisiones no obvias de "POR QUÉ").
+- [x] Ningún secreto ni archivo `.env` ha sido incluido en el commit.
