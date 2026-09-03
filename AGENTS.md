@@ -62,7 +62,7 @@ La documentación debe describir exactamente lo implementado y validado, no el d
 
 ## Validación y entrega
 
-Usa Node.js 22. Cuando estén disponibles, ejecuta los comandos definidos en la spec de fundación:
+Usa Node.js 24. Cuando estén disponibles, ejecuta los comandos definidos en la spec de fundación:
 
 ```sh
 npm run lint
