@@ -3,24 +3,42 @@
 ## Objetivo
 Permitir la transferencia segura de imágenes directamente desde el navegador a buckets S3 privados mediante URLs `PUT` prefirmadas, sin exponer credenciales ni permisos de AWS al cliente web.
 
-## Requisitos de Seguridad y Políticas de S3
+## Requisitos de Seguridad y Políticas de S3 (AWS Architect Specification)
 
 ### Configuración del Bucket S3
 - Bucket 100% privado con bloqueo de acceso público (`Block Public Access` activado).
 - Cifrado en reposo obligatorio con SSE-S3 (`AES256`).
-- Configuración CORS restringida estrictamente al origen del dominio del frontend web.
+- Configuración CORS restringida estrictamente al origen del dominio del frontend web (`var.frontend_domain_url`).
 
-### Reglas de URLs Prefirmadas (Backend Lambda)
+### Reglas de URLs Prefirmadas (Backend Lambda `PresignedUrlGenerator`)
+- Configuración Lambda: `memory_size = 256`, `timeout = 3`.
 - Método HTTP permitido: Únicamente `PUT`.
+- Algoritmo de Firma: AWS Signature Version 4 (SigV4).
 - Tiempo de expiración: Estrictamente 300 segundos (5 minutos).
 - Restricción de tipo MIME: Solo `image/jpeg` o `image/png`.
 - Estructura determinista de claves de objeto S3:
   - Selfies: `events/{eventId}/selfies/{registrationId}.jpg`
   - Fotos de evento: `events/{eventId}/photos/{photoId}.jpg`
 
+### Política IAM de Ejecución Lambda (`Least Privilege`)
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject"],
+      "Resource": [
+        "arn:aws:s3:::findly-photos-${var.environment}/events/*"
+      ]
+    }
+  ]
+}
+```
+
 ## Especificación de Integración Frontend (Cliente HTTP)
 
-### Implementación del Helper de Subida con Progreso (`uploadFileToS3`)
+### Helper de Subida con Progreso (`uploadFileToS3`)
 ```typescript
 export async function uploadFileToS3(
   presignedUrl: string,
