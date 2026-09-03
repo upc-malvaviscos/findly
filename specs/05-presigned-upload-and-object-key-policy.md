@@ -12,7 +12,7 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
 ### Configuración del Bucket S3
 - Bucket 100% privado con bloqueo de acceso público activado.
 - Cifrado en reposo obligatorio con SSE-S3 (`AES256`).
-- Configuración CORS restringida al dominio del frontend web (`var.frontend_domain_url`).
+- Configuración CORS restringida al origen exacto del frontend web (`var.frontend_domain_url`) para navegadores. CORS no es un mecanismo de autorización de la URL prefirmada.
 
 ### Reglas de URLs Prefirmadas (Lambda `PresignedUrlGenerator`)
 - Configuración Lambda: `memory_size = 256`, `timeout = 3`.
@@ -39,5 +39,5 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
 - [ ] La URL prefirmada expira exactamente tras 5 minutos.
-- [ ] Intentar subir un archivo con un dominio o método diferente a `PUT` devuelve error 403.
+- [ ] Una petición que no coincide con el método `PUT`, clave o encabezados firmados devuelve error de firma; un origen no permitido no puede completar la operación desde un navegador mediante CORS.
 - [ ] El bucket S3 tiene habilitado el cifrado en reposo SSE-S3.
