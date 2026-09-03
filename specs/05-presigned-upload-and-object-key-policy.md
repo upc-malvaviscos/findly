@@ -3,80 +3,41 @@
 ## Objetivo
 Permitir la transferencia segura de imágenes directamente desde el navegador a buckets S3 privados mediante URLs `PUT` prefirmadas, sin exponer credenciales ni permisos de AWS al cliente web.
 
-## Requisitos de Seguridad y Políticas de S3 (AWS Architect Specification)
+## Alineación con AWS Well-Architected Framework
+- **Seguridad**: Bloqueo de acceso público S3 (`Block Public Access`), cifrado SSE-S3 (`AES256`), firma SigV4 y tiempo de expiración corto (5 min).
+- **Eficiencia del Rendimiento**: Transferencia directa navegador -> S3 sin pasar por servidores o Lambdas intermediary para el payload binario.
+
+## Especificación Técnica de S3 y Lambda
 
 ### Configuración del Bucket S3
-- Bucket 100% privado con bloqueo de acceso público (`Block Public Access` activado).
+- Bucket 100% privado con bloqueo de acceso público activado.
 - Cifrado en reposo obligatorio con SSE-S3 (`AES256`).
-- Configuración CORS restringida estrictamente al origen del dominio del frontend web (`var.frontend_domain_url`).
+- Configuración CORS restringida al dominio del frontend web (`var.frontend_domain_url`).
 
-### Reglas de URLs Prefirmadas (Backend Lambda `PresignedUrlGenerator`)
+### Reglas de URLs Prefirmadas (Lambda `PresignedUrlGenerator`)
 - Configuración Lambda: `memory_size = 256`, `timeout = 3`.
 - Método HTTP permitido: Únicamente `PUT`.
-- Algoritmo de Firma: AWS Signature Version 4 (SigV4).
-- Tiempo de expiración: Estrictamente 300 segundos (5 minutos).
-- Restricción de tipo MIME: Solo `image/jpeg` o `image/png`.
-- Estructura determinista de claves de objeto S3:
+- Expiración: Estrictamente 300 segundos (5 minutos).
+- Claves deterministas:
   - Selfies: `events/{eventId}/selfies/{registrationId}.jpg`
   - Fotos de evento: `events/{eventId}/photos/{photoId}.jpg`
 
-### Política IAM de Ejecución Lambda (`Least Privilege`)
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:PutObject"],
-      "Resource": [
-        "arn:aws:s3:::findly-photos-${var.environment}/events/*"
-      ]
-    }
-  ]
-}
-```
+## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-## Especificación de Integración Frontend (Cliente HTTP)
+### Paso 1: Implementar el Generador de URLs en Lambda
+- Usa `@aws-sdk/s3-request-presigner` y `PutObjectCommand` en Node.js 22.
+- Configura `expiresIn: 300` y pasa el `ContentType` de la imagen.
 
-### Helper de Subida con Progreso (`uploadFileToS3`)
-```typescript
-export async function uploadFileToS3(
-  presignedUrl: string,
-  file: File,
-  onProgress?: (percentage: number) => void
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', presignedUrl, true);
-    xhr.setRequestHeader('Content-Type', file.type);
+### Paso 2: Crear el Helper Frontend (`uploadFileToS3`)
+- En `src/lib/s3Uploader.ts`, escribe la función que usa `XMLHttpRequest` para emitir el evento `xhr.upload.onprogress`.
 
-    if (xhr.upload && onProgress) {
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
-    }
+## Errores Comunes a Evitar (Pitfalls)
+- ❌ **ERROR**: Discrepancia entre el `Content-Type` firmado por Lambda y el encabezado `Content-Type` enviado en el `PUT` de S3.
+  - *Solución*: Deben ser **idénticos** (ej. `image/jpeg`). De lo contrario, S3 devolverá un error de firma 403 Forbidden.
+- ❌ **ERROR**: Exponer permisos `s3:GetObject` públicos en el bucket.
+  - *Solución*: El bucket debe permanecer estrictamente privado.
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        reject(new Error(`La subida a S3 falló con estado HTTP ${xhr.status}`));
-      }
-    };
-
-    xhr.onerror = () => reject(new Error('Error de red durante la transferencia a S3'));
-    xhr.send(file);
-  });
-}
-```
-
-### Manejo de Errores en Frontend
-- Intentar subir un archivo con URL caducada (> 5 min) debe capturar el error 403 Forbidden y solicitar una nueva URL prefirmada.
-- Errores de discrepancia en Content-Type o tamaño son mostrados inmediatamente al usuario.
-
-## Criterios de Aceptación
-- Un intento de subida con URL caducada, tipo MIME distinto al especificado u origen de dominio no autorizado es rechazado por S3.
-- Las imágenes subidas quedan almacenadas con la clave determinista esperada y con cifrado SSE-S3.
+## Lista de Verificación Pre-PR (Junior Checklist)
+- [ ] La URL prefirmada expira exactamente tras 5 minutos.
+- [ ] Intentar subir un archivo con un dominio o método diferente a `PUT` devuelve error 403.
+- [ ] El bucket S3 tiene habilitado el cifrado en reposo SSE-S3.
