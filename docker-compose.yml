@@ -17,7 +17,7 @@ services:
       AWS_SECRET_ACCESS_KEY: local
       FINDLY_TABLE_NAME: findly-local
       FINDLY_PHOTO_BUCKET: findly-local-photos
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: '*'
       FLOCI_PUBLIC_URL: http://localhost:4566
     ports:
       - '8787:8787'
@@ -25,7 +25,8 @@ services:
       - .:/app
       - local-node-modules:/app/node_modules
     depends_on:
-      - floci
+      floci:
+        condition: service_healthy
   local-seed:
     image: node:24-bookworm-slim
     working_dir: /app
@@ -40,7 +41,8 @@ services:
       - .:/app
       - local-node-modules:/app/node_modules
     depends_on:
-      - floci
+      floci:
+        condition: service_healthy
 volumes:
   floci-data:
   local-node-modules:
