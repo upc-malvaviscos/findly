@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 type Props = {
   file: File | null;
@@ -16,18 +16,23 @@ export function FileDropzone({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [safePreviewUrl, setSafePreviewUrl] = useState<string | null>(null);
   const choose = (next: File | null) => onFileSelected(next);
-  const safePreviewUrl =
-    previewUrl && (() => {
-      try {
-        const parsed = new URL(previewUrl, window.location.origin);
-        if (parsed.protocol === 'blob:') return previewUrl;
-        if (parsed.protocol === 'data:' && previewUrl.startsWith('data:image/')) return previewUrl;
-        return null;
-      } catch {
-        return null;
-      }
-    })();
+
+  useEffect(() => {
+    if (!file) {
+      setSafePreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setSafePreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
   return (
     <div className="upload-section">
       <div className="section-heading">
