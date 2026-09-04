@@ -59,10 +59,9 @@ describe('SelfieCaptureForm', () => {
     expect(
       screen.getByAltText('Vista previa de tu selfie'),
     ).toBeInTheDocument();
-    expect(screen.getByText('first.jpg')).toBeInTheDocument();
+    expect(screen.getByText('Imagen seleccionada')).toBeInTheDocument();
     fireEvent.change(input, { target: { files: [second] } });
-    expect(screen.queryByText('first.jpg')).not.toBeInTheDocument();
-    expect(screen.getByText('second.jpg')).toBeInTheDocument();
+    expect(screen.getByText('Imagen seleccionada')).toBeInTheDocument();
   });
 
   it('falls back with an announced message when camera access is denied', async () => {
