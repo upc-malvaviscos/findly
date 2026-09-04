@@ -29,10 +29,7 @@ export function FileDropzone({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
-  const safePreviewUrl = useMemo(
-    () => createSafePreviewUrl(file),
-    [file],
-  );
+  const safePreviewUrl = useMemo(() => createSafePreviewUrl(file), [file]);
   const choose = (next: File | null) => onFileSelected(next);
 
   useEffect(() => {

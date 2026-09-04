@@ -29,3 +29,20 @@ test('completes the public selfie enrollment flow', async ({ page }) => {
     timeout: 10000,
   });
 });
+
+test('protects the organizer area and supports logout', async ({ page }) => {
+  await page.goto('/admin/events');
+  await expect(
+    page.getByRole('heading', { name: 'Iniciar sesión.' }),
+  ).toBeVisible();
+  await page.getByLabel('Usuario').fill('organizer');
+  await page.getByLabel('Contraseña').fill('password');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Tus eventos' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Iniciar sesión.' }),
+  ).toBeVisible();
+});

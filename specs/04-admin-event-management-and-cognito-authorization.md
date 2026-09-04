@@ -35,6 +35,12 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
   - *Solución*: Saturará el navegador y la red. Controla la concurrencia a máximo 3 cargas activas a la vez.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] Intentar acceder a `/admin/events` sin autenticar redirige limpiamente a `/admin/login`.
-- [ ] El token JWT expira y redirige a la pantalla de login sin mostrar pantalla en blanco.
-- [ ] La subida masiva de fotos muestra barra de progreso por archivo y resumen global.
+- [x] Intentar acceder a `/admin/events` sin autenticar redirige limpiamente a `/admin/login`.
+- [x] La sesión expira en memoria y el guard vuelve a mostrar login sin pantalla en blanco.
+- [x] La subida masiva de fotos muestra barra de progreso por archivo y resumen global.
+
+## Estado de implementación frontend
+
+La SPA incorpora el contexto de autenticación en memoria, el cliente API con cabecera Bearer, las rutas `/admin/login` y `/admin/events`, y el subidor con concurrencia máxima de tres archivos. La implementación usa un gateway sustituible para pruebas y desarrollo local; la conexión al User Pool de Cognito, el autorizador JWT de API Gateway y los endpoints administrativos reales quedan pendientes de la tarea de infraestructura/backend.
+
+La evidencia reproducible está en [`docs/evidence/issue-04-frontend-auth.md`](../docs/evidence/issue-04-frontend-auth.md).
