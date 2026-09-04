@@ -70,7 +70,7 @@ export function FileDropzone({
         {safePreviewUrl && file ? (
           <div className="preview-wrap">
             <img
-              src={safePreviewUrl}
+              src={encodeURI(safePreviewUrl)}
               alt="Vista previa de tu selfie"
               className="selfie-preview"
             />
