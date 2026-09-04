@@ -7,6 +7,7 @@ services:
       FLOCI_HOSTNAME: floci
     volumes:
       - floci-data:/var/lib/floci
+      - /var/run/docker.sock:/var/run/docker.sock
   local-api:
     image: node:24-bookworm-slim
     working_dir: /app

@@ -41,15 +41,15 @@ flowchart LR
 
 ## Stack y recursos AWS
 
-| Dominio | Tecnologías y recursos |
-| --- | --- |
-| Frontend y distribución | React con Vite, TypeScript, Amazon S3 para la web y Amazon CloudFront. |
-| Seguridad e identidad | Amazon Cognito para autenticar a los organizadores. |
-| API y procesamiento | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 22. |
+| Dominio                    | Tecnologías y recursos                                                         |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Frontend y distribución    | React con Vite, TypeScript, Amazon S3 para la web y Amazon CloudFront.         |
+| Seguridad e identidad      | Amazon Cognito para autenticar a los organizadores.                            |
+| API y procesamiento        | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 22.                 |
 | Datos, imágenes y matching | Amazon DynamoDB on-demand, buckets privados de Amazon S3 y Amazon Rekognition. |
-| Automatización y retención | Amazon EventBridge Scheduler y Lambda de retención. |
-| Observabilidad y FinOps | Amazon CloudWatch y AWS Budgets. |
-| Infraestructura y entrega | Terraform y GitHub Actions. |
+| Automatización y retención | Amazon EventBridge Scheduler y Lambda de retención.                            |
+| Observabilidad y FinOps    | Amazon CloudWatch y AWS Budgets.                                               |
+| Infraestructura y entrega  | Terraform y GitHub Actions.                                                    |
 
 No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
 
@@ -66,6 +66,8 @@ VITE_API_BASE_URL=http://localhost:8787 npm run dev
 
 Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. La integración gestionada con AWS y Terraform queda fuera del alcance actual.
 
+La consola opcional de Floci se abre visitando `http://localhost:4566/_floci/ui`; la imagen necesita el socket Docker montado para crear su contenedor sidecar y queda disponible en `http://localhost:4500/console/aws`.
+
 Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
 
 ## Siguiente paso
@@ -78,11 +80,11 @@ GitHub Actions valida commits convencionales, Markdown y workflows. Los workflow
 
 ## Participantes del equipo
 
-| Participante |
-| --- |
-| Anyul Rivas |
-| Renato Luzuriaga |
-| Martí Fabregat Pous |
+| Participante              |
+| ------------------------- |
+| Anyul Rivas               |
+| Renato Luzuriaga          |
+| Martí Fabregat Pous       |
 | Santiago Oliver Surinyach |
 
 La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyulled/IdeaProjects/findly/docs/README.md) y [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md).
