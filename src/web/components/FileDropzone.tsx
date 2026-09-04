@@ -67,7 +67,7 @@ export function FileDropzone({
               className="selfie-preview"
             />
             <div className="preview-meta">
-              <strong>{file.name}</strong>
+              <strong>Imagen seleccionada</strong>
               <span>{Math.ceil(file.size / 1024)} KB</span>
             </div>
             <button
