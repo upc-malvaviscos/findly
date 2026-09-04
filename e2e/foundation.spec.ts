@@ -46,3 +46,13 @@ test('protects the organizer area and supports logout', async ({ page }) => {
     page.getByRole('heading', { name: 'Iniciar sesión.' }),
   ).toBeVisible();
 });
+
+test('renders a private gallery from a simulated token', async ({ page }) => {
+  await page.goto('/gallery?token=demo-gallery');
+  await expect(
+    page.getByRole('heading', { name: /Findly Demo Night/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('img', { name: 'Fotografía del evento' }),
+  ).toHaveCount(2);
+});

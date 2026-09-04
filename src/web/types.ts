@@ -30,3 +30,10 @@ export type UploadProgress = {
   percentage: number;
 };
 export type ApiError = { code: string; message: string; requestId: string };
+export type GalleryPhoto = { photoId: string; url: string; matchedAt: string };
+export type GalleryResponse = {
+  eventId: string;
+  eventName: string;
+  photos: GalleryPhoto[];
+  expiresAt: string;
+};
