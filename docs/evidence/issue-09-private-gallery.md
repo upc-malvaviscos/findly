@@ -20,6 +20,7 @@ npm test           PASS (15 tests)
 npm run build:web  PASS
 npm run build      PASS
 npm run test:e2e   PASS (12 tests: Chromium, Firefox y WebKit)
+npm run test:e2e:local PASS (6 tests: Chromium, Firefox y WebKit contra Floci)
 ```
 
 Para levantar la integración local:
@@ -32,3 +33,5 @@ VITE_API_BASE_URL=http://localhost:8787 npm run dev
 ```
 
 El token demo es `demo-gallery`; el seeder solo usa datos sintéticos. AWS y Terraform quedan fuera de esta entrega.
+
+El perfil local gestiona automáticamente el ciclo de vida de Floci: arranca los contenedores en `globalSetup`, espera la API y elimina contenedores y volúmenes en `globalTeardown`.

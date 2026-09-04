@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.lambda.json",
     "test": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:local": "playwright test --config=playwright.local.config.ts",
     "build": "npm run build:web && npm run build:lambdas && npm run verify:lambdas",
     "build:web": "vite build",
     "build:lambdas": "esbuild src/lambdas/*.ts --bundle --platform=node --target=node24 --format=esm --outdir=artifacts/lambdas",
