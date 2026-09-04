@@ -12,6 +12,10 @@ La fuente de verdad es el backlog en `specs/`; el contexto de producto está en 
 
 Aplica las cuatro fases, en este orden, a toda tarea de cierta magnitud. Las ediciones puramente tipográficas u otros cambios triviales pueden omitir las fases que no aporten valor.
 
+### Sincronización previa obligatoria
+
+Antes de comenzar la implementación, actualiza la rama desde su remoto con `git pull --rebase origin <rama-actual>` después de revisar `git status`. Si la rama debe incorporar cambios recientes de `main`, sincronízala primero con `origin/main` y resuelve los conflictos antes de editar código. No continúes sobre una rama desactualizada ni ocultes conflictos para hacer pasar los checks.
+
 ### 1. Research
 
 Antes de editar, identifica la spec o specs que gobiernan el cambio y lee sus criterios de aceptación, restricciones, checklist y pitfalls. Revisa también las partes afectadas de `README.md`, `docs/adr/`, `docs/paper/` y el código o IaC existente. Conserva cualquier cambio local ajeno: inspección primero y edición únicamente dentro del alcance pedido.
