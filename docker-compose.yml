@@ -1,0 +1,46 @@
+services:
+  floci:
+    image: floci/floci:latest
+    ports:
+      - '4566:4566'
+    environment:
+      FLOCI_HOSTNAME: floci
+    volumes:
+      - floci-data:/var/lib/floci
+  local-api:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    command: sh -c "npm ci --ignore-scripts && npm run dev:api"
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      FINDLY_TABLE_NAME: findly-local
+      FINDLY_PHOTO_BUCKET: findly-local-photos
+      CORS_ORIGIN: http://localhost:5173
+      FLOCI_PUBLIC_URL: http://localhost:4566
+    ports:
+      - '8787:8787'
+    volumes:
+      - .:/app
+      - local-node-modules:/app/node_modules
+    depends_on:
+      - floci
+  local-seed:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    command: sh -c "npm ci --ignore-scripts && node scripts/local-seed-gallery.mjs"
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      FINDLY_TABLE_NAME: findly-local
+      FINDLY_PHOTO_BUCKET: findly-local-photos
+    volumes:
+      - .:/app
+      - local-node-modules:/app/node_modules
+    depends_on:
+      - floci
+volumes:
+  floci-data:
+  local-node-modules:

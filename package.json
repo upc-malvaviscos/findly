@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:api": "tsx src/local/galleryServer.ts",
+    "local:seed": "node scripts/local-seed-gallery.mjs",
     "lint": "npm run lint:code && npm run lint:format && npm run lint:markdown && npm run lint:terraform && npm run lint:workflows",
     "lint:code": "eslint .",
     "lint:format": "prettier --check .prettierrc.json commitlint.config.mjs eslint.config.js index.html package.json playwright.config.ts tsconfig.json tsconfig.lambda.json tsconfig.web.json vite.config.ts vitest.config.ts src tests e2e scripts infra .github/PULL_REQUEST_TEMPLATE.md .github/workflows/ci.yml .github/workflows/enable-automerge.yml",
@@ -31,6 +33,10 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1126.0",
+    "@aws-sdk/client-s3": "^3.1126.0",
+    "@aws-sdk/lib-dynamodb": "^3.1126.0",
+    "@aws-sdk/s3-request-presigner": "^3.1126.0",
     "@vitejs/plugin-react": "5.1.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -59,6 +65,7 @@
     "jsdom": "30.0.1",
     "markdownlint-cli2": "0.23.2",
     "prettier": "3.9.6",
+    "tsx": "^4.23.13",
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "4.0.18"

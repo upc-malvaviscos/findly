@@ -53,6 +53,19 @@ flowchart LR
 
 No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
 
+## Desarrollo local de la galería
+
+La galería privada puede ejecutarse sin una cuenta AWS mediante [Floci](https://floci.io/), Docker Compose y el SDK oficial de AWS apuntando al endpoint local:
+
+```sh
+docker compose up -d floci
+docker compose run --rm local-seed
+docker compose up local-api
+VITE_API_BASE_URL=http://localhost:8787 npm run dev
+```
+
+Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. La integración gestionada con AWS y Terraform queda fuera del alcance actual.
+
 Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
 
 ## Siguiente paso

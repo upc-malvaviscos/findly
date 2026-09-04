@@ -52,6 +52,6 @@ Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el
 
 ## Estado de implementación frontend
 
-La SPA incorpora la ruta `/gallery?token=`, `GalleryPage`, el adaptador simulado, los estados de UI, la cuadrícula lazy, el visor y la descarga. La Lambda `GalleryReader`, DynamoDB, las URLs S3 prefirmadas y el refresco contra el backend real quedan pendientes de las tareas de backend e infraestructura.
+La SPA incorpora la ruta `/gallery?token=`, `GalleryPage`, el adaptador simulado, los estados de UI, la cuadrícula lazy, el visor y la descarga. La implementación local añade `GalleryReader`, DynamoDB y S3 compatibles mediante Floci; la ejecución gestionada en AWS y Terraform queda pospuesta.
 
-La evidencia reproducible está en [`docs/evidence/issue-09-private-gallery.md`](../docs/evidence/issue-09-private-gallery.md).
+La integración local reproducible está implementada con Floci, Docker Compose y `docs/evidence/issue-09-private-gallery.md`. AWS y Terraform quedan pospuestos; el contrato de la Lambda y la configuración local se mantienen compatibles con la futura implementación gestionada.
