@@ -25,7 +25,7 @@ jobs:
               `mutation EnableAutoMerge($pullRequestId: ID!) {
                 enablePullRequestAutoMerge(input: {
                   pullRequestId: $pullRequestId,
-                  mergeMethod: SQUASH
+                  mergeMethod: REBASE
                 }) {
                   pullRequest { number }
                 }
