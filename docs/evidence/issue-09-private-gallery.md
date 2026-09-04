@@ -1,6 +1,6 @@
-# Evidencia de galería privada frontend
+# Evidencia de galería privada local
 
-Implementación de la interfaz de galería con adaptador simulado para la issue 9.
+Implementación de la galería privada con API local reproducible sobre Floci para la issue 9.
 
 ## Flujos verificados
 
@@ -9,14 +9,26 @@ Implementación de la interfaz de galería con adaptador simulado para la issue 
 - Un token desconocido muestra el estado de galería no encontrada.
 - Las imágenes usan carga diferida, visor modal y descarga.
 - El adaptador refresca las URLs cada cuatro minutos y limpia el temporizador al desmontar.
+- `GalleryReader` calcula SHA-256 del token, consulta DynamoDB y firma URLs `GET` de 300 segundos.
+- `docker compose` proporciona Floci, el API local y un seeder con datos sintéticos.
 
 ## Validación
 
 ```text
 npm run typecheck  PASS
-npm test           PASS (9 tests)
+npm test           PASS (15 tests)
 npm run build:web  PASS
-npm run test:e2e   PASS (9 tests: Chromium, Firefox y WebKit)
+npm run build      PASS
+npm run test:e2e   PASS (12 tests: Chromium, Firefox y WebKit)
 ```
 
-La integración con `GalleryReader`, DynamoDB y URLs GET prefirmadas de S3 no forma parte de esta entrega frontend.
+Para levantar la integración local:
+
+```text
+docker compose up -d floci
+docker compose run --rm local-seed
+docker compose up local-api
+VITE_API_BASE_URL=http://localhost:8787 npm run dev
+```
+
+El token demo es `demo-gallery`; el seeder solo usa datos sintéticos. AWS y Terraform quedan fuera de esta entrega.

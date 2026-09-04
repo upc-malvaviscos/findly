@@ -19,6 +19,25 @@ const demoGallery: GalleryResponse = {
 };
 
 export async function getGallery(token: string): Promise<GalleryResponse> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (apiBaseUrl) {
+    const response = await fetch(
+      `${apiBaseUrl.replace(/\/$/, '')}/gallery?token=${encodeURIComponent(token)}`,
+    );
+    let payload: { code?: string; message?: string } | GalleryResponse;
+    try {
+      payload = (await response.json()) as typeof payload;
+    } catch {
+      throw new Error('GALLERY_NETWORK_ERROR');
+    }
+    if (!response.ok)
+      throw new Error(
+        'code' in payload && payload.code
+          ? payload.code
+          : 'GALLERY_NETWORK_ERROR',
+      );
+    return payload as GalleryResponse;
+  }
   await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
   if (token === 'expired') throw new Error('GALLERY_EXPIRED');
   if (token !== 'demo-gallery') throw new Error('GALLERY_NOT_FOUND');
