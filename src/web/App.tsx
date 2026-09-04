@@ -6,6 +6,7 @@ import { SelfieCaptureForm } from './components/SelfieCaptureForm';
 import { AuthProvider } from './context/AuthProvider';
 import { useAuth } from './context/auth';
 import { DEMO_EVENT } from './fixtures';
+import { GalleryPage } from './components/gallery/GalleryPage';
 import './styles.css';
 
 function PublicEnrollment() {
@@ -80,6 +81,12 @@ function RoutedApp() {
       <AdminEvents onLogout={() => navigate('/admin/login')} />
     ) : (
       <AdminLogin onSuccess={() => navigate('/admin/events')} />
+    );
+  if (path === '/gallery')
+    return (
+      <GalleryPage
+        token={new URLSearchParams(window.location.search).get('token') ?? ''}
+      />
     );
   return <PublicEnrollment />;
 }
