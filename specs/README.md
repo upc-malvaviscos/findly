@@ -4,7 +4,7 @@ Los tickets son publicables como issues. Cada uno debe enlazar PR, prueba, evide
 
 | Dominio | Responsable | Tickets |
 | --- | --- | --- |
-| Web | Frontend | 03, 04, 08 |
+| Web | Frontend | 03, 04, 08, 18 |
 | Backend | Datos y matching | 02, 05, 06, 07, 09 |
 | Plataforma | AWS y FinOps | 10-15 |
 | Calidad | QA y memoria | 00, 16, 17 |
