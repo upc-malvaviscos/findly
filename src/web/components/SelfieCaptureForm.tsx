@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   createRegistration,
   getRegistrationStatus,
@@ -21,22 +21,13 @@ type FieldErrors = Partial<Record<keyof EnrollmentFormValues | 'file', string>>;
 export function SelfieCaptureForm({ eventId }: Props) {
   const [values, setValues] = useState({ name: '', email: '', consent: false });
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<RegistrationStatus | 'IDLE'>('IDLE');
   const [message, setMessage] = useState('');
   const [progress, setProgress] = useState(0);
   const [cameraOpen, setCameraOpen] = useState(false);
-  useEffect(
-    () => () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    },
-    [previewUrl],
-  );
   const handleFile = (nextFile: File | null) => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(nextFile);
-    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : null);
     setErrors((current) => ({ ...current, file: undefined }));
   };
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -146,7 +137,6 @@ export function SelfieCaptureForm({ eventId }: Props) {
         </div>
         <FileDropzone
           file={file}
-          previewUrl={previewUrl}
           error={errors.file}
           onFileSelected={handleFile}
           onOpenCamera={() => setCameraOpen(true)}
