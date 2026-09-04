@@ -35,3 +35,5 @@ VITE_API_BASE_URL=http://localhost:8787 npm run dev
 El token demo es `demo-gallery`; el seeder solo usa datos sintéticos. AWS y Terraform quedan fuera de esta entrega.
 
 El perfil local gestiona automáticamente el ciclo de vida de Floci: arranca los contenedores en `globalSetup`, espera la API y elimina contenedores y volúmenes en `globalTeardown`.
+
+La consola Floci UI se habilita bajo demanda mediante el socket Docker montado en Compose y queda disponible en `http://localhost:4500/console/aws` mientras Floci está arrancado.
