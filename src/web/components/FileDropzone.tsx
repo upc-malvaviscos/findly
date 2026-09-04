@@ -6,6 +6,21 @@ type Props = {
   onFileSelected: (file: File | null) => void;
   onOpenCamera: () => void;
 };
+
+const previewableTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function createSafePreviewUrl(file: File | null) {
+  if (!file || !previewableTypes.has(file.type)) return null;
+  const candidate = URL.createObjectURL(file);
+  try {
+    const parsed = new URL(candidate, window.location.origin);
+    return parsed.protocol === 'blob:' ? candidate : null;
+  } catch {
+    URL.revokeObjectURL(candidate);
+    return null;
+  }
+}
+
 export function FileDropzone({
   file,
   error,
@@ -15,7 +30,7 @@ export function FileDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const safePreviewUrl = useMemo(
-    () => (file ? URL.createObjectURL(file) : null),
+    () => createSafePreviewUrl(file),
     [file],
   );
   const choose = (next: File | null) => onFileSelected(next);
