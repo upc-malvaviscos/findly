@@ -17,6 +17,17 @@ export function FileDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const choose = (next: File | null) => onFileSelected(next);
+  const safePreviewUrl =
+    previewUrl && (() => {
+      try {
+        const parsed = new URL(previewUrl, window.location.origin);
+        if (parsed.protocol === 'blob:') return previewUrl;
+        if (parsed.protocol === 'data:' && previewUrl.startsWith('data:image/')) return previewUrl;
+        return null;
+      } catch {
+        return null;
+      }
+    })();
   return (
     <div className="upload-section">
       <div className="section-heading">
@@ -43,10 +54,10 @@ export function FileDropzone({
           choose(event.dataTransfer.files[0] ?? null);
         }}
       >
-        {previewUrl && file ? (
+        {safePreviewUrl && file ? (
           <div className="preview-wrap">
             <img
-              src={previewUrl}
+              src={safePreviewUrl}
               alt="Vista previa de tu selfie"
               className="selfie-preview"
             />
