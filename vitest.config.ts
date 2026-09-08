@@ -27,6 +27,13 @@ export default defineConfig({
           name: 'lambdas',
         },
       },
+      {
+        test: {
+          environment: 'node',
+          include: ['tests/shared/**/*.test.ts'],
+          name: 'shared',
+        },
+      },
     ],
   },
 });

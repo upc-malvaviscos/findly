@@ -6,5 +6,5 @@
     "moduleResolution": "bundler",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/lambdas", "tests/lambdas"]
+  "include": ["src/lambdas", "src/shared", "tests/lambdas"]
 }

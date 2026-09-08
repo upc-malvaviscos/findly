@@ -8,5 +8,5 @@
     "jsx": "react-jsx",
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src/web", "tests/web", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src/web", "src/shared", "tests/web", "tests/shared", "vite.config.ts", "vitest.config.ts"]
 }
