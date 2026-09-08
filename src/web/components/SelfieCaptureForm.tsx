@@ -18,8 +18,31 @@ import { UploadProgressBar } from './UploadProgressBar';
 type Props = { eventId: string };
 type FieldErrors = Partial<Record<keyof EnrollmentFormValues | 'file', string>>;
 
+function describeStatus(
+  status: RegistrationStatus,
+  failureReason?: string,
+): string {
+  switch (status) {
+    case 'UPLOAD_PENDING':
+      return 'Preparando tu registro…';
+    case 'PROCESSING':
+      return 'Estamos comprobando tu selfie. Esto tardará solo unos instantes.';
+    case 'ENROLLED':
+      return 'Tu selfie está lista. Te enviaremos el enlace a tu galería privada por email.';
+    case 'FAILED':
+      return (
+        failureReason ??
+        'No hemos podido validar tu selfie. Inténtalo de nuevo.'
+      );
+  }
+}
+
 export function SelfieCaptureForm({ eventId }: Props) {
-  const [values, setValues] = useState({ name: '', email: '', consent: false });
+  const [values, setValues] = useState({
+    email: '',
+    consentBiometrics: false,
+    consentTerms: false,
+  });
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<RegistrationStatus | 'IDLE'>('IDLE');
@@ -33,7 +56,12 @@ export function SelfieCaptureForm({ eventId }: Props) {
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: FieldErrors = {};
-    const parsed = enrollmentFormSchema.safeParse(values);
+    const email = values.email.trim();
+    const parsed = enrollmentFormSchema.safeParse({
+      email: email === '' ? undefined : email,
+      consentBiometrics: values.consentBiometrics,
+      consentTerms: values.consentTerms,
+    });
     if (!parsed.success)
       parsed.error.issues.forEach((issue) => {
         const field = issue.path[0] as keyof EnrollmentFormValues;
@@ -50,13 +78,11 @@ export function SelfieCaptureForm({ eventId }: Props) {
       return;
     }
     setStatus('UPLOAD_PENDING');
-    setMessage('Preparando tu registro…');
+    setMessage(describeStatus('UPLOAD_PENDING'));
     setProgress(0);
     try {
-      const registration = await createRegistration({
-        eventId,
-        name: values.name.trim(),
-        email: values.email.trim(),
+      const registration = await createRegistration(eventId, {
+        email: email === '' ? undefined : email,
         consentBiometrics: true,
         consentTerms: true,
       });
@@ -67,11 +93,11 @@ export function SelfieCaptureForm({ eventId }: Props) {
         file as File,
         ({ percentage }) => setProgress(percentage),
       );
-      setMessage('Selfie recibida. Estamos comprobando la imagen…');
+      setMessage(describeStatus('PROCESSING'));
       for (let attempt = 0; attempt < 10; attempt += 1) {
         const result = await getRegistrationStatus(registration.registrationId);
         setStatus(result.status);
-        setMessage(result.message);
+        setMessage(describeStatus(result.status, result.failureReason));
         if (result.status === 'ENROLLED' || result.status === 'FAILED') break;
         await new Promise((resolve) => window.setTimeout(resolve, 1500));
       }
@@ -99,24 +125,7 @@ export function SelfieCaptureForm({ eventId }: Props) {
         </div>
         <div className="form-grid">
           <label className="field">
-            <span>Nombre completo</span>
-            <input
-              value={values.name}
-              onChange={(event) =>
-                setValues({ ...values, name: event.target.value })
-              }
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? 'name-error' : undefined}
-              autoComplete="name"
-            />
-            {errors.name ? (
-              <small id="name-error" className="field-error" role="alert">
-                {errors.name}
-              </small>
-            ) : null}
-          </label>
-          <label className="field">
-            <span>Email para tu galería</span>
+            <span>Email para tu galería (opcional)</span>
             <input
               type="email"
               value={values.email}
@@ -142,9 +151,16 @@ export function SelfieCaptureForm({ eventId }: Props) {
           onOpenCamera={() => setCameraOpen(true)}
         />
         <ConsentCheckboxGroup
-          checked={values.consent}
-          error={errors.consent}
-          onChange={(consent) => setValues({ ...values, consent })}
+          consentBiometrics={values.consentBiometrics}
+          consentTerms={values.consentTerms}
+          biometricsError={errors.consentBiometrics}
+          termsError={errors.consentTerms}
+          onChangeBiometrics={(consentBiometrics) =>
+            setValues({ ...values, consentBiometrics })
+          }
+          onChangeTerms={(consentTerms) =>
+            setValues({ ...values, consentTerms })
+          }
         />
         {status !== 'IDLE' ? (
           <div

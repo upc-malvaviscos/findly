@@ -17,14 +17,12 @@ afterEach(() => {
   resetMockState();
 });
 
-function fillValidForm() {
-  fireEvent.change(screen.getByLabelText('Nombre completo'), {
-    target: { value: 'Ada Lovelace' },
-  });
-  fireEvent.change(screen.getByLabelText('Email para tu galería'), {
-    target: { value: 'ada@example.com' },
-  });
-  fireEvent.click(screen.getByRole('checkbox'));
+function acceptConsent() {
+  fireEvent.click(screen.getByLabelText(/tratamiento biométrico/));
+  fireEvent.click(screen.getByLabelText(/términos de privacidad/));
+}
+
+function attachSelfie() {
   const input = document.querySelector('input[type="file"]');
   if (!(input instanceof HTMLInputElement))
     throw new Error('File input not found');
@@ -35,17 +33,38 @@ function fillValidForm() {
   });
 }
 
+function fillValidForm() {
+  fireEvent.change(screen.getByLabelText(/Email para tu galería/), {
+    target: { value: 'ada@example.com' },
+  });
+  acceptConsent();
+  attachSelfie();
+}
+
 describe('SelfieCaptureForm', () => {
   it('shows inline validation before submitting', () => {
     render(<SelfieCaptureForm eventId="demo-2026" />);
     fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
 
-    expect(screen.getByText('Escribe tu nombre completo.')).toBeInTheDocument();
-    expect(screen.getByText('Introduce un email válido.')).toBeInTheDocument();
     expect(
-      screen.getByText('Necesitamos tu consentimiento para tratar la imagen.'),
+      screen.getByText('Necesitamos tu consentimiento para tratar tu imagen.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Acepta los términos de privacidad para continuar.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Selecciona una imagen.')).toBeInTheDocument();
+  });
+
+  it('validates email format only when one is provided', () => {
+    render(<SelfieCaptureForm eventId="demo-2026" />);
+    fireEvent.change(screen.getByLabelText(/Email para tu galería/), {
+      target: { value: 'not-an-email' },
+    });
+    acceptConsent();
+    attachSelfie();
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
+
+    expect(screen.getByText('Introduce un email válido.')).toBeInTheDocument();
   });
 
   it('previews a selected image and replaces it predictably', () => {
@@ -85,5 +104,16 @@ describe('SelfieCaptureForm', () => {
       { timeout: 5000 },
     );
     expect(screen.getByText(/Te enviaremos el enlace/)).toBeInTheDocument();
+  });
+
+  it('completes the mocked upload without an email, since it is optional', async () => {
+    render(<SelfieCaptureForm eventId="demo-2026" />);
+    acceptConsent();
+    attachSelfie();
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
+    await waitFor(
+      () => expect(screen.getByText('Registro completado')).toBeInTheDocument(),
+      { timeout: 5000 },
+    );
   });
 });

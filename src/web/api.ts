@@ -10,13 +10,15 @@ const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 export async function getEvent(eventId: string) {
   await wait(80);
-  return eventId === DEMO_EVENT.id ? DEMO_EVENT : null;
+  return eventId === DEMO_EVENT.eventId ? DEMO_EVENT : null;
 }
 export async function createRegistration(
+  eventId: string,
   request: RegistrationRequest,
 ): Promise<RegistrationResponse> {
   await wait(120);
-  const registrationKey = `${request.eventId}-${request.email.replaceAll(/[^a-z0-9]/gi, '').toLowerCase()}`;
+  const emailSlug = (request.email ?? 'anonimo').replaceAll(/[^a-z0-9]/gi, '').toLowerCase();
+  const registrationKey = `${eventId}-${emailSlug}`;
   return {
     registrationId: `reg-${registrationKey}`,
     uploadUrl: 'mock://findly/selfies/upload',
