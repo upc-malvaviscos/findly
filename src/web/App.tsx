@@ -51,7 +51,7 @@ function PublicEnrollment() {
           className="enrollment-card"
           aria-label="Formulario de inscripción"
         >
-          <SelfieCaptureForm eventId={event.id} />
+          <SelfieCaptureForm eventId={event.eventId} />
         </section>
       </div>
     </main>

@@ -11,8 +11,9 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: 'Encuentra tu momento.' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Nombre completo')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email para tu galería')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Email para tu galería/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 });

@@ -36,7 +36,7 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
           <br />
           {DEMO_EVENT.location}
         </p>
-        <BulkPhotoUploader eventId={DEMO_EVENT.id} />
+        <BulkPhotoUploader eventId={DEMO_EVENT.eventId} />
       </section>
     </main>
   );

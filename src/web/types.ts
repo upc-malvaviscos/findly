@@ -1,28 +1,16 @@
-export type RegistrationStatus =
-  'UPLOAD_PENDING' | 'PROCESSING' | 'ENROLLED' | 'FAILED';
+export type {
+  RegistrationRequest,
+  RegistrationResponse,
+  RegistrationStatus,
+  RegistrationStatusResponse,
+} from '../shared/types/api';
+
 export type Event = {
-  id: string;
+  eventId: string;
   name: string;
   date: string;
   location: string;
   description: string;
-};
-export type RegistrationRequest = {
-  eventId: string;
-  name: string;
-  email: string;
-  consentBiometrics: true;
-  consentTerms: true;
-};
-export type RegistrationResponse = {
-  registrationId: string;
-  uploadUrl: string;
-  expiresInSeconds: number;
-};
-export type RegistrationStatusResponse = {
-  registrationId: string;
-  status: RegistrationStatus;
-  message: string;
 };
 export type UploadProgress = {
   loaded: number;

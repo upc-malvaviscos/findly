@@ -11,9 +11,9 @@ test('renders the public enrollment page', async ({ page }) => {
 
 test('completes the public selfie enrollment flow', async ({ page }) => {
   await page.goto('/?event=demo-2026');
-  await page.getByLabel('Nombre completo').fill('Ada Lovelace');
-  await page.getByLabel('Email para tu galería').fill('ada@example.com');
-  await page.getByRole('checkbox').check();
+  await page.getByLabel(/Email para tu galería/).fill('ada@example.com');
+  await page.getByLabel(/tratamiento biométrico/).check();
+  await page.getByLabel(/términos de privacidad/).check();
   await page.locator('input[type="file"]').setInputFiles({
     name: 'selfie.jpg',
     mimeType: 'image/jpeg',
