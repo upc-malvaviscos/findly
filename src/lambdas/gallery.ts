@@ -7,19 +7,22 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  eventKey,
+  galleryTokenKey,
+  MATCH_SK_PREFIX,
+  photoKey,
+  registrationPartitionKey,
+} from '../shared/lib/dynamoKeys';
+import type {
+  EventEntity,
+  GalleryTokenEntity,
+  MatchEntity,
+  PhotoEntity,
+} from '../shared/types/entities';
 
 type GalleryEvent = {
   queryStringParameters?: Record<string, string | undefined> | null;
-};
-
-type GalleryItem = Record<string, unknown> & {
-  registrationId?: string;
-  eventId?: string;
-  expiresAt?: string;
-  eventName?: string;
-  photoId?: string;
-  s3Key?: string;
-  matchedAt?: string;
 };
 
 type GalleryResponse = {
@@ -74,11 +77,13 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
     await dynamo.send(
       new GetCommand({
         TableName: tableName,
-        Key: { PK: `TOKEN#${tokenHash}`, SK: 'METADATA' },
+        Key: galleryTokenKey(tokenHash),
         ProjectionExpression: 'registrationId, eventId, expiresAt',
       }),
     )
-  ).Item as GalleryItem | undefined;
+  ).Item as
+    | Partial<Pick<GalleryTokenEntity, 'registrationId' | 'eventId' | 'expiresAt'>>
+    | undefined;
 
   if (
     !tokenRecord?.registrationId ||
@@ -89,46 +94,48 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
   if (Date.parse(tokenRecord.expiresAt) <= Date.now())
     return error(410, 'GALLERY_EXPIRED', 'Gallery link has expired.');
 
+  const { registrationId, eventId, expiresAt } = tokenRecord;
+
   const matches = (
     await dynamo.send(
       new QueryCommand({
         TableName: tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
         ExpressionAttributeValues: {
-          ':pk': `REG#${tokenRecord.registrationId}`,
-          ':sk': 'MATCH#',
+          ':pk': registrationPartitionKey(registrationId),
+          ':sk': MATCH_SK_PREFIX,
         },
         ProjectionExpression: 'photoId, eventId, matchedAt',
       }),
     )
-  ).Items as GalleryItem[] | undefined;
+  ).Items as
+    | Partial<Pick<MatchEntity, 'photoId' | 'eventId' | 'matchedAt'>>[]
+    | undefined;
 
   const eventRecord = (
     await dynamo.send(
       new GetCommand({
         TableName: tableName,
-        Key: { PK: `EVENT#${tokenRecord.eventId}`, SK: 'METADATA' },
+        Key: eventKey(eventId),
         ProjectionExpression: '#name',
         ExpressionAttributeNames: { '#name': 'name' },
       }),
     )
-  ).Item as GalleryItem | undefined;
+  ).Item as Partial<Pick<EventEntity, 'name'>> | undefined;
 
   const photos = await Promise.all(
     (matches ?? []).map(async (match) => {
-      if (!match.photoId || !match.matchedAt) return null;
+      const { photoId, matchedAt } = match;
+      if (!photoId || !matchedAt) return null;
       const photo = (
         await dynamo.send(
           new GetCommand({
             TableName: tableName,
-            Key: {
-              PK: `EVENT#${tokenRecord.eventId}`,
-              SK: `PHOTO#${match.photoId}`,
-            },
+            Key: photoKey(eventId, photoId),
             ProjectionExpression: 's3Key',
           }),
         )
-      ).Item as GalleryItem | undefined;
+      ).Item as Partial<Pick<PhotoEntity, 's3Key'>> | undefined;
       if (!photo?.s3Key) return null;
       const signedUrl = await getSignedUrl(
         s3,
@@ -137,8 +144,8 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
       );
       const publicUrl = process.env.FLOCI_PUBLIC_URL;
       return {
-        photoId: match.photoId,
-        matchedAt: match.matchedAt,
+        photoId,
+        matchedAt,
         url: publicUrl
           ? `${publicUrl}${new URL(signedUrl).pathname}${new URL(signedUrl).search}`
           : signedUrl,
@@ -147,11 +154,11 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
   );
 
   const response: GalleryResponse = {
-    eventId: tokenRecord.eventId,
+    eventId,
     eventName: String(
       eventRecord?.name ?? process.env.FINDLY_EVENT_NAME ?? 'Findly Demo Night',
     ),
-    expiresAt: tokenRecord.expiresAt,
+    expiresAt,
     photos: photos.filter(
       (photo): photo is NonNullable<typeof photo> => photo !== null,
     ),
