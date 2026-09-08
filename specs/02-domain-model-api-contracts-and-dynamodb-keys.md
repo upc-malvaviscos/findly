@@ -24,7 +24,7 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 | Entidad | Partition Key (`PK`) | Sort Key (`SK`) | Atributos Principales / GSIs |
 | --- | --- | --- | --- |
 | **Event** | `EVENT#{eventId}` | `METADATA` | `name`, `date`, `retentionDays`, `createdAt` |
-| **Registration** | `EVENT#{eventId}` | `REG#{registrationId}` | `email`, `consent`, `faceId`, `status`, `ttl` |
+| **Registration** | `EVENT#{eventId}` | `REG#{registrationId}` | `email`, `consentTimestamp`, `faceId`, `status`, `ttl` |
 | **Photo** | `EVENT#{eventId}` | `PHOTO#{photoId}` | `s3Key`, `uploadedAt`, `ttl` |
 | **Match** | `REG#{registrationId}` | `MATCH#{photoId}` | `eventId`, `similarity`, `matchedAt`, `ttl` |
 | **GalleryToken** | `TOKEN#{tokenHash}` | `METADATA` | `registrationId`, `eventId`, `expiresAt`, `ttl` |
@@ -54,9 +54,20 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - `POST /admin/events`: crea un evento con `{ name: string; date: string; retentionDays: number; }` y devuelve `201` con el `eventId`.
 - `POST /admin/events/{eventId}/photos/uploads`: recibe `{ files: Array<{ fileName: string; contentType: 'image/jpeg'; }> }` y devuelve una URL `PUT` prefirmada y `photoId` por archivo. Solo acepta JWT válido y eventos existentes.
 
+> **Pendiente (issue #5):** estos DTOs aún no tienen tipos TypeScript en
+> `src/shared/types/api.ts`. Se dejan para cuando la issue #5 (spec 04)
+> implemente la administración de eventos, ya que hoy no existe ningún
+> consumidor real (`BulkPhotoUploader`/`AdminEvents` solo usan datos mock sin
+> contrato tipado). El diseño de las 6 respuestas de este documento (shape,
+> nombres de clave envolvente) debe respetarse al definirlos.
+
 ### 5. Derecho al olvido (`DELETE /registrations/{registrationId}`)
 - Requiere la cabecera `X-Gallery-Token` con el token opaco de la galería. El backend calcula su SHA-256 y solo continúa si pertenece al `registrationId` solicitado.
 - La respuesta es `204 No Content`. El token nunca se escribe en logs, trazas o mensajes de error.
+
+> **Pendiente (issue #10):** sin tipos ni implementación todavía. Se deja
+> para la issue #10 (spec 09), que cubre consentimiento, retención y
+> derecho al olvido de extremo a extremo.
 
 ### Errores comunes de API
 Todas las respuestas de error usan `{ code: string; message: string; requestId: string; }` sin PII ni tokens. Los códigos mínimos son: `400 INVALID_REQUEST`, `401 UNAUTHENTICATED`, `403 FORBIDDEN`, `404 EVENT_NOT_FOUND | REGISTRATION_NOT_FOUND | GALLERY_NOT_FOUND`, `409 INVALID_REGISTRATION_STATE` y `410 GALLERY_EXPIRED`.
@@ -79,6 +90,9 @@ Todas las respuestas de error usan `{ code: string; message: string; requestId: 
   - *Solución*: DynamoDB exige segundos (`Math.floor(Date.now() / 1000) + offsetSeconds`), no milisegundos.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] Todas las entidades DTOs tienen sus tipos TypeScript exportados.
-- [ ] Los esquemas Zod validan correctamente los datos en cliente y servidor.
-- [ ] Ningún token en claro ni dato biométrico vectorial se persiste sin cifrar o anonimizar.
+- [x] Todas las entidades DTOs tienen sus tipos TypeScript exportados.
+      *(Excepto administración de eventos y derecho al olvido, deliberadamente
+      diferidos a las issues #5 y #10 — ver notas en la sección de contratos
+      DTO más arriba.)*
+- [x] Los esquemas Zod validan correctamente los datos en cliente y servidor.
+- [x] Ningún token en claro ni dato biométrico vectorial se persiste sin cifrar o anonimizar.
