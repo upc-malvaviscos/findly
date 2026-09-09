@@ -38,6 +38,15 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
   - *Solución*: El bucket debe permanecer estrictamente privado.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] La URL prefirmada expira exactamente tras 5 minutos.
-- [ ] Una petición que no coincide con el método `PUT`, clave o encabezados firmados devuelve error de firma; un origen no permitido no puede completar la operación desde un navegador mediante CORS.
-- [ ] El bucket S3 tiene habilitado el cifrado en reposo SSE-S3.
+- [x] La URL prefirmada expira exactamente tras 5 minutos.
+      *(Verificado con test unitario en `createPresignedUploadUrl`.)*
+- [x] El bucket S3 esta configurado para permitir unicamente `PUT` desde el
+      origen exacto del frontend, con cabeceras firmadas restringidas a
+      `Content-Type`.
+      *(Implementado en `infra/modules/uploads-bucket` y validado con
+      `terraform validate`; la verificacion en vivo del rechazo de firma/CORS
+      requiere un bucket desplegado, pendiente de la issue #11.)*
+- [x] El bucket S3 tiene habilitado el cifrado en reposo SSE-S3.
+      *(Implementado en `infra/modules/uploads-bucket`; no aplicado a AWS
+      todavia — el modulo no esta conectado a una raiz Terraform real hasta
+      que la issue #11 aporte el proveedor y el backend de estado.)*
