@@ -4,6 +4,7 @@ import {
   getRegistrationStatus,
   uploadFileToS3,
 } from '../api';
+import { ensureJpegFile } from '../imageConversion';
 import type { RegistrationStatus } from '../types';
 import {
   enrollmentFormSchema,
@@ -88,9 +89,10 @@ export function SelfieCaptureForm({ eventId }: Props) {
       });
       setStatus('PROCESSING');
       setMessage('Registro creado. Subiendo tu selfie…');
+      const uploadFile = await ensureJpegFile(file as File);
       await uploadFileToS3(
         registration.uploadUrl,
-        file as File,
+        uploadFile,
         ({ percentage }) => setProgress(percentage),
       );
       setMessage(describeStatus('PROCESSING'));
