@@ -43,4 +43,12 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
 
 La SPA incorpora el contexto de autenticación en memoria, el cliente API con cabecera Bearer, las rutas `/admin/login` y `/admin/events`, y el subidor con concurrencia máxima de tres archivos. La implementación usa un gateway sustituible para pruebas y desarrollo local; la conexión al User Pool de Cognito, el autorizador JWT de API Gateway y los endpoints administrativos reales quedan pendientes de la tarea de infraestructura/backend.
 
+**Actualización (issue #12):** el User Pool, el App Client sin secreto y el
+autorizador JWT de API Gateway ya están provisionados en
+`infra/modules/cognito/` y `infra/modules/api-gateway/` (spec 11). Sigue
+pendiente de esta issue #5: los handlers Lambda administrativos
+(`POST /admin/events`, `GET /admin/events`,
+`POST /admin/events/{eventId}/photos/uploads`) y sus rutas en API Gateway
+con el autorizador ya definido.
+
 La evidencia reproducible está en [`docs/evidence/issue-04-frontend-auth.md`](../docs/evidence/issue-04-frontend-auth.md).

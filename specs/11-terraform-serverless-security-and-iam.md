@@ -13,6 +13,17 @@ Declarar de forma segura toda la arquitectura de la aplicación en Terraform apl
 - **OIDC Provider (`oidc.tf`)**: `aws_iam_openid_connect_provider` federando `token.actions.githubusercontent.com`.
 - **Lambda Permissions**: Permisos `aws_lambda_permission` explícitos por endpoint.
 
+> **Nota de alcance (issue #12):** la spec 04 (issue #5) también reclama la
+> provisión de Cognito como su propio entregable de infraestructura, y su
+> "Estado de implementación frontend" declara ese trabajo pendiente de "la
+> tarea de infraestructura/backend". Se interpreta que esta spec (11) es
+> esa tarea: aquí se provisiona el User Pool, el App Client y el
+> autorizador JWT (`infra/modules/cognito/`,
+> `infra/modules/api-gateway/`). La issue #5 conserva la lógica de negocio
+> de los handlers Lambda administrativos (`POST /admin/events`, etc.), que
+> siguen sin implementar — el autorizador queda definido pero sin ninguna
+> ruta que lo use todavía.
+
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
 ### Paso 1: Configurar el Proveedor OIDC
@@ -31,6 +42,18 @@ Declarar de forma segura toda la arquitectura de la aplicación en Terraform apl
   - *Solución*: De lo contrario API Gateway devolverá error `500 Internal Server Error` al no poder invocar la Lambda.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] `terraform fmt -check`, `terraform validate` y `tflint` pasan sin advertencias.
-- [ ] `terraform plan` no aprovisiona recursos con costes fijos (VPCs, RDS, EC2).
-- [ ] Los buckets S3 son 100% privados y usan cifrado SSE-S3.
+- [x] `terraform fmt -check`, `terraform validate` y `tflint` pasan sin
+      advertencias.
+      *(`terraform validate` verificado de forma independiente en cada uno
+      de los 4 módulos nuevos, más la raíz `infra/` sin cambios;
+      `tflint` no disponible en este entorno local — ver evidencia.)*
+- [x] `terraform plan` no aprovisiona recursos con costes fijos (VPCs,
+      RDS, EC2).
+      *(Revisión manual: ningún recurso declarado es VPC, RDS, EC2, NAT ni
+      ALB. `terraform plan` en sí no se ejecuta — ningún módulo está
+      conectado a un backend/provider real todavía, issue #11.)*
+- [x] Los buckets S3 son 100% privados y usan cifrado SSE-S3.
+      *(El bucket web nuevo de `infra/modules/cloudfront/` replica
+      exactamente el patrón ya usado en `infra/modules/uploads-bucket/`:
+      `aws_s3_bucket_public_access_block` con las 4 restricciones activas
+      y SSE-S3/AES256.)*
