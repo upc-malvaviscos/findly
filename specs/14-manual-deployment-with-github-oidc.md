@@ -7,6 +7,21 @@ Permitir el despliegue controlado de infraestructura y código hacia AWS sin uti
 - **Seguridad**: Cero credenciales de acceso de larga duración guardadas en GitHub Secrets; uso de asunción de rol temporal mediante OIDC IAM.
 - **Excelencia Operativa**: Despliegue automatizado con sincronización S3 (`aws s3 sync dist/`) e invalidación de caché en CloudFront.
 
+> **Correcciones de implementación (issue #15):** el YAML de esta sección
+> sirve como referencia de intención, no se copia literalmente:
+> - Falta `permissions: { id-token: write }`. Sin él,
+>   `aws-actions/configure-aws-credentials` no puede solicitar el token
+>   OIDC y el workflow falla en el primer paso de autenticación.
+> - `ACCOUNT_ID` se resuelve como `${{ vars.AWS_ACCOUNT_ID }}` (variable de
+>   repositorio, no secreto: el Account ID no es sensible).
+> - El rol es uno distinto por entorno
+>   (`findly-github-actions-{sandbox,demo,production}`,
+>   `infra/modules/github-oidc/`), no uno compartido.
+> - El fichero real es `.github/workflows/deploy.yml`: ya existía como
+>   placeholder intencional ("pending the platform team's Terraform
+>   implementation") y se completa en el mismo sitio en vez de duplicarlo
+>   bajo `cd.yml`.
+
 ## Especificación del Workflow de Despliegue Continuo (`.github/workflows/cd.yml`)
 
 ```yaml
@@ -71,6 +86,17 @@ jobs:
   - *Solución*: De lo contrario, archivos obsoletos o borrados permanecerán en S3.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] El workflow CD usa OIDC para asumir el rol IAM sin credenciales estáticas.
-- [ ] La carpeta `dist/` se sincroniza correctamente con S3.
-- [ ] La invalidación de caché de CloudFront se ejecuta al finalizar la sincronización.
+- [x] El workflow CD usa OIDC para asumir el rol IAM sin credenciales
+      estáticas.
+      *(Verificado por inspección: `id-token: write` +
+      `aws-actions/configure-aws-credentials` con `role-to-assume`,
+      ningún `AWS_ACCESS_KEY_ID` en el repositorio. `actionlint` en verde.)*
+- [x] La carpeta `dist/` se sincroniza correctamente con S3.
+      *(Paso presente y en el orden correcto: `npm run build` seguido de
+      `aws s3 sync dist/ ... --delete`. No ejecutado contra AWS real — ver
+      Pendiente.)*
+- [x] La invalidación de caché de CloudFront se ejecuta al finalizar la
+      sincronización.
+      *(Paso presente; depende de que la distribución tenga
+      `Comment = "findly-{entorno}"`, ya añadido en
+      `infra/modules/cloudfront/`. No ejecutado contra AWS real.)*
