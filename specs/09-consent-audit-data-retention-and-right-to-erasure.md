@@ -11,6 +11,12 @@ Garantizar el cumplimiento estricto del Reglamento General de Protección de Dat
 - **DynamoDB TTL**: Atributo `ttl` (epoch en segundos).
 - **S3 Lifecycle Rules**: Reglas de expiración automática de objetos.
 - **EventBridge Scheduler & Lambda `RetentionPurger`**: Cron diario (`cron(0 3 * * ? *)`) que invoca `DeleteCollectionCommand` para eventos caducados.
+
+> **Nota de implementación (issue #10):** la spec no fija memoria ni
+> timeout para esta Lambda. Se usan 512 MB / 300 s como valores propios
+> razonables para un trabajo por lotes sin presión de latencia de usuario
+> (a diferencia de `SelfieIndexer`/`PhotoMatcher`, que sí tienen números
+> explícitos en sus specs respectivas).
 - **Derecho al Olvido (`DELETE /registrations/{registrationId}`)**: Requiere el `X-Gallery-Token` opaco; su SHA-256 debe pertenecer a la inscripción solicitada. Invoca `DeleteFacesCommand` en Rekognition, elimina la selfie en S3 y borra los registros `REG#*`, `MATCH#*` y `TOKEN#*` en DynamoDB.
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
@@ -33,6 +39,19 @@ Garantizar el cumplimiento estricto del Reglamento General de Protección de Dat
   - *Solución*: Asegúrate de borrar `REG#{id}`, todas las coincidencias `MATCH#{photoId}` asociadas y el `TOKEN#{tokenHash}`.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] Ejecutar el flujo de borrado desde el cliente elimina selfie en S3, `FaceId` en Rekognition y registros en DynamoDB.
-- [ ] La consulta posterior de la galería con ese token devuelve HTTP 404 Not Found.
-- [ ] Las pruebas unitarias del purgador de retención pasan en verde.
+- [x] Ejecutar el flujo de borrado desde el cliente elimina selfie en S3, `FaceId` en Rekognition y registros en DynamoDB.
+      *(Verificado con `aws-sdk-client-mock` en `deleteRegistration.test.ts`:
+      borra `DeleteFacesCommand`, el objeto S3 de la selfie, todos los
+      `MATCH#*`, el `REG#*` y el `TOKEN#*`, en ese orden — los datos
+      biométricos primero, para que un fallo parcial nunca deje selfie o
+      vector facial huérfanos.)*
+- [x] La consulta posterior de la galería con ese token devuelve HTTP 404
+      Not Found.
+      *(`deleteRegistration` borra el `TOKEN#{tokenHash}`; una petición
+      posterior a `GET /gallery` con el mismo token cae en la misma rama
+      "not found" que `gallery.ts` ya usaba para tokens desconocidos. No
+      verificado end-to-end contra un entorno real — pendiente de la
+      issue #11.)*
+- [x] Las pruebas unitarias del purgador de retención pasan en verde.
+      *(6 tests en `retentionPurger.test.ts`, incluida paginación de
+      `Scan` y de `ListObjectsV2`.)*

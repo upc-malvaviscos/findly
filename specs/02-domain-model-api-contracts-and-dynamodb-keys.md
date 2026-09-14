@@ -47,7 +47,15 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - **Response (200 OK)**: `{ registrationId: string; status: 'UPLOAD_PENDING' | 'PROCESSING' | 'ENROLLED' | 'FAILED'; failureReason?: string; }`
 
 ### 3. Galería Privada (`GET /gallery?token={token}`)
-- **Response (200 OK)**: `{ eventId: string; eventName: string; photos: Array<{ photoId: string; url: string; matchedAt: string; }>; expiresAt: string; }`
+- **Response (200 OK)**: `{ eventId: string; eventName: string; registrationId: string; photos: Array<{ photoId: string; url: string; matchedAt: string; }>; expiresAt: string; }`
+
+> **Corrección de contrato (issue #10):** se añade `registrationId` a la
+> respuesta, ausente en la versión original de esta spec. Sin él, el
+> cliente no tenía forma de construir
+> `DELETE /registrations/{registrationId}` (sección 5) a partir de lo que
+> devuelve esta llamada — solo dispone del token opaco. `registrationId`
+> no es PII (es un identificador opaco generado, igual que en el resto del
+> contrato).
 
 ### 4. Administración de eventos (JWT de Cognito obligatorio)
 - `GET /admin/events`: lista eventos administrables.
@@ -65,9 +73,12 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - Requiere la cabecera `X-Gallery-Token` con el token opaco de la galería. El backend calcula su SHA-256 y solo continúa si pertenece al `registrationId` solicitado.
 - La respuesta es `204 No Content`. El token nunca se escribe en logs, trazas o mensajes de error.
 
-> **Pendiente (issue #10):** sin tipos ni implementación todavía. Se deja
-> para la issue #10 (spec 09), que cubre consentimiento, retención y
-> derecho al olvido de extremo a extremo.
+> **Implementado (issue #10):** `src/lambdas/deleteRegistration.ts`. Sin
+> DTO de petición (solo path param + cabecera); sin cuerpo de respuesta.
+> No se conecta a API Gateway en esta issue — sigue el mismo precedente
+> que `gallery.ts` (issue #9), que tampoco tiene todavía enrutado HTTP
+> real. Esa integración de infraestructura se deja para cuando exista el
+> API Gateway (issues #11/#14).
 
 ### Errores comunes de API
 Todas las respuestas de error usan `{ code: string; message: string; requestId: string; }` sin PII ni tokens. Los códigos mínimos son: `400 INVALID_REQUEST`, `401 UNAUTHENTICATED`, `403 FORBIDDEN`, `404 EVENT_NOT_FOUND | REGISTRATION_NOT_FOUND | GALLERY_NOT_FOUND`, `409 INVALID_REGISTRATION_STATE` y `410 GALLERY_EXPIRED`.
