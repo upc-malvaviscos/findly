@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   eventKey,
   faceGsi1Key,
+  faceGsi1PartitionKey,
   galleryTokenKey,
   MATCH_SK_PREFIX,
   matchKey,
+  parseRegistrationId,
   photoKey,
   registrationKey,
   registrationPartitionKey,
@@ -58,6 +60,31 @@ describe('dynamoKeys', () => {
       GSI1PK: 'FACE#face-1',
       GSI1SK: 'REG#reg-1',
     });
+  });
+
+  it('builds the GSI1 partition key for querying by faceId alone', () => {
+    expect(faceGsi1PartitionKey('face-1')).toBe('FACE#face-1');
+  });
+
+  it('faceGsi1Key and faceGsi1PartitionKey agree on GSI1PK for the same face', () => {
+    expect(faceGsi1Key('face-1', 'reg-1').GSI1PK).toBe(
+      faceGsi1PartitionKey('face-1'),
+    );
+  });
+
+  it('parses the registrationId back out of a GSI1 sort key', () => {
+    expect(parseRegistrationId('REG#reg-1')).toBe('reg-1');
+  });
+
+  it('round-trips faceGsi1Key.GSI1SK through parseRegistrationId', () => {
+    expect(parseRegistrationId(faceGsi1Key('face-1', 'reg-1').GSI1SK)).toBe(
+      'reg-1',
+    );
+  });
+
+  it('returns null for a sort key without the REG# prefix', () => {
+    expect(parseRegistrationId('MATCH#photo-1')).toBeNull();
+    expect(parseRegistrationId('REG#')).toBeNull();
   });
 
   it('converts an offset to epoch seconds', () => {
