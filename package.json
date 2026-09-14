@@ -13,7 +13,7 @@
     "local:seed": "node scripts/local-seed-gallery.mjs",
     "lint": "npm run lint:code && npm run lint:format && npm run lint:markdown && npm run lint:terraform && npm run lint:workflows",
     "lint:code": "eslint .",
-    "lint:format": "prettier --check .prettierrc.json commitlint.config.mjs eslint.config.js index.html package.json playwright.config.ts tsconfig.json tsconfig.lambda.json tsconfig.web.json vite.config.ts vitest.config.ts src tests e2e scripts infra .github/PULL_REQUEST_TEMPLATE.md .github/workflows/ci.yml .github/workflows/enable-automerge.yml",
+    "lint:format": "prettier --check .prettierrc.json commitlint.config.mjs eslint.config.js index.html package.json playwright.config.ts tsconfig.json tsconfig.lambda.json tsconfig.web.json vite.config.ts vitest.config.ts src tests e2e scripts infra .github/PULL_REQUEST_TEMPLATE.md .github/workflows/ci.yml .github/workflows/deploy.yml .github/workflows/enable-automerge.yml",
     "lint:markdown": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
     "lint:terraform": "tflint --chdir=infra",
     "lint:workflows": "github-actionlint .github/workflows/*.yml",

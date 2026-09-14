@@ -1,4 +1,4 @@
-name: Deployment handoff
+name: Deployment
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
       environment:
         description: Target environment
         required: true
+        default: sandbox
         type: choice
         options: [sandbox, demo, production]
 
@@ -14,8 +15,54 @@ permissions:
   id-token: write
 
 jobs:
-  handoff:
+  deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v5
-      - run: echo "Deployment is intentionally pending the platform team's Terraform implementation for ${{ inputs.environment }}."
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: hashicorp/setup-terraform@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/findly-github-actions-${{ inputs.environment }}
+          aws-region: eu-west-1
+
+      - run: npm ci
+
+      # infra/environments/{sandbox,demo,production} es responsabilidad de
+      # la issue #11 (spec 10: estado remoto y aislamiento de entornos),
+      # todavia no implementada. Sin ella este workflow no tiene nada real
+      # que desplegar; el guardia deja un mensaje claro en vez de un fallo
+      # de "no such file or directory" opaco.
+      - name: Verify environment root exists
+        run: |
+          if [ ! -d "infra/environments/${{ inputs.environment }}" ]; then
+            echo "::error::infra/environments/${{ inputs.environment }} does not exist yet. This pipeline depends on issue #11 (Terraform bootstrap, remote state and environment isolation)."
+            exit 1
+          fi
+
+      - name: Terraform apply
+        working-directory: infra/environments/${{ inputs.environment }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Build and deploy static web to S3
+        run: |
+          npm run build
+          aws s3 sync dist/ s3://findly-web-${{ inputs.environment }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='findly-${{ inputs.environment }}'].Id" --output text)
+          if [ -z "$DIST_ID" ]; then
+            echo "::error::No CloudFront distribution found with Comment findly-${{ inputs.environment }}."
+            exit 1
+          fi
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
