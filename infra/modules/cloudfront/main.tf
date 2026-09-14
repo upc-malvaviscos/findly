@@ -55,6 +55,10 @@ resource "aws_cloudfront_distribution" "web" {
   enabled             = true
   default_root_object = "index.html"
   aliases             = local.has_custom_domain ? [var.custom_domain_name] : []
+  # El workflow de despliegue (spec 14 / issue #15) localiza la
+  # distribucion por este Comment para invalidar su cache tras cada
+  # despliegue: `--query "...[?Comment=='findly-{entorno}']"`.
+  comment = "findly-${var.environment}"
 
   origin {
     domain_name              = aws_s3_bucket.web.bucket_regional_domain_name
