@@ -3,6 +3,7 @@ import type { GalleryResponse } from './types';
 const demoGallery: GalleryResponse = {
   eventId: 'demo-2026',
   eventName: 'Findly Demo Night',
+  registrationId: 'registration-demo',
   expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
   photos: [
     {
@@ -40,10 +41,34 @@ export async function getGallery(token: string): Promise<GalleryResponse> {
   }
   await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
   if (token === 'expired') throw new Error('GALLERY_EXPIRED');
-  if (token !== 'demo-gallery') throw new Error('GALLERY_NOT_FOUND');
+  if (!token.startsWith('demo-gallery')) throw new Error('GALLERY_NOT_FOUND');
   return demoGallery;
 }
 
 export function refreshGallery(token: string) {
   return getGallery(token);
+}
+
+export async function deleteRegistration(
+  token: string,
+  registrationId: string,
+): Promise<void> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (apiBaseUrl) {
+    const response = await fetch(
+      `${apiBaseUrl.replace(/\/$/, '')}/registrations/${encodeURIComponent(registrationId)}`,
+      { method: 'DELETE', headers: { 'X-Gallery-Token': token } },
+    );
+    if (response.status === 204) return;
+    let payload: { code?: string } = {};
+    try {
+      payload = (await response.json()) as { code?: string };
+    } catch {
+      // Keep the public error stable when the upstream response is not JSON.
+    }
+    throw new Error(payload.code ?? 'ERASURE_NETWORK_ERROR');
+  }
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
+  if (token === 'demo-gallery-fail-erasure')
+    throw new Error('REGISTRATION_NOT_FOUND');
 }

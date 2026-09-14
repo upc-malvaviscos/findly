@@ -253,6 +253,13 @@ h2 {
   border-color: var(--line);
   color: var(--ink);
 }
+.button-danger {
+  background: var(--accent-dark);
+  color: #fff;
+}
+.button-danger:hover {
+  background: var(--accent);
+}
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -385,6 +392,10 @@ h2 {
 .gallery-photo:hover img {
   transform: scale(1.03);
 }
+.gallery-footer {
+  margin-top: 2rem;
+  text-align: center;
+}
 .lightbox {
   position: fixed;
   inset: 0;
@@ -409,7 +420,8 @@ h2 {
   padding: 1rem;
   background: #182026b8;
 }
-.camera-modal {
+.camera-modal,
+.erasure-modal {
   width: min(100%, 520px);
   background: var(--paper);
   padding: clamp(1rem, 4vw, 2rem);

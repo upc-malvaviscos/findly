@@ -72,6 +72,7 @@ describe('gallery lambda', () => {
     expect(JSON.parse(result.body)).toMatchObject({
       eventId: 'demo-2026',
       eventName: 'Local Demo',
+      registrationId: 'registration-demo',
       photos: [{ photoId: 'photo-1' }],
     });
   });

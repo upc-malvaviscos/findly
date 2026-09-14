@@ -28,6 +28,7 @@ type GalleryEvent = {
 type GalleryResponse = {
   eventId: string;
   eventName: string;
+  registrationId: string;
   photos: Array<{ photoId: string; url: string; matchedAt: string }>;
   expiresAt: string;
 };
@@ -158,6 +159,7 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
     eventName: String(
       eventRecord?.name ?? process.env.FINDLY_EVENT_NAME ?? 'Findly Demo Night',
     ),
+    registrationId,
     expiresAt,
     photos: photos.filter(
       (photo): photo is NonNullable<typeof photo> => photo !== null,
