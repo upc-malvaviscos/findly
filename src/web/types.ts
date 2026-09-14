@@ -22,6 +22,7 @@ export type GalleryPhoto = { photoId: string; url: string; matchedAt: string };
 export type GalleryResponse = {
   eventId: string;
   eventName: string;
+  registrationId: string;
   photos: GalleryPhoto[];
   expiresAt: string;
 };

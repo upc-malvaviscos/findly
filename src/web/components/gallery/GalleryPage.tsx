@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { getGallery, refreshGallery } from '../../galleryApi';
 import type { GalleryPhoto, GalleryResponse } from '../../types';
+import { ErasureModal } from './ErasureModal';
 
-type GalleryState = 'LOADING' | 'SUCCESS' | 'EMPTY' | 'EXPIRED' | 'NOT_FOUND';
+type GalleryState =
+  | 'LOADING'
+  | 'SUCCESS'
+  | 'EMPTY'
+  | 'EXPIRED'
+  | 'NOT_FOUND'
+  | 'ERASED';
 
 export function GalleryPage({ token }: { token: string }) {
   const [state, setState] = useState<GalleryState>('LOADING');
   const [gallery, setGallery] = useState<GalleryResponse | null>(null);
   const [selected, setSelected] = useState<GalleryPhoto | null>(null);
+  const [erasureOpen, setErasureOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -67,12 +75,45 @@ export function GalleryPage({ token }: { token: string }) {
         </section>
       </main>
     );
+  if (state === 'ERASED')
+    return (
+      <main className="page-shell">
+        <section className="enrollment-card">
+          <h1>Tus datos han sido eliminados.</h1>
+          <p>
+            Hemos borrado tu selfie, tu identificador facial y tus
+            coincidencias de este evento. Este enlace ya no funcionará.
+          </p>
+        </section>
+      </main>
+    );
   if (state === 'EMPTY' || gallery === null)
     return (
       <main className="page-shell">
         <section className="enrollment-card">
           <h1>Aún no hay fotos.</h1>
           <p>Te avisaremos cuando haya fotografías disponibles.</p>
+          {gallery ? (
+            <>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setErasureOpen(true)}
+              >
+                Eliminar mis datos
+              </button>
+              <ErasureModal
+                open={erasureOpen}
+                token={token}
+                registrationId={gallery.registrationId}
+                onClose={() => setErasureOpen(false)}
+                onErased={() => {
+                  setErasureOpen(false);
+                  setState('ERASED');
+                }}
+              />
+            </>
+          ) : null}
         </section>
       </main>
     );
@@ -120,6 +161,25 @@ export function GalleryPage({ token }: { token: string }) {
             </a>
           </div>
         )}
+        <div className="gallery-footer">
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => setErasureOpen(true)}
+          >
+            Eliminar mis datos
+          </button>
+        </div>
+        <ErasureModal
+          open={erasureOpen}
+          token={token}
+          registrationId={gallery.registrationId}
+          onClose={() => setErasureOpen(false)}
+          onErased={() => {
+            setErasureOpen(false);
+            setState('ERASED');
+          }}
+        />
       </section>
     </main>
   );
