@@ -39,7 +39,7 @@ jobs:
           test -n "$STATE_BUCKET"
       - id: aws
         name: Assume the ephemeral CI role through OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_EPHEMERAL_CI_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
