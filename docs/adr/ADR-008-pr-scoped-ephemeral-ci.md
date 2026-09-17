@@ -23,6 +23,11 @@ environments, otros repositorios ni forks. Floci sigue siendo la dependencia
 local de E2E: los handlers reales de eventos y prefirmado se ejercitan contra
 DynamoDB y S3 emulados con datos sintéticos.
 
+El ruleset `Main` exige también el check de estado
+`provision-test-destroy`, además de las puertas existentes de frontend,
+Terraform, seguridad y E2E. Por tanto, una PR no se integra si no queda
+evidencia del teardown de su entorno efímero.
+
 ## Alternativa rechazada
 
 Se rechazan `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, tokens de sesión
