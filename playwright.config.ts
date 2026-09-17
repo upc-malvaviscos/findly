@@ -4,7 +4,7 @@ const webPort = process.env.WEB_PORT ?? '4173';
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: 'local-gallery.spec.ts',
+  testIgnore: /local-.*\.spec\.ts/,
   fullyParallel: true,
   retries: process.env.CI === 'true' ? 2 : 0,
   reporter:
