@@ -66,7 +66,7 @@ Lambda, y CloudFront + OAC para la SPA.
   `retention-purger` (sus variables ya describían rutas `.zip`
   inexistentes desde que se crearon). Se añade
   `scripts/package-lambda-artifacts.mjs` (nuevo paso `npm run
-  package:lambdas`, sin dependencias nuevas: usa `Compress-Archive` en
+package:lambdas`, sin dependencias nuevas: usa `Compress-Archive` en
   Windows y `zip -j` en Linux/CI) y se amplía
   `scripts/verify-lambda-artifacts.mjs` para comprobar `.js` **y** `.zip`
   de cada Lambda en `src/lambdas/*.ts`, en vez de solo `health.js` como
@@ -86,6 +86,26 @@ Lambda, y CloudFront + OAC para la SPA.
   recursos que la spec 11 ya especifica; la única decisión de diseño
   propia (dominio/certificado opcionales) es una adaptación de
   implementación, no una decisión arquitectónica de alto nivel.
+
+## Evidencia de coste y endurecimiento en CI efímera
+
+El workflow `.github/workflows/ephemeral-pr-e2e.yml` conserva un plan de
+Terraform por PR en el directorio temporal del runner y lo convierte con
+`terraform show -json`. Antes de `apply`, falla si el plan contiene un recurso
+gestionado de los tipos excluidos por el alcance: VPC, NAT Gateway, EC2, RDS,
+balanceador de carga o EKS.
+
+Después de aplicar el stack y antes del recorrido del organizador, el mismo job
+consulta el bucket de cargas efímero que Terraform acaba de crear. La ejecución
+falla salvo que las cuatro banderas de `PublicAccessBlockConfiguration` sean
+`true` y el cifrado por defecto sea `AES256` (SSE-S3). Los valores se usan sólo
+para las aserciones y no se escriben en el log.
+
+Esta comprobación usa el rol OIDC y el bucket con prefijo de la PR ya previstos
+por ADR-008; no añade claves persistentes ni recursos fuera del stack efímero.
+La casilla de la issue #12 sólo se actualizará después de que una ejecución de
+`provision-test-destroy` de esta PR deje evidencia de ambas aserciones y de su
+teardown.
 
 ## Mensaje sugerido para la issue #5
 
