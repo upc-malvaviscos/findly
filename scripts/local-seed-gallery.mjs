@@ -7,6 +7,7 @@ import {
 import {
   S3Client,
   CreateBucketCommand,
+  PutBucketCorsCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 
@@ -15,6 +16,7 @@ const region = 'eu-west-1';
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
 const bucket = process.env.FINDLY_PHOTO_BUCKET ?? 'findly-local-photos';
 const token = process.env.FINDLY_DEMO_TOKEN ?? 'demo-gallery';
+const webPort = process.env.WEB_PORT ?? '4173';
 const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 const ddb = new DynamoDBClient({ endpoint, region });
 const s3 = new S3Client({ endpoint, region, forcePathStyle: true });
@@ -28,10 +30,22 @@ try {
       AttributeDefinitions: [
         { AttributeName: 'PK', AttributeType: 'S' },
         { AttributeName: 'SK', AttributeType: 'S' },
+        { AttributeName: 'GSI2PK', AttributeType: 'S' },
+        { AttributeName: 'GSI2SK', AttributeType: 'S' },
       ],
       KeySchema: [
         { AttributeName: 'PK', KeyType: 'HASH' },
         { AttributeName: 'SK', KeyType: 'RANGE' },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: 'GSI2',
+          KeySchema: [
+            { AttributeName: 'GSI2PK', KeyType: 'HASH' },
+            { AttributeName: 'GSI2SK', KeyType: 'RANGE' },
+          ],
+          Projection: { ProjectionType: 'ALL' },
+        },
       ],
     }),
   );
@@ -47,6 +61,21 @@ try {
   )
     throw error;
 }
+await s3.send(
+  new PutBucketCorsCommand({
+    Bucket: bucket,
+    CORSConfiguration: {
+      CORSRules: [
+        {
+          AllowedHeaders: ['content-type'],
+          AllowedMethods: ['PUT'],
+          AllowedOrigins: [`http://127.0.0.1:${webPort}`],
+          MaxAgeSeconds: 300,
+        },
+      ],
+    },
+  }),
+);
 await new Promise((resolve) => setTimeout(resolve, 500));
 await ddb.send(
   new PutItemCommand({

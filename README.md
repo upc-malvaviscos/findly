@@ -86,7 +86,13 @@ La implementación se distribuye mediante las issues derivadas de [`specs/`](/Us
 
 ## Operación y CI/CD
 
-GitHub Actions valida commits convencionales, Markdown y workflows. Los workflows de despliegue y limpieza cada 12 horas son handoffs seguros: no ejecutan AWS hasta que el equipo de plataforma implemente y revise las correspondientes specs.
+GitHub Actions valida commits convencionales, Markdown y workflows. Para cada
+pull request interno no draft, el workflow de entorno efímero crea un stack
+Terraform identificado por PR, ejecuta el recorrido local Floci del organizador
+y destruye el stack aun cuando la prueba falla. La cuenta AWS y las variables
+GitHub requeridas se configuran siguiendo el
+[runbook externo](docs/runbooks/ephemeral-pr-ci-external-setup.md); no se usan
+claves AWS de larga duración ni `terraform apply` desde desarrollo local.
 
 ## Participantes del equipo
 

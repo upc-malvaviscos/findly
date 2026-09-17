@@ -38,6 +38,7 @@ services:
       AWS_SECRET_ACCESS_KEY: local
       FINDLY_TABLE_NAME: findly-local
       FINDLY_PHOTO_BUCKET: findly-local-photos
+      WEB_PORT: ${WEB_PORT:-4173}
     volumes:
       - .:/app
       - local-node-modules:/app/node_modules

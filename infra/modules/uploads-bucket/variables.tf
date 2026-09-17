@@ -30,3 +30,9 @@ variable "data_class" {
   type        = string
   default     = "biometric"
 }
+
+variable "force_destroy" {
+  description = "Permite vaciar el bucket solo para entornos efimeros de CI."
+  type        = bool
+  default     = false
+}
