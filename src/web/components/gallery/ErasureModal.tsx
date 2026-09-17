@@ -75,14 +75,14 @@ export function ErasureModal({
           </button>
         </div>
         <p>
-          Esta acción es <strong>irreversible</strong>. Eliminaremos tu
-          selfie, tu identificador facial y todas las coincidencias
-          encontradas en este evento. Dejarás de tener acceso a esta galería.
+          Esta acción es <strong>irreversible</strong>. Eliminaremos tu selfie,
+          tu identificador facial y todas las coincidencias encontradas en este
+          evento. Dejarás de tener acceso a esta galería.
         </p>
         {status === 'FAILED' ? (
           <p className="field-error" role="alert">
-            No hemos podido completar el borrado. Inténtalo de nuevo o
-            contacta con el organizador.
+            No hemos podido completar el borrado. Inténtalo de nuevo o contacta
+            con el organizador.
           </p>
         ) : null}
         <div className="modal-actions">

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ensureJpegFile, needsJpegConversion } from '../../src/web/imageConversion';
+import {
+  ensureJpegFile,
+  needsJpegConversion,
+} from '../../src/web/imageConversion';
 
 describe('needsJpegConversion', () => {
   it('returns false for an already-JPEG file', () => {
@@ -60,6 +63,8 @@ describe('ensureJpegFile', () => {
     );
 
     const file = new File(['data'], 'selfie.webp', { type: 'image/webp' });
-    await expect(ensureJpegFile(file)).rejects.toThrow('JPEG_CONVERSION_FAILED');
+    await expect(ensureJpegFile(file)).rejects.toThrow(
+      'JPEG_CONVERSION_FAILED',
+    );
   });
 });

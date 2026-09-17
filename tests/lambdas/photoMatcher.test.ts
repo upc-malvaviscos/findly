@@ -21,7 +21,11 @@ afterEach(() => {
   dynamoMock.reset();
 });
 
-function sqsRecord(messageId: string, photoId: string, bucket = 'findly-photos') {
+function sqsRecord(
+  messageId: string,
+  photoId: string,
+  bucket = 'findly-photos',
+) {
   return {
     messageId,
     body: JSON.stringify({
@@ -67,7 +71,9 @@ describe('photoMatcher', () => {
 
   it('indexes and deletes the photo faces even when no faces are detected', async () => {
     rekognitionMock.on(IndexFacesCommand).resolves({ FaceRecords: [] });
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     expect(rekognitionMock.commandCalls(SearchFacesCommand)).toHaveLength(0);
@@ -80,16 +86,16 @@ describe('photoMatcher', () => {
       FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
     });
     rekognitionMock.on(SearchFacesCommand).resolves({
-      FaceMatches: [
-        { Face: { FaceId: 'enrolled-face-1' }, Similarity: 98.2 },
-      ],
+      FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 98.2 }],
     });
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ GSI1PK: 'FACE#enrolled-face-1', GSI1SK: 'REG#reg-1' }],
     });
     dynamoMock.on(PutCommand).resolves({});
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     const putCalls = dynamoMock.commandCalls(PutCommand);
@@ -116,7 +122,9 @@ describe('photoMatcher', () => {
       FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 90 }],
     });
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
@@ -131,7 +139,9 @@ describe('photoMatcher', () => {
     });
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
@@ -145,7 +155,9 @@ describe('photoMatcher', () => {
       FaceMatches: [{ Face: { FaceId: 'detected-face-1' }, Similarity: 100 }],
     });
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
@@ -180,7 +192,9 @@ describe('photoMatcher', () => {
       .resolves({ Items: [{ GSI1SK: 'REG#reg-2' }] });
     dynamoMock.on(PutCommand).resolves({});
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(2);
@@ -198,14 +212,14 @@ describe('photoMatcher', () => {
     rekognitionMock.on(SearchFacesCommand).resolves({
       FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 98 }],
     });
-    dynamoMock
-      .on(QueryCommand)
-      .resolves({ Items: [{ GSI1SK: 'REG#reg-1' }] });
+    dynamoMock.on(QueryCommand).resolves({ Items: [{ GSI1SK: 'REG#reg-1' }] });
     const conditionalError = new Error('conditional check failed');
     conditionalError.name = 'ConditionalCheckFailedException';
     dynamoMock.on(PutCommand).rejects(conditionalError);
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([]);
   });
@@ -218,7 +232,9 @@ describe('photoMatcher', () => {
       .on(SearchFacesCommand)
       .rejects(new Error('rekognition unavailable'));
 
-    const result = await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
 
     expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg-1' }]);
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);

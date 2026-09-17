@@ -60,7 +60,9 @@ describe('dynamoKeys', () => {
   });
 
   it('matches key and partition key agree on the PK for the same registration', () => {
-    expect(matchKey('reg-1', 'photo-1').PK).toBe(registrationPartitionKey('reg-1'));
+    expect(matchKey('reg-1', 'photo-1').PK).toBe(
+      registrationPartitionKey('reg-1'),
+    );
     expect(matchKey('reg-1', 'photo-1').SK).toBe(`${MATCH_SK_PREFIX}photo-1`);
   });
 

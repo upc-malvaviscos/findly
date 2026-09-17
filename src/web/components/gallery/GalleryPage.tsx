@@ -4,12 +4,7 @@ import type { GalleryPhoto, GalleryResponse } from '../../types';
 import { ErasureModal } from './ErasureModal';
 
 type GalleryState =
-  | 'LOADING'
-  | 'SUCCESS'
-  | 'EMPTY'
-  | 'EXPIRED'
-  | 'NOT_FOUND'
-  | 'ERASED';
+  'LOADING' | 'SUCCESS' | 'EMPTY' | 'EXPIRED' | 'NOT_FOUND' | 'ERASED';
 
 export function GalleryPage({ token }: { token: string }) {
   const [state, setState] = useState<GalleryState>('LOADING');
@@ -81,8 +76,8 @@ export function GalleryPage({ token }: { token: string }) {
         <section className="enrollment-card">
           <h1>Tus datos han sido eliminados.</h1>
           <p>
-            Hemos borrado tu selfie, tu identificador facial y tus
-            coincidencias de este evento. Este enlace ya no funcionará.
+            Hemos borrado tu selfie, tu identificador facial y tus coincidencias
+            de este evento. Este enlace ya no funcionará.
           </p>
         </section>
       </main>

@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { DeleteFacesCommand, RekognitionClient } from '@aws-sdk/client-rekognition';
+import {
+  DeleteFacesCommand,
+  RekognitionClient,
+} from '@aws-sdk/client-rekognition';
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
@@ -89,8 +92,7 @@ export async function deleteRegistration(
       }),
     )
   ).Item as
-    | Partial<Pick<GalleryTokenEntity, 'registrationId' | 'eventId'>>
-    | undefined;
+    Partial<Pick<GalleryTokenEntity, 'registrationId' | 'eventId'>> | undefined;
 
   if (
     !tokenRecord?.registrationId ||
