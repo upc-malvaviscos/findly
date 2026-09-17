@@ -2,3 +2,8 @@
 # No añadas secretos, credenciales ni estados a este fichero.
 project = "findly"
 environment = "sandbox"
+aws_region = "eu-west-1"
+cost_center = "findly"
+data_class = "biometric"
+frontend_domain_url = "http://localhost:5173"
+uploads_bucket_name = "replace-with-a-globally-unique-findly-bucket"

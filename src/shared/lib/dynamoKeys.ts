@@ -1,8 +1,18 @@
 export type PrimaryKey = { PK: string; SK: string };
 export type Gsi1Key = { GSI1PK: string; GSI1SK: string };
+export type Gsi2Key = { GSI2PK: string; GSI2SK: string };
+
+export const EVENT_LISTING_GSI2_PARTITION_KEY = 'ENTITY#EVENT';
 
 export function eventKey(eventId: string): PrimaryKey {
   return { PK: `EVENT#${eventId}`, SK: 'METADATA' };
+}
+
+export function eventListingGsi2Key(date: string, eventId: string): Gsi2Key {
+  return {
+    GSI2PK: EVENT_LISTING_GSI2_PARTITION_KEY,
+    GSI2SK: `${date}#${eventId}`,
+  };
 }
 
 export function registrationKey(

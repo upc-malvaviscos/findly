@@ -1,7 +1,4 @@
-variable "frontend_domain_url" {
-  description = "Origen exacto del frontend autorizado por CORS en la API."
-  type        = string
-}
+variable "table_name" { type = string }
 variable "project" {
   type    = string
   default = "findly"
@@ -14,4 +11,8 @@ variable "cost_center" {
 variable "data_class" {
   type    = string
   default = "biometric"
+}
+variable "enable_point_in_time_recovery" {
+  type    = bool
+  default = false
 }
