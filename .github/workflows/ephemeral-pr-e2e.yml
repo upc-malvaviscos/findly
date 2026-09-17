@@ -59,12 +59,61 @@ jobs:
             -backend-config="region=$AWS_REGION" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
+      - name: Plan and verify the serverless cost boundary
+        run: |
+          plan_file="$RUNNER_TEMP/findly-pr-${{ github.event.pull_request.number }}.tfplan"
+          plan_json="$RUNNER_TEMP/findly-pr-${{ github.event.pull_request.number }}.tfplan.json"
+          terraform -chdir=infra/ephemeral plan -out="$plan_file" \
+            -var="aws_region=$AWS_REGION" \
+            -var="aws_account_id=$(aws sts get-caller-identity --query Account --output text)" \
+            -var="pull_request_number=${{ github.event.pull_request.number }}"
+          terraform -chdir=infra/ephemeral show -json "$plan_file" > "$plan_json"
+
+          prohibited_resource_types=(
+            aws_vpc
+            aws_nat_gateway
+            aws_instance
+            aws_db_instance
+            aws_db_cluster
+            aws_rds_cluster_instance
+            aws_lb
+            aws_eks_cluster
+          )
+          for resource_type in "${prohibited_resource_types[@]}"; do
+            if jq -e --arg resource_type "$resource_type" \
+              '.resource_changes[]? | select(.mode == "managed" and .type == $resource_type)' \
+              "$plan_json" > /dev/null; then
+              echo "::error::The ephemeral plan contains prohibited fixed-cost resource type $resource_type"
+              exit 1
+            fi
+          done
       - name: Provision an isolated PR environment
         run: |
           terraform -chdir=infra/ephemeral apply -auto-approve \
             -var="aws_region=$AWS_REGION" \
             -var="aws_account_id=$(aws sts get-caller-identity --query Account --output text)" \
             -var="pull_request_number=${{ github.event.pull_request.number }}"
+      - name: Verify deployed uploads bucket hardening
+        run: |
+          uploads_bucket_name="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)"
+          public_access_block="$(aws s3api get-public-access-block \
+            --bucket "$uploads_bucket_name" \
+            --query 'PublicAccessBlockConfiguration' \
+            --output json)"
+          bucket_encryption="$(aws s3api get-bucket-encryption \
+            --bucket "$uploads_bucket_name" \
+            --output json)"
+
+          jq -e '
+            .BlockPublicAcls == true and
+            .IgnorePublicAcls == true and
+            .BlockPublicPolicy == true and
+            .RestrictPublicBuckets == true
+          ' <<< "$public_access_block" > /dev/null
+          jq -e '
+            [.ServerSideEncryptionConfiguration.Rules[]?.ApplyServerSideEncryptionByDefault.SSEAlgorithm]
+            | index("AES256") != null
+          ' <<< "$bucket_encryption" > /dev/null
       - name: Run the deployed AWS organizer happy path
         run: |
           user_name="ci-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}"
