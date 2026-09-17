@@ -86,3 +86,19 @@ module "admin_api" {
   cost_center          = "findly-ci"
   data_class           = "synthetic"
 }
+
+module "gallery_reader" {
+  source               = "../modules/gallery-reader"
+  api_id               = module.api_gateway.api_id
+  api_execution_arn    = module.api_gateway.execution_arn
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/gallery.zip"
+  frontend_domain_url  = var.frontend_domain_url
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+}

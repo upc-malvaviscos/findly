@@ -14,6 +14,21 @@ Implementación de la galería privada con API local reproducible sobre Floci y 
 - `infra/modules/gallery-reader/` conecta la Lambda con `GET /gallery`, logs de 14 días, permiso explícito de API Gateway e IAM de mínimo privilegio: solo lee DynamoDB y `events/*/photos/*` del bucket privado.
 - La ejecución local permite sobrescribir `FLOCI_PORT`, `LOCAL_API_PORT` y `WEB_PORT`, preservando 4566, 8787 y 4173 por defecto para aislar worktrees.
 
+## Cobertura de cierre de issue
+
+- La prueba Lambda distingue token desconocido (`404 GALLERY_NOT_FOUND`) de un
+  token válido caducado (`410 GALLERY_EXPIRED`) sin exponer el token.
+- La E2E local sobre Floci cubre galería con fotos, galería vacía, no encontrada,
+  caducada y el control de descarga del visor. La prueba de componente cubre el
+  refresco de URLs a los cuatro minutos.
+- El workflow efímero siembra exclusivamente un evento, tokens hasheados,
+  registros `MATCH`, metadatos de foto y una JPEG mínima sintética. Comprueba
+  `200`/foto/URL firmada, `404`, `410` y galería vacía antes del `destroy`.
+
+La evidencia de estas aserciones desplegadas se registra en el check
+`provision-test-destroy` de la PR; esta documentación no las da por ejecutadas
+hasta que ese check termine correctamente.
+
 ## Validación
 
 ```text
