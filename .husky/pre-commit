@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+git diff --cached --check
+files="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cjs|css|html|js|json|jsx|md|mjs|ts|tsx|yml|yaml)$' || true)"
+[ -z "$files" ] || npx --no -- prettier --check $files

@@ -8,6 +8,10 @@ Trata las imágenes, embeddings faciales, tokens de galería y datos de contacto
 
 La fuente de verdad es el backlog en `specs/`; el contexto de producto está en `README.md`; las decisiones se registran en `docs/adr/`; y las pruebas, capturas y salidas reproducibles pertenecen a `docs/evidence/`.
 
+Antes de empezar, lee y aplica obligatoriamente el [contrato de entorno y
+verificación local](docs/local-validation-harness.md), incluida la trazabilidad
+de criterios y la sincronización final de la issue asociada.
+
 ## Flujo obligatorio: research -> plan -> implement -> sync
 
 Aplica las cuatro fases, en este orden, a toda tarea de cierta magnitud. Las ediciones puramente tipográficas u otros cambios triviales pueden omitir las fases que no aporten valor.
