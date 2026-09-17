@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+npm run harness:check
+npm run verify
