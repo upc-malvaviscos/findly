@@ -88,9 +88,11 @@ La implementación se distribuye mediante las issues derivadas de [`specs/`](/Us
 
 GitHub Actions valida commits convencionales, Markdown y workflows. Para cada
 pull request interno no draft, el workflow de entorno efímero crea un stack
-Terraform identificado por PR, ejecuta el recorrido local Floci del organizador
-y destruye el stack aun cuando la prueba falla. La cuenta AWS y las variables
-GitHub requeridas se configuran siguiendo el
+Terraform identificado por PR, prueba con datos sintéticos el API, Cognito y S3
+realmente desplegados, y destruye el stack aun cuando la prueba falla. El
+recorrido Playwright-Floci local permanece en el job E2E independiente; sus
+navegadores se restauran de caché por SO y lockfile. La cuenta AWS y las
+variables GitHub requeridas se configuran siguiendo el
 [runbook externo](docs/runbooks/ephemeral-pr-ci-external-setup.md); no se usan
 claves AWS de larga duración ni `terraform apply` desde desarrollo local.
 

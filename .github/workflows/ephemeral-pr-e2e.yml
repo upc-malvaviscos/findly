@@ -65,10 +65,37 @@ jobs:
             -var="aws_region=$AWS_REGION" \
             -var="aws_account_id=$(aws sts get-caller-identity --query Account --output text)" \
             -var="pull_request_number=${{ github.event.pull_request.number }}"
-      - name: Run the Floci organizer happy path
+      - name: Run the deployed AWS organizer happy path
         run: |
-          npm exec -- playwright install --with-deps chromium
-          npm run test:e2e:local -- --project=chromium
+          user_name="ci-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}"
+          password="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32)Aa1!"
+          cleanup_user() {
+            aws cognito-idp admin-delete-user \
+              --user-pool-id "$(terraform -chdir=infra/ephemeral output -raw cognito_user_pool_id)" \
+              --username "$user_name" || true
+          }
+          trap cleanup_user EXIT
+          user_pool_id="$(terraform -chdir=infra/ephemeral output -raw cognito_user_pool_id)"
+          client_id="$(terraform -chdir=infra/ephemeral output -raw cognito_client_id)"
+          aws cognito-idp admin-create-user \
+            --user-pool-id "$user_pool_id" \
+            --username "$user_name" \
+            --message-action SUPPRESS
+          aws cognito-idp admin-set-user-password \
+            --user-pool-id "$user_pool_id" \
+            --username "$user_name" \
+            --password "$password" \
+            --permanent
+          id_token="$(aws cognito-idp initiate-auth \
+            --client-id "$client_id" \
+            --auth-flow USER_PASSWORD_AUTH \
+            --auth-parameters "USERNAME=$user_name,PASSWORD=$password" \
+            --query 'AuthenticationResult.IdToken' \
+            --output text)"
+          test "$id_token" != "None"
+          EPHEMERAL_API_ENDPOINT="$(terraform -chdir=infra/ephemeral output -raw api_endpoint)" \
+          EPHEMERAL_ID_TOKEN="$id_token" \
+          node scripts/deployed-ephemeral-happy-path.mjs
       - name: Destroy the PR environment
         if: ${{ always() && steps.aws.outcome == 'success' }}
         env:

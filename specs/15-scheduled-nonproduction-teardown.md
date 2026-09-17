@@ -3,10 +3,11 @@
 ## Objetivo
 
 Sustituir la limpieza programada compartida por un entorno AWS exclusivo de
-cada pull request. El workflow lo crea mediante Terraform, ejecuta el recorrido
-del organizador contra Floci y lo destruye en un paso `always()`, incluso cuando
-fallan las pruebas. No existe cron ni una ruta que pueda destruir `demo` o
-`production`.
+cada pull request. El workflow lo crea mediante Terraform, ejecuta un recorrido
+del organizador contra el API, Cognito y S3 realmente desplegados, y lo destruye
+en un paso `always()`, incluso cuando fallan las pruebas. Floci se valida de
+forma independiente en el job E2E local. No existe cron ni una ruta que pueda
+destruir `demo` o `production`.
 
 ## Criterios de aceptación
 
@@ -22,8 +23,12 @@ fallan las pruebas. No existe cron ni una ruta que pueda destruir `demo` o
 - La destrucción se intenta después de cualquier fallo posterior a la asunción
   del rol. El bucket se vacía como parte de Terraform, sin un script que acepte
   nombres de entornos arbitrarios.
-- El recorrido Playwright local autentica al organizador simulado, crea y
-  selecciona un evento y carga una JPEG sintética al S3 emulado por Floci.
+- El job AWS ejecuta, entre `apply` y `destroy`, el recorrido autenticado contra
+  sus outputs: crea credenciales Cognito temporales, lista/crea/selecciona un
+  evento y sube una JPEG sintética mediante la URL prefirmada. No arranca Floci
+  ni Playwright.
+- El job `e2e` de CI conserva el recorrido Playwright-Floci local y reutiliza
+  una caché de navegadores invalidada por sistema operativo y `package-lock`.
 
 ## Límites de coste y seguridad
 
