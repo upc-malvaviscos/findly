@@ -67,12 +67,12 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - `POST /admin/events`: crea un evento con `{ name: string; date: string; retentionDays: number; }` y devuelve `201` con el `eventId`.
 - `POST /admin/events/{eventId}/photos/uploads`: recibe `{ files: Array<{ fileName: string; contentType: 'image/jpeg'; }> }` y devuelve una URL `PUT` prefirmada y `photoId` por archivo. Solo acepta JWT válido y eventos existentes.
 
-> **Pendiente (issue #5):** estos DTOs aún no tienen tipos TypeScript en
-> `src/shared/types/api.ts`. Se dejan para cuando la issue #5 (spec 04)
-> implemente la administración de eventos, ya que hoy no existe ningún
-> consumidor real (`BulkPhotoUploader`/`AdminEvents` solo usan datos mock sin
-> contrato tipado). El diseño de las 6 respuestas de este documento (shape,
-> nombres de clave envolvente) debe respetarse al definirlos.
+> **Implementado (issue #5):** `src/shared/types/api.ts` y
+> `src/shared/lib/validations.ts` publican los DTOs y validadores de
+> administración. `GET /admin/events` usa `Query` sobre GSI2, `POST
+> /admin/events` devuelve `201 { eventId }`, y la ruta de subidas devuelve
+> `{ uploads }` con un `photoId`, URL `PUT` y expiración de 300 segundos por
+> JPEG. Los errores conservan el contrato común sin datos sensibles.
 
 ### 5. Derecho al olvido (`DELETE /registrations/{registrationId}`)
 - Requiere la cabecera `X-Gallery-Token` con el token opaco de la galería. El backend calcula su SHA-256 y solo continúa si pertenece al `registrationId` solicitado.

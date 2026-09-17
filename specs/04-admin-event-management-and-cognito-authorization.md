@@ -39,17 +39,20 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
 - [x] La sesión expira en memoria y el guard vuelve a mostrar login sin pantalla en blanco.
 - [x] La subida masiva de fotos muestra barra de progreso por archivo y resumen global.
 
-## Estado de implementación frontend
+## Estado de implementación
 
-La SPA incorpora el contexto de autenticación en memoria, el cliente API con cabecera Bearer, las rutas `/admin/login` y `/admin/events`, y el subidor con concurrencia máxima de tres archivos. La implementación usa un gateway sustituible para pruebas y desarrollo local; la conexión al User Pool de Cognito, el autorizador JWT de API Gateway y los endpoints administrativos reales quedan pendientes de la tarea de infraestructura/backend.
+La SPA autentica mediante `USER_PASSWORD_AUTH` contra Cognito con las
+variables públicas `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID` y
+`VITE_COGNITO_REGION`. El ID token permanece exclusivamente en memoria; si
+falta configuración, el login falla explícitamente y no se habilita un modo
+demo. Con `VITE_API_BASE_URL`, la UI lista, crea y selecciona eventos reales
+y solicita URLs antes de cargar lotes JPEG con concurrencia máxima de tres.
 
-**Actualización (issue #12):** el User Pool y el App Client sin secreto están
-definidos en `infra/modules/cognito/` (spec 11). La base compartida deja API
-Gateway sin rutas ni autorizadores para que esta issue componga el
-autorizador JWT con el User Pool. Sigue pendiente de esta issue #5: los
-handlers Lambda administrativos
-(`POST /admin/events`, `GET /admin/events`,
-`POST /admin/events/{eventId}/photos/uploads`) y sus rutas en API Gateway
-con ese autorizador.
+`src/lambdas/adminEvents.ts` implementa los tres handlers, con validación Zod,
+GSI2 para listar, metadatos `Photo` con TTL y URLs `PUT` de 300 segundos. El
+módulo `infra/modules/admin-api` une sus Lambdas a las rutas `/admin/*` con un
+autorizador JWT de Cognito, log groups, permisos explícitos de API Gateway e
+IAM mínimo por handler. La verificación es local/estática: no se ha ejecutado
+`terraform apply` ni se han provisionado recursos AWS.
 
 La evidencia reproducible está en [`docs/evidence/issue-04-frontend-auth.md`](../docs/evidence/issue-04-frontend-auth.md).

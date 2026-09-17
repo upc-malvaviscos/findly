@@ -68,6 +68,16 @@ Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos 
 
 La consola opcional de Floci se abre visitando `http://localhost:4566/_floci/ui`; la imagen necesita el socket Docker montado para crear su contenedor sidecar y queda disponible en `http://localhost:4500/console/aws`.
 
+## Administración de eventos
+
+El área `/admin/login` usa Cognito `USER_PASSWORD_AUTH`, sin secretos de
+cliente ni persistencia de token. Para una compilación gestionada se requieren
+los valores públicos `VITE_COGNITO_USER_POOL_ID`, `VITE_COGNITO_CLIENT_ID`,
+`VITE_COGNITO_REGION` y `VITE_API_BASE_URL`; `.env.example` contiene los
+nombres, no valores sensibles. La raíz Terraform expone los tres valores de
+Cognito que se inyectan durante la compilación. Sin ellos, el acceso
+administrativo falla de forma segura.
+
 Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
 
 ## Siguiente paso

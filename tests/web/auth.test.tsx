@@ -8,6 +8,17 @@ import {
 } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from '../../src/web/App';
+import type { AuthGateway } from '../../src/web/context/AuthProvider';
+
+const gateway: AuthGateway = {
+  async login(username) {
+    return {
+      username,
+      idToken: 'test-id-token',
+      expiresAt: Date.now() + 60_000,
+    };
+  },
+};
 
 afterEach(() => {
   cleanup();
@@ -17,7 +28,7 @@ afterEach(() => {
 describe('frontend authentication', () => {
   it('redirects unauthenticated organizers to login', () => {
     window.history.pushState({}, '', '/admin/events');
-    render(<App />);
+    render(<App authGateway={gateway} />);
     expect(
       screen.getByRole('heading', { name: 'Iniciar sesión.' }),
     ).toBeInTheDocument();
@@ -25,7 +36,7 @@ describe('frontend authentication', () => {
 
   it('allows a valid organizer to enter and logout', async () => {
     window.history.pushState({}, '', '/admin/login');
-    render(<App />);
+    render(<App authGateway={gateway} />);
     fireEvent.change(screen.getByLabelText('Usuario'), {
       target: { value: 'organizer' },
     });

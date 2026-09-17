@@ -31,6 +31,14 @@ test('completes the public selfie enrollment flow', async ({ page }) => {
 });
 
 test('protects the organizer area and supports logout', async ({ page }) => {
+  await page.route('https://cognito-idp.eu-west-1.amazonaws.com/', (route) =>
+    route.fulfill({
+      contentType: 'application/x-amz-json-1.1',
+      body: JSON.stringify({
+        AuthenticationResult: { IdToken: 'test-id-token', ExpiresIn: 3600 },
+      }),
+    }),
+  );
   await page.goto('/admin/events');
   await expect(
     page.getByRole('heading', { name: 'Iniciar sesión.' }),

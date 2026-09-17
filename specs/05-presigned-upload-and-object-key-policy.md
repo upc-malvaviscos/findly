@@ -50,3 +50,9 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
       *(Implementado en `infra/modules/uploads-bucket`; no aplicado a AWS
       todavia — el modulo no esta conectado a una raiz Terraform real hasta
       que la issue #11 aporte el proveedor y el backend de estado.)*
+
+**Actualización (issue #5):** `POST /admin/events/{eventId}/photos/uploads`
+solo acepta `image/jpeg`, comprueba que el evento exista, escribe el metadato
+`Photo` con TTL y firma una URL `PUT` con el mismo `Content-Type` y expiración
+de 300 segundos. La subida binaria continúa yendo directamente de navegador a
+S3; la Lambda no recibe la imagen.

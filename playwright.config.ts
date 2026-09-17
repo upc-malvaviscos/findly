@@ -14,7 +14,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run build:web && npm exec vite preview -- --host 127.0.0.1',
+    command:
+      'VITE_COGNITO_USER_POOL_ID=eu-west-1_test VITE_COGNITO_CLIENT_ID=test-client VITE_COGNITO_REGION=eu-west-1 npm run build:web && npm exec vite preview -- --host 127.0.0.1',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
   },
