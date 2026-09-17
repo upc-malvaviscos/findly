@@ -5,7 +5,7 @@ const webPort = process.env.WEB_PORT ?? '4173';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'local-gallery.spec.ts',
+  testMatch: /local-(gallery|admin)\.spec\.ts/,
   fullyParallel: true,
   retries: process.env.CI === 'true' ? 2 : 0,
   reporter:
@@ -19,7 +19,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: `VITE_API_BASE_URL=http://localhost:${localApiPort} npm run build:web && npm exec vite preview -- --host 127.0.0.1 --port ${webPort}`,
+    command: `VITE_API_BASE_URL=http://localhost:${localApiPort} VITE_COGNITO_USER_POOL_ID=eu-west-1_local VITE_COGNITO_CLIENT_ID=local-client VITE_COGNITO_REGION=eu-west-1 npm run build:web && npm exec vite preview -- --host 127.0.0.1 --port ${webPort}`,
     url: `http://127.0.0.1:${webPort}`,
     reuseExistingServer: false,
   },

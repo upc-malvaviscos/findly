@@ -9,9 +9,9 @@ const waitForApi = async () => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
       const response = await fetch(
-        `http://localhost:${localApiPort}/gallery?token=local-e2e-probe`,
+        `http://localhost:${localApiPort}/gallery?token=demo-gallery`,
       );
-      if (response.status === 404) return;
+      if (response.ok) return;
     } catch {
       // The container is still starting.
     }
@@ -21,6 +21,7 @@ const waitForApi = async () => {
 };
 
 export default async function globalSetup() {
+  if (process.env.E2E_LOCAL_ALREADY_RUNNING === 'true') return;
   try {
     run(['up', '-d', 'floci']);
     run(['run', '--rm', 'local-seed']);

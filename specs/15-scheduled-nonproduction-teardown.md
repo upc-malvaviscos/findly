@@ -1,33 +1,34 @@
-# 15 - Destrucción programada de entornos no productivos (Teardown)
+# 15 - Entorno efímero de pull request y destrucción garantizada
 
 ## Objetivo
-Garantizar la política de FinOps de coste cero eliminando periódicamente mediante automatizaciones programadas todos los recursos desplegados en los entornos temporales de desarrollo (`sandbox` / `development`), incluyendo el vaciado previo de buckets S3 y la verificación técnica post-destrucción, garantizando la protección de los entornos de `demo` y `production`.
 
-## Alineación con AWS Well-Architected Framework
-- **Optimización de Costes (FinOps)**: Purga programada cada 12 horas para mantener la infraestructura no productiva en coste $0.
-- **Excelencia Operativa**: Guardas de seguridad automatizadas que impiden la destrucción en `demo` o `production`.
+Sustituir la limpieza programada compartida por un entorno AWS exclusivo de
+cada pull request. El workflow lo crea mediante Terraform, ejecuta el recorrido
+del organizador contra Floci y lo destruye en un paso `always()`, incluso cuando
+fallan las pruebas. No existe cron ni una ruta que pueda destruir `demo` o
+`production`.
 
-## Requisitos de Automatización (`.github/workflows/scheduled-teardown.yml`)
-- Cron de GitHub Actions (`0 */12 * * *`) y disparo manual `workflow_dispatch`.
-- Script Bash `scripts/empty-buckets.sh` para vaciar objetos en S3 antes de invocar `terraform destroy`.
-- Ejecución `terraform destroy -auto-approve -var="allow_bucket_destroy=true"`.
-- Script Bash `scripts/verify-teardown.sh` para comprobar cero recursos residuales.
+## Criterios de aceptación
 
-## Guía de Implementación Paso a Paso para el Ingeniero Junior
+- `.github/workflows/ephemeral-pr-e2e.yml` sólo se ejecuta para PRs no draft
+  cuya rama pertenece al repositorio; no usa `pull_request_target`.
+- La identidad es OIDC, con `id-token: write`; no hay claves AWS ni secretos
+  de larga duración en el repositorio o el workflow.
+- El estado remoto usa S3 cifrado, bloqueo nativo y una clave
+  `ephemeral/pr-<numero>/terraform.tfstate`; la concurrencia evita dos runs del
+  mismo PR a la vez.
+- `infra/ephemeral` sólo admite un número de PR positivo, etiqueta todos los
+  recursos y usa `force_destroy` exclusivamente para su bucket efímero.
+- La destrucción se intenta después de cualquier fallo posterior a la asunción
+  del rol. El bucket se vacía como parte de Terraform, sin un script que acepte
+  nombres de entornos arbitrarios.
+- El recorrido Playwright local autentica al organizador simulado, crea y
+  selecciona un evento y carga una JPEG sintética al S3 emulado por Floci.
 
-### Paso 1: Crear el Script de Pre-vaciado S3 (`scripts/empty-buckets.sh`)
-- En el script, incluye una guarda explícita que aborte la ejecución si el argumento no es `sandbox` o `development`.
+## Límites de coste y seguridad
 
-### Paso 2: Crear el Script de Verificación (`scripts/verify-teardown.sh`)
-- Usa la AWS CLI (`aws lambda list-functions`, `aws apigatewayv2 get-apis`) para comprobar que no quedan recursos con la etiqueta `Environment = sandbox`.
-
-## Errores Comunes a Evitar (Pitfalls)
-- ❌ **ERROR**: Permitir que `empty-buckets.sh` acepte por error la cadena `production`.
-  - *Solución*: Implementa una validación `if` estricta que solo acepte `sandbox` o `development`.
-- ❌ **ERROR**: Olvidar preservar la tabla de bloqueo DynamoDB `findly-tflock` o el bucket de estado `.tfstate`.
-  - *Solución*: La infraestructura de bootstrap está en un estado Terraform independiente que nunca se destruye.
-
-## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] El script de vaciado falla limpiamente si se invoca con `demo` o `production`.
-- [ ] `terraform destroy` se completa sin errores de S3 bucket no vacío.
-- [ ] La verificación posterior confirma la destrucción total de recursos de desarrollo.
+El stack usa DynamoDB bajo demanda, S3 privado, API Gateway HTTP, Lambda y un
+User Pool de Cognito. No crea VPC, NAT, EC2, RDS ni recursos permanentes. Sus
+datos son sintéticos y se etiquetan `Ephemeral=true` y `PullRequest=<numero>`.
+La configuración de cuenta, rol y backend se hace fuera del repositorio según
+el runbook; desarrollo local no ejecuta `terraform apply`.

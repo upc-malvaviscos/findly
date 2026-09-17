@@ -18,8 +18,9 @@ locals {
 }
 
 resource "aws_s3_bucket" "uploads" {
-  bucket = var.bucket_name
-  tags   = local.tags
+  bucket        = var.bucket_name
+  force_destroy = var.force_destroy
+  tags          = local.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "uploads" {
