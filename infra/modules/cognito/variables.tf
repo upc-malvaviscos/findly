@@ -20,3 +20,9 @@ variable "cost_center" {
   type        = string
   default     = "findly"
 }
+
+variable "data_class" {
+  description = "Etiqueta DataClass."
+  type        = string
+  default     = "biometric"
+}

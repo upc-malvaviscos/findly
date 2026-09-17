@@ -26,3 +26,6 @@ output "uploads_bucket_arn" {
   description = "ARN del bucket privado de subidas."
   value       = module.uploads_bucket.bucket_arn
 }
+output "cognito_user_pool_id" { value = module.cognito.user_pool_id }
+output "cognito_client_id" { value = module.cognito.client_id }
+output "cognito_region" { value = var.aws_region }

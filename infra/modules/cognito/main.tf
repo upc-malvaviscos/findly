@@ -13,6 +13,7 @@ locals {
     Environment = var.environment
     ManagedBy   = "Terraform"
     CostCenter  = var.cost_center
+    DataClass   = var.data_class
   }
 }
 

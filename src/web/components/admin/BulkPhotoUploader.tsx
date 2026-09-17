@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { uploadFileToS3 } from '../../api';
+import { uploadFileToS3 } from '../../s3Uploader';
+import { requestPhotoUploads } from '../../adminApi';
 import type { UploadProgress } from '../../types';
 
 type UploadItem = { file: File; progress: UploadProgress; error?: string };
 
-export function BulkPhotoUploader({ eventId }: { eventId: string }) {
+export function BulkPhotoUploader({
+  eventId,
+  token,
+}: {
+  eventId: string;
+  token: string;
+}) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -16,14 +23,12 @@ export function BulkPhotoUploader({ eventId }: { eventId: string }) {
     );
   }
 
-  async function upload(index: number) {
+  async function upload(index: number, uploadUrl: string) {
     const item = items[index];
     if (!item) return;
     try {
-      await uploadFileToS3(
-        `mock://findly/events/${eventId}/photos/${item.file.name}`,
-        item.file,
-        (progress) => update(index, progress),
+      await uploadFileToS3(uploadUrl, item.file, (progress) =>
+        update(index, progress),
       );
     } catch {
       update(
@@ -36,14 +41,49 @@ export function BulkPhotoUploader({ eventId }: { eventId: string }) {
 
   async function startUpload() {
     setIsUploading(true);
-    for (let start = 0; start < items.length; start += 3) {
-      await Promise.all(
-        items
-          .slice(start, start + 3)
-          .map((_, offset) => upload(start + offset)),
+    try {
+      const accepted = items.filter((item) => item.file.type === 'image/jpeg');
+      if (accepted.length !== items.length) {
+        setItems((current) =>
+          current.map((item) =>
+            item.file.type === 'image/jpeg'
+              ? item
+              : { ...item, error: 'INVALID_FILE_TYPE' },
+          ),
+        );
+      }
+      if (accepted.length === 0) return;
+      const { uploads } = await requestPhotoUploads(token, eventId, {
+        files: accepted.map((item) => ({
+          fileName: item.file.name,
+          contentType: 'image/jpeg',
+        })),
+      });
+      const uploadUrlByName = new Map(
+        uploads.map((item, index) => [accepted[index]?.file, item.uploadUrl]),
       );
+      const acceptedIndexes = items
+        .map((item, index) => (item.file.type === 'image/jpeg' ? index : -1))
+        .filter((index) => index >= 0);
+      for (let start = 0; start < acceptedIndexes.length; start += 3) {
+        await Promise.all(
+          acceptedIndexes
+            .slice(start, start + 3)
+            .map((index) =>
+              upload(index, uploadUrlByName.get(items[index]?.file) ?? ''),
+            ),
+        );
+      }
+    } catch {
+      setItems((current) =>
+        current.map((item) => ({
+          ...item,
+          error: item.error ?? 'UPLOAD_REQUEST_FAILED',
+        })),
+      );
+    } finally {
+      setIsUploading(false);
     }
-    setIsUploading(false);
   }
 
   const overall =
@@ -61,7 +101,7 @@ export function BulkPhotoUploader({ eventId }: { eventId: string }) {
         <span>Fotografías</span>
         <input
           type="file"
-          accept="image/jpeg,image/png"
+          accept="image/jpeg"
           multiple
           onChange={(event) => {
             const files = Array.from(event.target.files ?? []);

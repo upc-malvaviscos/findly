@@ -51,3 +51,30 @@ module "api_gateway" {
   cost_center         = var.cost_center
   data_class          = var.data_class
 }
+
+module "cognito" {
+  source         = "./modules/cognito"
+  user_pool_name = "${var.project}-${var.environment}-organizers"
+  project        = var.project
+  environment    = var.environment
+  cost_center    = var.cost_center
+  data_class     = var.data_class
+}
+
+module "admin_api" {
+  source               = "./modules/admin-api"
+  api_id               = module.api_gateway.api_id
+  api_execution_arn    = module.api_gateway.execution_arn
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  user_pool_arn        = module.cognito.user_pool_arn
+  user_pool_client_id  = module.cognito.client_id
+  user_pool_issuer_url = module.cognito.issuer_url
+  lambda_artifact_path = "${path.module}/../artifacts/lambdas/adminEvents.zip"
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
+}

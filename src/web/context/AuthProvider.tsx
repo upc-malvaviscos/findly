@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AuthContext } from './auth';
 import type { AuthContextValue } from './auth';
+import {
+  cognitoConfigFromEnvironment,
+  createCognitoGateway,
+} from '../cognitoGateway';
 
 export type AuthSession = {
   idToken: string;
@@ -12,22 +16,11 @@ export type AuthGateway = {
   login: (username: string, password: string) => Promise<AuthSession>;
 };
 
-const demoGateway: AuthGateway = {
-  async login(username, password) {
-    if (!username.trim() || password.length < 1)
-      throw new Error('INVALID_CREDENTIALS');
-    const expiresAt = Date.now() + 60 * 60 * 1000;
-    return {
-      username: username.trim(),
-      expiresAt,
-      idToken: `demo-token-${username.trim()}`,
-    };
-  },
-};
+const configuredGateway = createCognitoGateway(cognitoConfigFromEnvironment());
 
 export function AuthProvider({
   children,
-  gateway = demoGateway,
+  gateway = configuredGateway,
 }: {
   children: React.ReactNode;
   gateway?: AuthGateway;

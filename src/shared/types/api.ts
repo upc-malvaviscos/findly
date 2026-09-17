@@ -34,3 +34,38 @@ export interface ApiError {
   message: string;
   requestId: string;
 }
+
+export interface AdminEvent {
+  eventId: string;
+  name: string;
+  date: string;
+  retentionDays: number;
+  createdAt: string;
+  status: string;
+}
+
+export interface AdminEventsResponse {
+  events: AdminEvent[];
+}
+
+export interface CreateAdminEventRequest {
+  name: string;
+  date: string;
+  retentionDays: number;
+}
+
+export interface CreateAdminEventResponse {
+  eventId: string;
+}
+
+export interface PhotoUploadRequest {
+  files: Array<{ fileName: string; contentType: 'image/jpeg' }>;
+}
+
+export interface PhotoUploadResponse {
+  uploads: Array<{
+    photoId: string;
+    uploadUrl: string;
+    expiresInSeconds: 300;
+  }>;
+}

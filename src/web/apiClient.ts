@@ -30,3 +30,7 @@ export async function apiClient<T>(
   }
   return (await response.json()) as T;
 }
+
+export function apiUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/$/, '')}${path}`;
+}

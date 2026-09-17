@@ -4,6 +4,7 @@ import { AdminEvents } from './components/admin/AdminEvents';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { SelfieCaptureForm } from './components/SelfieCaptureForm';
 import { AuthProvider } from './context/AuthProvider';
+import type { AuthGateway } from './context/AuthProvider';
 import { useAuth } from './context/auth';
 import { DEMO_EVENT } from './fixtures';
 import { GalleryPage } from './components/gallery/GalleryPage';
@@ -91,9 +92,9 @@ function RoutedApp() {
   return <PublicEnrollment />;
 }
 
-export function App() {
+export function App({ authGateway }: { authGateway?: AuthGateway } = {}) {
   return (
-    <AuthProvider>
+    <AuthProvider gateway={authGateway}>
       <RoutedApp />
     </AuthProvider>
   );
