@@ -17,7 +17,9 @@ export async function createRegistration(
   request: RegistrationRequest,
 ): Promise<RegistrationResponse> {
   await wait(120);
-  const emailSlug = (request.email ?? 'anonimo').replaceAll(/[^a-z0-9]/gi, '').toLowerCase();
+  const emailSlug = (request.email ?? 'anonimo')
+    .replaceAll(/[^a-z0-9]/gi, '')
+    .toLowerCase();
   const registrationKey = `${eventId}-${emailSlug}`;
   return {
     registrationId: `reg-${registrationKey}`,

@@ -1,4 +1,7 @@
-import { DeleteCollectionCommand, RekognitionClient } from '@aws-sdk/client-rekognition';
+import {
+  DeleteCollectionCommand,
+  RekognitionClient,
+} from '@aws-sdk/client-rekognition';
 import {
   DeleteObjectsCommand,
   ListObjectsV2Command,
@@ -14,7 +17,8 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const S3_DELETE_BATCH_SIZE = 1000;
 
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
-const uploadsBucket = process.env.FINDLY_UPLOADS_BUCKET ?? 'findly-local-uploads';
+const uploadsBucket =
+  process.env.FINDLY_UPLOADS_BUCKET ?? 'findly-local-uploads';
 const endpoint = process.env.AWS_ENDPOINT_URL;
 const clientOptions = endpoint
   ? { endpoint, region: 'eu-west-1' }
@@ -30,9 +34,15 @@ export type RetentionPurgerResult = {
   expiredEvents: number;
 };
 
-type ExpiredEvent = Pick<EventEntity, 'eventId' | 'createdAt' | 'retentionDays'>;
+type ExpiredEvent = Pick<
+  EventEntity,
+  'eventId' | 'createdAt' | 'retentionDays'
+>;
 
-function isExpired(event: Partial<EventEntity>, now: number): event is ExpiredEvent {
+function isExpired(
+  event: Partial<EventEntity>,
+  now: number,
+): event is ExpiredEvent {
   if (!event.eventId || !event.createdAt || event.retentionDays === undefined)
     return false;
   const expiresAt =
@@ -48,7 +58,10 @@ async function findExpiredEvents(now: number): Promise<ExpiredEvent[]> {
       new ScanCommand({
         TableName: tableName,
         FilterExpression: 'SK = :metadata AND begins_with(PK, :eventPrefix)',
-        ExpressionAttributeValues: { ':metadata': 'METADATA', ':eventPrefix': 'EVENT#' },
+        ExpressionAttributeValues: {
+          ':metadata': 'METADATA',
+          ':eventPrefix': 'EVENT#',
+        },
         ProjectionExpression: 'eventId, createdAt, retentionDays',
         ExclusiveStartKey: exclusiveStartKey,
       }),
@@ -56,8 +69,7 @@ async function findExpiredEvents(now: number): Promise<ExpiredEvent[]> {
     for (const item of (page.Items ?? []) as Partial<EventEntity>[])
       if (isExpired(item, now)) expired.push(item);
     exclusiveStartKey = page.LastEvaluatedKey as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
   } while (exclusiveStartKey);
   return expired;
 }
@@ -106,7 +118,10 @@ export async function retentionPurger(): Promise<RetentionPurgerResult> {
     await deleteEventCollection(event.eventId);
     await deleteEventObjects(event.eventId);
     console.log(
-      JSON.stringify({ event: 'event_retention_purged', eventId: event.eventId }),
+      JSON.stringify({
+        event: 'event_retention_purged',
+        eventId: event.eventId,
+      }),
     );
   }
 

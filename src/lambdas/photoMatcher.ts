@@ -61,7 +61,11 @@ function parseS3PhotoEvents(
     return [];
   }
   const records = (parsed as { Records?: S3EventRecord[] }).Records ?? [];
-  const parsedRecords: Array<{ bucket: string; eventId: string; photoId: string }> = [];
+  const parsedRecords: Array<{
+    bucket: string;
+    eventId: string;
+    photoId: string;
+  }> = [];
   for (const record of records) {
     const bucket = record.s3?.bucket?.name;
     const rawKey = record.s3?.object?.key;
@@ -131,7 +135,12 @@ async function matchPhoto(
   const indexed = await rekognition.send(
     new IndexFacesCommand({
       CollectionId: collectionId,
-      Image: { S3Object: { Bucket: bucket, Name: `events/${eventId}/photos/${photoId}.jpg` } },
+      Image: {
+        S3Object: {
+          Bucket: bucket,
+          Name: `events/${eventId}/photos/${photoId}.jpg`,
+        },
+      },
       ExternalImageId: `PHOTO#${photoId}`,
       QualityFilter: 'AUTO',
     }),

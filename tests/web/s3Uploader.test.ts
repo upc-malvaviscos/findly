@@ -42,7 +42,10 @@ describe('uploadFileToS3', () => {
   });
 
   it('PUTs the file with a matching Content-Type and reports progress', async () => {
-    vi.stubGlobal('XMLHttpRequest', MockXhr as unknown as typeof XMLHttpRequest);
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
     const file = new File(['selfie'], 'selfie.jpg', { type: 'image/jpeg' });
     const onProgress = vi.fn();
 
@@ -80,7 +83,10 @@ describe('uploadFileToS3', () => {
   });
 
   it('rejects when S3 responds with a non-2xx status', async () => {
-    vi.stubGlobal('XMLHttpRequest', MockXhr as unknown as typeof XMLHttpRequest);
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
     const file = new File(['selfie'], 'selfie.jpg', { type: 'image/jpeg' });
 
     const uploadPromise = uploadFileToS3(
@@ -96,7 +102,10 @@ describe('uploadFileToS3', () => {
   });
 
   it('rejects on a network error', async () => {
-    vi.stubGlobal('XMLHttpRequest', MockXhr as unknown as typeof XMLHttpRequest);
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
     const file = new File(['selfie'], 'selfie.jpg', { type: 'image/jpeg' });
 
     const uploadPromise = uploadFileToS3(

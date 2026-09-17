@@ -11,16 +11,14 @@ describe('Cognito gateway', () => {
   });
 
   it('uses USER_PASSWORD_AUTH and keeps the ID token in the returned memory session', async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            AuthenticationResult: { IdToken: 'id-token', ExpiresIn: 3600 },
-          }),
-          { status: 200 },
-        ),
-      );
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          AuthenticationResult: { IdToken: 'id-token', ExpiresIn: 3600 },
+        }),
+        { status: 200 },
+      ),
+    );
     const session = await createCognitoGateway({
       userPoolId: 'eu-west-1_test',
       clientId: 'client',

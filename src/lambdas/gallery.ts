@@ -83,7 +83,9 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
       }),
     )
   ).Item as
-    | Partial<Pick<GalleryTokenEntity, 'registrationId' | 'eventId' | 'expiresAt'>>
+    | Partial<
+        Pick<GalleryTokenEntity, 'registrationId' | 'eventId' | 'expiresAt'>
+      >
     | undefined;
 
   if (

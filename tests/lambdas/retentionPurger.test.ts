@@ -1,4 +1,7 @@
-import { DeleteCollectionCommand, RekognitionClient } from '@aws-sdk/client-rekognition';
+import {
+  DeleteCollectionCommand,
+  RekognitionClient,
+} from '@aws-sdk/client-rekognition';
 import {
   DeleteObjectsCommand,
   ListObjectsV2Command,
@@ -27,13 +30,17 @@ const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
 describe('retentionPurger lambda', () => {
   it('purges nothing when no events are expired', async () => {
     dynamoMock.on(ScanCommand).resolves({
-      Items: [{ eventId: 'evt-recent', createdAt: recentDate, retentionDays: 30 }],
+      Items: [
+        { eventId: 'evt-recent', createdAt: recentDate, retentionDays: 30 },
+      ],
     });
 
     const result = await retentionPurger();
 
     expect(result.expiredEvents).toBe(0);
-    expect(rekognitionMock.commandCalls(DeleteCollectionCommand)).toHaveLength(0);
+    expect(rekognitionMock.commandCalls(DeleteCollectionCommand)).toHaveLength(
+      0,
+    );
     expect(s3Mock.commandCalls(ListObjectsV2Command)).toHaveLength(0);
   });
 
@@ -55,7 +62,9 @@ describe('retentionPurger lambda', () => {
     const result = await retentionPurger();
 
     expect(result.expiredEvents).toBe(1);
-    const collectionCalls = rekognitionMock.commandCalls(DeleteCollectionCommand);
+    const collectionCalls = rekognitionMock.commandCalls(
+      DeleteCollectionCommand,
+    );
     expect(collectionCalls[0]?.args[0].input.CollectionId).toBe(
       'findly-event-evt-expired',
     );
@@ -128,7 +137,9 @@ describe('retentionPurger lambda', () => {
         Contents: [{ Key: 'events/evt-expired/selfies/reg-1.jpg' }],
         NextContinuationToken: 'token-1',
       })
-      .resolvesOnce({ Contents: [{ Key: 'events/evt-expired/photos/photo-1.jpg' }] });
+      .resolvesOnce({
+        Contents: [{ Key: 'events/evt-expired/photos/photo-1.jpg' }],
+      });
     s3Mock.on(DeleteObjectsCommand).resolves({});
 
     const result = await retentionPurger();

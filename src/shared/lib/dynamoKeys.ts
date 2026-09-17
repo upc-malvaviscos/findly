@@ -56,6 +56,9 @@ export function parseRegistrationId(gsi1SortKey: string): string | null {
   return registrationId === '' ? null : registrationId;
 }
 
-export function toEpochSeconds(offsetSeconds: number, from = new Date()): number {
+export function toEpochSeconds(
+  offsetSeconds: number,
+  from = new Date(),
+): number {
   return Math.floor(from.getTime() / 1000) + offsetSeconds;
 }

@@ -1,4 +1,7 @@
-export function selfieObjectKey(eventId: string, registrationId: string): string {
+export function selfieObjectKey(
+  eventId: string,
+  registrationId: string,
+): string {
   return `events/${eventId}/selfies/${registrationId}.jpg`;
 }
 
@@ -6,8 +9,7 @@ export function eventPhotoObjectKey(eventId: string, photoId: string): string {
   return `events/${eventId}/photos/${photoId}.jpg`;
 }
 
-const EVENT_PHOTO_KEY_PATTERN =
-  /^events\/([^/]+)\/photos\/([^/]+)\.jpg$/;
+const EVENT_PHOTO_KEY_PATTERN = /^events\/([^/]+)\/photos\/([^/]+)\.jpg$/;
 
 export type ParsedEventPhotoKey = { eventId: string; photoId: string };
 

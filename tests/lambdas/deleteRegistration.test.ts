@@ -1,4 +1,7 @@
-import { DeleteFacesCommand, RekognitionClient } from '@aws-sdk/client-rekognition';
+import {
+  DeleteFacesCommand,
+  RekognitionClient,
+} from '@aws-sdk/client-rekognition';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import {
   DeleteCommand,
@@ -89,8 +92,14 @@ describe('deleteRegistration lambda', () => {
     const dynamoDeleteCalls = dynamoMock.commandCalls(DeleteCommand);
     expect(dynamoDeleteCalls).toHaveLength(4); // 2 matches + registration + token
     const deletedKeys = dynamoDeleteCalls.map((call) => call.args[0].input.Key);
-    expect(deletedKeys).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#photo-1' });
-    expect(deletedKeys).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#photo-2' });
+    expect(deletedKeys).toContainEqual({
+      PK: 'REG#reg-1',
+      SK: 'MATCH#photo-1',
+    });
+    expect(deletedKeys).toContainEqual({
+      PK: 'REG#reg-1',
+      SK: 'MATCH#photo-2',
+    });
     expect(deletedKeys).toContainEqual({ PK: 'EVENT#evt-1', SK: 'REG#reg-1' });
   });
 

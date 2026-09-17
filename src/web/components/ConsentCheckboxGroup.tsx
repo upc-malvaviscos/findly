@@ -46,14 +46,13 @@ export function ConsentCheckboxGroup({
           aria-describedby={termsError ? 'consent-terms-error' : 'consent-help'}
         />
         <span>
-          Acepto los términos de privacidad y la política de retención de
-          datos.
+          Acepto los términos de privacidad y la política de retención de datos.
         </span>
       </label>
       <p id="consent-help" className="field-help">
         Tus imágenes se almacenarán en AWS durante un máximo de 30 días y se
-        eliminarán después según nuestra política de retención. Puedes
-        retirar tu consentimiento solicitándolo al organizador.
+        eliminarán después según nuestra política de retención. Puedes retirar
+        tu consentimiento solicitándolo al organizador.
       </p>
       {termsError ? (
         <p id="consent-terms-error" className="field-error" role="alert">
