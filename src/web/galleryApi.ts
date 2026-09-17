@@ -42,6 +42,7 @@ export async function getGallery(token: string): Promise<GalleryResponse> {
   await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
   if (token === 'expired') throw new Error('GALLERY_EXPIRED');
   if (!token.startsWith('demo-gallery')) throw new Error('GALLERY_NOT_FOUND');
+  if (token === 'demo-gallery-empty') return { ...demoGallery, photos: [] };
   return demoGallery;
 }
 

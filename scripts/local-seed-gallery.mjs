@@ -92,6 +92,20 @@ await ddb.send(
     TableName: tableName,
     Item: {
       PK: {
+        S: `TOKEN#${createHash('sha256').update('demo-gallery-empty').digest('hex')}`,
+      },
+      SK: { S: 'METADATA' },
+      registrationId: { S: 'registration-empty' },
+      eventId: { S: 'demo-2026' },
+      expiresAt: { S: expiresAt },
+    },
+  }),
+);
+await ddb.send(
+  new PutItemCommand({
+    TableName: tableName,
+    Item: {
+      PK: {
         S: `TOKEN#${createHash('sha256').update('expired').digest('hex')}`,
       },
       SK: { S: 'METADATA' },

@@ -128,10 +128,10 @@ export function GalleryPage({ token }: { token: string }) {
             <button
               className="gallery-photo"
               key={photo.photoId}
+              aria-label="Abrir fotografía"
               onClick={() => setSelected(photo)}
             >
               <img src={photo.url} alt="Fotografía del evento" loading="lazy" />
-              <span className="visually-hidden">Abrir fotografía</span>
             </button>
           ))}
         </div>

@@ -144,6 +144,8 @@ jobs:
           test "$id_token" != "None"
           EPHEMERAL_API_ENDPOINT="$(terraform -chdir=infra/ephemeral output -raw api_endpoint)" \
           EPHEMERAL_ID_TOKEN="$id_token" \
+          EPHEMERAL_DYNAMODB_TABLE_NAME="$(terraform -chdir=infra/ephemeral output -raw dynamodb_table_name)" \
+          EPHEMERAL_UPLOADS_BUCKET_NAME="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)" \
           node scripts/deployed-ephemeral-happy-path.mjs
       - name: Destroy the PR environment
         if: ${{ always() && steps.aws.outcome == 'success' }}
