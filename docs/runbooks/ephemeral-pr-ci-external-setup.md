@@ -24,6 +24,12 @@ administra AWS.
    `aws:ResourceTag` siempre que el servicio lo soporte; niega explícitamente
    recursos sin `Ephemeral=true`, y nunca otorgues `iam:*`, `s3:*` global ni
    permisos sobre `demo`, `production` o el bucket de estado.
+   Para el recorrido desplegado, añade únicamente `cognito-idp:AdminCreateUser`,
+   `cognito-idp:AdminSetUserPassword` y `cognito-idp:AdminDeleteUser` sobre los
+   user pools de CI de esta cuenta, restringidos también por
+   `aws:ResourceTag/Project=findly` y `aws:ResourceTag/Ephemeral=true`; el
+   workflow crea un usuario por ejecución, no registra su contraseña y lo
+   elimina antes del `destroy`.
 5. Añade una alarma o consulta de costes filtrada por `Ephemeral=true` y una
    revisión operativa de recursos `Environment=pr-*` que sobrevivan a un run.
 
