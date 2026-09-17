@@ -78,12 +78,10 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - Requiere la cabecera `X-Gallery-Token` con el token opaco de la galería. El backend calcula su SHA-256 y solo continúa si pertenece al `registrationId` solicitado.
 - La respuesta es `204 No Content`. El token nunca se escribe en logs, trazas o mensajes de error.
 
-> **Implementado (issue #10):** `src/lambdas/deleteRegistration.ts`. Sin
-> DTO de petición (solo path param + cabecera); sin cuerpo de respuesta.
-> No se conecta a API Gateway en esta issue — sigue el mismo precedente
-> que `gallery.ts` (issue #9), que tampoco tiene todavía enrutado HTTP
-> real. Esa integración de infraestructura se deja para cuando exista el
-> API Gateway (issues #11/#14).
+> **Implementado (issue #10):** `src/lambdas/deleteRegistration.ts`. Sin DTO
+> de petición (solo path param + cabecera); sin cuerpo de respuesta. La ruta
+> `GET /gallery` de issue #9 ya está conectada al HTTP API; la integración
+> gestionada de borrado sigue pendiente de una issue propietaria.
 
 ### Errores comunes de API
 Todas las respuestas de error usan `{ code: string; message: string; requestId: string; }` sin PII ni tokens. Los códigos mínimos son: `400 INVALID_REQUEST`, `401 UNAUTHENTICATED`, `403 FORBIDDEN`, `404 EVENT_NOT_FOUND | REGISTRATION_NOT_FOUND | GALLERY_NOT_FOUND`, `409 INVALID_REGISTRATION_STATE` y `410 GALLERY_EXPIRED`.

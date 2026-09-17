@@ -18,3 +18,11 @@ test('renders the not-found state from the local API', async ({ page }) => {
     page.getByRole('heading', { name: 'Galería no encontrada.' }),
   ).toBeVisible();
 });
+
+test('renders an expired-link state from the local API', async ({ page }) => {
+  const response = await page.goto('/gallery?token=expired');
+  expect(response?.ok()).toBe(true);
+  await expect(
+    page.getByRole('heading', { name: 'Enlace caducado.' }),
+  ).toBeVisible();
+});

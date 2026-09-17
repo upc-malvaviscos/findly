@@ -49,9 +49,11 @@ Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el
 - [x] El adaptador simulado trata tokens no existentes o caducados con estados de error seguros.
 - [x] Las imágenes simuladas cargan con `loading="lazy"`, el visor funciona y el botón de descarga está disponible.
 - [x] La interfaz contiene el estado vacío para galerías sin fotos.
+- [x] Terraform declara `GalleryReader`, su rol IAM de solo lectura, logs de 14 días, permiso explícito de API Gateway y `GET /gallery`.
+- [x] `terraform fmt -check`, `terraform validate` y `tflint` validan la configuración sin aplicar recursos AWS.
 
 ## Estado de implementación frontend
 
-La SPA incorpora la ruta `/gallery?token=`, `GalleryPage`, el adaptador simulado, los estados de UI, la cuadrícula lazy, el visor y la descarga. La implementación local añade `GalleryReader`, DynamoDB y S3 compatibles mediante Floci; la ejecución gestionada en AWS y Terraform queda pospuesta.
+La SPA incorpora la ruta `/gallery?token=`, `GalleryPage`, el adaptador simulado, los estados de UI, la cuadrícula lazy, el visor y la descarga. La implementación local añade `GalleryReader`, DynamoDB y S3 compatibles mediante Floci. `infra/modules/gallery-reader/` declara la ejecución gestionada con 256 MB, timeout de cinco segundos, URLs `GET` de 300 segundos, IAM limitado a `dynamodb:GetItem`/`Query` y `s3:GetObject` de fotos del evento, y la ruta pública `GET /gallery` del HTTP API.
 
-La integración local reproducible está implementada con Floci, Docker Compose y `docs/evidence/issue-09-private-gallery.md`. AWS y Terraform quedan pospuestos; el contrato de la Lambda y la configuración local se mantienen compatibles con la futura implementación gestionada.
+La integración local reproducible está implementada con Floci, Docker Compose y `docs/evidence/issue-09-private-gallery.md`. Terraform se valida de forma estática y local; no se ejecuta `terraform apply` ni se provisionan recursos AWS como parte de esta entrega. El contrato de la Lambda y la configuración local se mantienen compatibles con la ejecución gestionada.

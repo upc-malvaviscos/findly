@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 
 const compose = ['compose', '-f', 'docker-compose.yml'];
+const localApiPort = process.env.LOCAL_API_PORT ?? '8787';
 const run = (args) =>
   execFileSync('docker', [...compose, ...args], { stdio: 'inherit' });
 
@@ -8,7 +9,7 @@ const waitForApi = async () => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
       const response = await fetch(
-        'http://localhost:8787/gallery?token=local-e2e-probe',
+        `http://localhost:${localApiPort}/gallery?token=local-e2e-probe`,
       );
       if (response.status === 404) return;
     } catch {

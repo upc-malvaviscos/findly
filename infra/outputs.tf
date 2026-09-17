@@ -29,3 +29,8 @@ output "uploads_bucket_arn" {
 output "cognito_user_pool_id" { value = module.cognito.user_pool_id }
 output "cognito_client_id" { value = module.cognito.client_id }
 output "cognito_region" { value = var.aws_region }
+
+output "gallery_reader_function_name" {
+  description = "Nombre de la Lambda pública que resuelve galerías privadas."
+  value       = module.gallery_reader.function_name
+}

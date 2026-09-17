@@ -58,6 +58,20 @@ await ddb.send(
     },
   }),
 );
+await ddb.send(
+  new PutItemCommand({
+    TableName: tableName,
+    Item: {
+      PK: {
+        S: `TOKEN#${createHash('sha256').update('expired').digest('hex')}`,
+      },
+      SK: { S: 'METADATA' },
+      registrationId: { S: 'registration-expired' },
+      eventId: { S: 'demo-2026' },
+      expiresAt: { S: '2020-01-01T00:00:00.000Z' },
+    },
+  }),
+);
 
 await ddb.send(
   new PutItemCommand({
