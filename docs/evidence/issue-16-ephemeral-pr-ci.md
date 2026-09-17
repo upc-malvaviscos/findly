@@ -18,6 +18,6 @@ terraform -chdir=infra/ephemeral validate
 npm run test:e2e:local -- --project=chromium
 ```
 
-No se ejecuta `terraform apply` local ni se aprovisiona AWS. La ejecución remota
-permanece bloqueada hasta que el responsable configure el rol OIDC y backend
-indicados en el runbook externo.
+No se ejecuta `terraform apply` local. La ejecución remota usa el rol OIDC y
+backend configurados según el runbook externo; su resultado queda registrado en
+los checks de la pull request.
