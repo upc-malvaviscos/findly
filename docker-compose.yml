@@ -2,7 +2,7 @@ services:
   floci:
     image: floci/floci:latest
     ports:
-      - '4566:4566'
+      - '${FLOCI_PORT:-4566}:4566'
     environment:
       FLOCI_HOSTNAME: floci
     volumes:
@@ -19,9 +19,9 @@ services:
       FINDLY_TABLE_NAME: findly-local
       FINDLY_PHOTO_BUCKET: findly-local-photos
       CORS_ORIGIN: '*'
-      FLOCI_PUBLIC_URL: http://localhost:4566
+      FLOCI_PUBLIC_URL: http://localhost:${FLOCI_PORT:-4566}
     ports:
-      - '8787:8787'
+      - '${LOCAL_API_PORT:-8787}:8787'
     volumes:
       - .:/app
       - local-node-modules:/app/node_modules

@@ -76,4 +76,33 @@ describe('gallery lambda', () => {
       photos: [{ photoId: 'photo-1' }],
     });
   });
+
+  it('returns an empty gallery when matched photo metadata is no longer available', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          registrationId: 'registration-demo',
+          eventId: 'demo-2026',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+        },
+      })
+      .resolvesOnce({ Item: { name: 'Local Demo' } })
+      .resolvesOnce({});
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [
+        { photoId: 'removed-photo', matchedAt: '2026-09-04T10:00:00.000Z' },
+      ],
+    });
+
+    const result = await gallery({
+      queryStringParameters: { token: 'demo-gallery' },
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body)).toMatchObject({
+      registrationId: 'registration-demo',
+      photos: [],
+    });
+  });
 });

@@ -30,3 +30,9 @@ variable "uploads_bucket_name" {
   description = "Nombre globalmente único del bucket privado de subidas."
   type        = string
 }
+
+variable "gallery_lambda_artifact_path" {
+  description = "Ruta al zip de GalleryReader generado por npm run package:lambdas."
+  type        = string
+  default     = "../artifacts/lambdas/gallery.zip"
+}

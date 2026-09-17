@@ -23,7 +23,7 @@
     "test:e2e:local": "playwright test --config=playwright.local.config.ts",
     "build": "npm run build:web && npm run build:lambdas && npm run package:lambdas && npm run verify:lambdas",
     "build:web": "vite build",
-    "build:lambdas": "esbuild src/lambdas/*.ts --bundle --platform=node --target=node24 --format=esm --outdir=artifacts/lambdas",
+    "build:lambdas": "esbuild src/lambdas/*.ts --bundle --platform=node --target=node24 --format=cjs --outdir=artifacts/lambdas",
     "package:lambdas": "node scripts/package-lambda-artifacts.mjs",
     "verify:lambdas": "node scripts/verify-lambda-artifacts.mjs",
     "terraform:format": "terraform -chdir=infra fmt -check -recursive",

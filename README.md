@@ -64,7 +64,7 @@ docker compose up local-api
 VITE_API_BASE_URL=http://localhost:8787 npm run dev
 ```
 
-Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. El root Terraform declara la base compartida de DynamoDB, S3 y API Gateway, pero no se aplica desde desarrollo local. Las rutas gestionadas y Lambdas de administración y galería se entregan en sus issues correspondientes.
+Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. El root Terraform declara la base compartida de DynamoDB, S3 y API Gateway, además de `GalleryReader` y su ruta pública `GET /gallery`; no se aplica desde desarrollo local. Las rutas administrativas permanecen en la issue #5.
 
 La consola opcional de Floci se abre visitando `http://localhost:4566/_floci/ui`; la imagen necesita el socket Docker montado para crear su contenedor sidecar y queda disponible en `http://localhost:4500/console/aws`.
 
