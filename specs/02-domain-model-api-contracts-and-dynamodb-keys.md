@@ -33,6 +33,11 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - `GSI1PK`: `FACE#{faceId}`
 - `GSI1SK`: `REG#{registrationId}`
 
+### Índice Secundario Global (GSI2) para eventos
+- `GSI2PK`: `ENTITY#EVENT`
+- `GSI2SK`: `{date}#{eventId}`
+- Permite `GET /admin/events` con `Query`, ordenado por fecha y sin `Scan`.
+
 ## Contratos DTO de API REST (TypeScript / Zod)
 
 ### 1. Registro Público (`POST /events/{eventId}/registrations`)

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   eventKey,
+  eventListingGsi2Key,
+  EVENT_LISTING_GSI2_PARTITION_KEY,
   faceGsi1Key,
   faceGsi1PartitionKey,
   galleryTokenKey,
@@ -16,6 +18,13 @@ import {
 describe('dynamoKeys', () => {
   it('builds the event key', () => {
     expect(eventKey('evt-1')).toEqual({ PK: 'EVENT#evt-1', SK: 'METADATA' });
+  });
+
+  it('builds the global event-listing GSI2 key ordered by date and id', () => {
+    expect(eventListingGsi2Key('2026-09-18T20:00:00.000Z', 'evt-1')).toEqual({
+      GSI2PK: EVENT_LISTING_GSI2_PARTITION_KEY,
+      GSI2SK: '2026-09-18T20:00:00.000Z#evt-1',
+    });
   });
 
   it('builds the registration key', () => {
