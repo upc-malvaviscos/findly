@@ -37,7 +37,9 @@ repositorio (no secrets):
 
 No crees `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, perfiles AWS, `.env` ni
 otros secretos para este workflow. Mantén las reglas de PR que exigen el job
-`Ephemeral PR environment` antes de merge.
+`Ephemeral PR environment` antes de merge. En el ruleset `Main`, añade el
+contexto exacto de check `provision-test-destroy` a los checks requeridos sin
+eliminar `frontend`, `terraform`, `security-and-sync` ni `e2e`.
 
 ## Recuperación
 
