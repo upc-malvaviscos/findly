@@ -55,7 +55,7 @@ No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
 
 ## Desarrollo local de la galería
 
-La galería privada puede ejecutarse sin una cuenta AWS mediante [Floci](https://floci.io/), Docker Compose y el SDK oficial de AWS apuntando al endpoint local:
+La galería privada puede ejecutarse sin una cuenta AWS mediante [Floci](https://floci.io/), Docker Compose y el SDK oficial de AWS apuntando al endpoint local. Consulta los [modos de ejecución](docs/execution-modes.md) para distinguir mocks, Floci y el sandbox AWS:
 
 ```sh
 docker compose up -d floci

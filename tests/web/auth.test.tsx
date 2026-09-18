@@ -34,6 +34,15 @@ describe('frontend authentication', () => {
     ).toBeInTheDocument();
   });
 
+  it('redirects /admin to the organizer login route', async () => {
+    window.history.pushState({}, '', '/admin');
+    render(<App authGateway={gateway} />);
+    await waitFor(() => expect(window.location.pathname).toBe('/admin/login'));
+    expect(
+      screen.getByRole('heading', { name: 'Iniciar sesión.' }),
+    ).toBeInTheDocument();
+  });
+
   it('allows a valid organizer to enter and logout', async () => {
     window.history.pushState({}, '', '/admin/login');
     render(<App authGateway={gateway} />);

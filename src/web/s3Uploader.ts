@@ -5,6 +5,11 @@ export function uploadFileToS3(
   file: File,
   onProgress: (progress: UploadProgress) => void,
 ): Promise<void> {
+  if (uploadUrl.startsWith('mock://')) {
+    const total = Math.max(file.size, 1);
+    onProgress({ loaded: total, total, percentage: 100 });
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl, true);

@@ -5,6 +5,8 @@ import {
   cognitoConfigFromEnvironment,
   createCognitoGateway,
 } from '../cognitoGateway';
+import { executionMode } from '../executionMode';
+import { createLocalAuthGateway } from '../localAuthGateway';
 
 export type AuthSession = {
   idToken: string;
@@ -16,7 +18,10 @@ export type AuthGateway = {
   login: (username: string, password: string) => Promise<AuthSession>;
 };
 
-const configuredGateway = createCognitoGateway(cognitoConfigFromEnvironment());
+const configuredGateway =
+  executionMode === 'mock' || executionMode === 'floci'
+    ? createLocalAuthGateway()
+    : createCognitoGateway(cognitoConfigFromEnvironment());
 
 export function AuthProvider({
   children,
