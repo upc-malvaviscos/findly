@@ -12,6 +12,10 @@ Antes de empezar, lee y aplica obligatoriamente el [contrato de entorno y
 verificación local](docs/local-validation-harness.md), incluida la trazabilidad
 de criterios y la sincronización final de la issue asociada.
 
+Lee también [los modos de ejecución](docs/execution-modes.md) y la
+[estrategia de pruebas](docs/testing-strategy.md). No presentes una prueba con
+mocks o Floci como evidencia de AWS real.
+
 ## Flujo obligatorio: research -> plan -> implement -> sync
 
 Aplica las cuatro fases, en este orden, a toda tarea de cierta magnitud. Las ediciones puramente tipográficas u otros cambios triviales pueden omitir las fases que no aporten valor.

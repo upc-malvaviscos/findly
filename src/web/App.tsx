@@ -61,7 +61,8 @@ function PublicEnrollment() {
 
 function RoutedApp() {
   const { isAuthenticated } = useAuth();
-  const [path, setPath] = useState(window.location.pathname);
+  const [locationPath, setPath] = useState(window.location.pathname);
+  const path = locationPath === '/admin' ? '/admin/login' : locationPath;
   const navigate = (nextPath: string) => {
     window.history.pushState({}, '', nextPath);
     setPath(nextPath);
@@ -71,6 +72,10 @@ function RoutedApp() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+  useEffect(() => {
+    if (locationPath === '/admin')
+      window.history.replaceState({}, '', '/admin/login');
+  }, [locationPath]);
   if (path === '/admin/login')
     return isAuthenticated ? (
       <AdminEvents onLogout={() => navigate('/admin/login')} />
