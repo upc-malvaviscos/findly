@@ -1,4 +1,5 @@
 import React from 'react';
+import { act } from 'react';
 import {
   cleanup,
   fireEvent,
@@ -6,7 +7,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/web/App';
 import type { AuthGateway } from '../../src/web/context/AuthProvider';
 
@@ -21,6 +22,7 @@ const gateway: AuthGateway = {
 };
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   window.history.pushState({}, '', '/');
 });
@@ -59,6 +61,41 @@ describe('frontend authentication', () => {
       ).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    expect(
+      screen.getByRole('heading', { name: 'Iniciar sesión.' }),
+    ).toBeInTheDocument();
+  });
+
+  it('returns an expired organizer session to login without a blank screen', async () => {
+    vi.useFakeTimers();
+    const expiringGateway: AuthGateway = {
+      async login(username) {
+        return {
+          username,
+          idToken: 'expiring-id-token',
+          expiresAt: Date.now() + 1_000,
+        };
+      },
+    };
+    window.history.pushState({}, '', '/admin/events');
+    render(<App authGateway={expiringGateway} />);
+    fireEvent.change(screen.getByLabelText('Usuario'), {
+      target: { value: 'organizer' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+      target: { value: 'password' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+      await Promise.resolve();
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Tus eventos' }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
     expect(
       screen.getByRole('heading', { name: 'Iniciar sesión.' }),
     ).toBeInTheDocument();
