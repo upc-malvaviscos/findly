@@ -40,8 +40,10 @@ sigue siendo un adaptador local.
 FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run dev:aws
 ```
 
-Requiere una sesión AWS temporal activa y un bucket de estado externo. Acepta
-opcionalmente `AWS_PROFILE=<perfil>` para seleccionar un perfil y
+Requiere una sesión AWS temporal activa y un bucket de estado externo. Exporta
+las credenciales temporales sólo a los subprocesos AWS/Terraform, sin escribirlas
+ni pasarlas a Vite. Acepta opcionalmente `AWS_PROFILE=<perfil>` para seleccionar
+un perfil y
 `FINDLY_AWS_REGION` (por defecto, `eu-west-1`). Usa sólo el estado
 S3 cifrado y bloqueado `findly/sandbox/terraform.tfstate`; aplica `infra/` para
 `environment=sandbox` y nunca apunta a producción ni al root efímero de PR.

@@ -16,8 +16,32 @@ if (destroy && !process.argv.includes('--confirm'))
 const env = profile
   ? { ...process.env, AWS_PROFILE: profile }
   : { ...process.env };
+const exportedCredentials = (() => {
+  const result = spawnSync(
+    'aws',
+    ['configure', 'export-credentials', '--format', 'process'],
+    { env, encoding: 'utf8' },
+  );
+  if (result.status !== 0) throw new Error(result.stderr || result.stdout);
+  const credentials = JSON.parse(result.stdout);
+  if (!credentials.AccessKeyId || !credentials.SecretAccessKey)
+    throw new Error('AWS CLI did not export usable temporary credentials.');
+  return credentials;
+})();
+const awsEnv = {
+  ...env,
+  AWS_ACCESS_KEY_ID: exportedCredentials.AccessKeyId,
+  AWS_SECRET_ACCESS_KEY: exportedCredentials.SecretAccessKey,
+  ...(exportedCredentials.SessionToken && {
+    AWS_SESSION_TOKEN: exportedCredentials.SessionToken,
+  }),
+};
 const commandOutput = (file, args) => {
-  const result = spawnSync(file, args, { cwd: 'infra', env, encoding: 'utf8' });
+  const result = spawnSync(file, args, {
+    cwd: 'infra',
+    env: awsEnv,
+    encoding: 'utf8',
+  });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
   return result.stdout.trim();
 };

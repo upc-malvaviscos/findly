@@ -34,7 +34,8 @@ login local de organizador, eventos y subida. Para depurar manualmente, usa
 FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run test:aws
 ```
 
-Exige un sandbox creado mediante `dev:aws`. El smoke genera usuario, eventos,
+Exige un sandbox creado mediante `dev:aws` y exporta temporalmente las credenciales
+activas sólo a sus procesos AWS. El smoke genera usuario, eventos,
 objetos y tokens aleatorios; valida autenticación, administración, subida y
 los contratos `200`, `404`, `410` y galería vacía; después elimina sus datos.
 
