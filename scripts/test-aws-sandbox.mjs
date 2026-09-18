@@ -21,8 +21,35 @@ if (!stateBucket) throw new Error('FINDLY_TERRAFORM_STATE_BUCKET is required.');
 const env = profile
   ? { ...process.env, AWS_PROFILE: profile }
   : { ...process.env };
+const exportedCredentials = (() => {
+  const result = spawnSync(
+    'aws',
+    ['configure', 'export-credentials', '--format', 'process'],
+    { env, encoding: 'utf8' },
+  );
+  if (result.status !== 0) throw new Error(result.stderr || result.stdout);
+  const credentials = JSON.parse(result.stdout);
+  if (!credentials.AccessKeyId || !credentials.SecretAccessKey)
+    throw new Error('AWS CLI did not export usable temporary credentials.');
+  return credentials;
+})();
+const awsEnv = {
+  ...env,
+  AWS_ACCESS_KEY_ID: exportedCredentials.AccessKeyId,
+  AWS_SECRET_ACCESS_KEY: exportedCredentials.SecretAccessKey,
+  ...(exportedCredentials.SessionToken && {
+    AWS_SESSION_TOKEN: exportedCredentials.SessionToken,
+  }),
+};
+const credentials = {
+  accessKeyId: exportedCredentials.AccessKeyId,
+  secretAccessKey: exportedCredentials.SecretAccessKey,
+  ...(exportedCredentials.SessionToken && {
+    sessionToken: exportedCredentials.SessionToken,
+  }),
+};
 const run = (file, args, cwd = 'infra') => {
-  const result = spawnSync(file, args, { cwd, env, encoding: 'utf8' });
+  const result = spawnSync(file, args, { cwd, env: awsEnv, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
   return result.stdout.trim();
 };
@@ -43,8 +70,10 @@ const userPoolId = outputs.cognito_user_pool_id.value;
 const clientId = outputs.cognito_client_id.value;
 const userName = `smoke-${randomUUID()}`;
 const password = `${randomBytes(24).toString('base64url')}Aa1!`;
-const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
-const s3 = new S3Client({ region });
+const dynamo = DynamoDBDocumentClient.from(
+  new DynamoDBClient({ region, credentials }),
+);
+const s3 = new S3Client({ region, credentials });
 const cleanup = [];
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const admin = async (token, path, init = {}) => {
