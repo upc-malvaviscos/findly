@@ -8,6 +8,14 @@ const requiredReferences = [
 
 const requiredTraceability = [
   [
+    'specs/04-admin-event-management-and-cognito-authorization.md',
+    ['#5', 'npm run test:aws', 'issue-05-admin-cognito.md'],
+  ],
+  [
+    'docs/evidence/issue-05-admin-cognito.md',
+    ['#5', 'GET /admin/events', '401', 'npm run test:aws'],
+  ],
+  [
     'specs/16-unit-contract-integration-and-e2e-validation.md',
     ['#17', '19-local-execution-modes-and-verification-matrix.md'],
   ],

@@ -163,6 +163,11 @@ try {
   );
   if (!token || token === 'None')
     throw new Error('Cognito did not issue an ID token.');
+  const unauthorizedAdmin = await fetch(`${apiEndpoint}/admin/events`);
+  if (unauthorizedAdmin.status !== 401)
+    throw new Error(
+      `Unauthenticated admin route returned ${unauthorizedAdmin.status}, expected 401.`,
+    );
   const created = await admin(token, '/admin/events', {
     method: 'POST',
     body: JSON.stringify({
