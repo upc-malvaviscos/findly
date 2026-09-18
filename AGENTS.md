@@ -6,7 +6,7 @@ Findly es una demostración académica para que asistentes de un evento, con con
 
 Trata las imágenes, embeddings faciales, tokens de galería y datos de contacto como datos sensibles. Nunca incluyas secretos, ficheros `.env`, estados de Terraform, credenciales AWS ni datos biométricos reales en Git, pruebas, capturas o documentación.
 
-La fuente de verdad es el backlog en `specs/`; el contexto de producto está en `README.md`; las decisiones se registran en `docs/adr/`; y las pruebas, capturas y salidas reproducibles pertenecen a `docs/evidence/`.
+La fuente de verdad es el backlog en `specs/`; el contexto de producto está en `README.md`; las decisiones se registran en `docs/adr/`; y las pruebas, capturas y salidas reproducibles pertenecen a `docs/evidence/`. La implementación, las specs y las issues de GitHub forman una única trazabilidad: no se puede cerrar una de las tres sin sincronizar las otras dos.
 
 Antes de empezar, lee y aplica obligatoriamente el [contrato de entorno y
 verificación local](docs/local-validation-harness.md), incluida la trazabilidad
@@ -74,6 +74,11 @@ Revisa y actualiza, cuando aplique:
 - el `README.md`, la memoria en `docs/paper/` y la evidencia en `docs/evidence/`;
 - diagramas de arquitectura, flujos, contratos, modelos de datos y recursos AWS representados.
 - la GitHub Issue en la que se ha trabajado: añade un comentario con alcance, PR, validaciones, evidencia y pendientes; ciérrala únicamente cuando todos sus criterios estén verificados.
+
+`npm run sync:check` valida en CI la trazabilidad estática de implementación,
+spec y evidencia/issue. No consulta GitHub desde CI (para no requerir un token);
+la persona que ejecuta la tarea debe comprobar y sincronizar el estado remoto de
+la issue en la fase Sync.
 
 La documentación debe describir exactamente lo implementado y validado, no el diseño anterior ni trabajo futuro presentado como hecho. Si existe una discrepancia que no se pueda resolver sin cambiar alcance o tomar una decisión, documéntala como pendiente y solicita la decisión necesaria antes de declararla sincronizada.
 
