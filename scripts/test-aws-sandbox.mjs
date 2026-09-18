@@ -15,11 +15,12 @@ import {
 const profile = process.env.AWS_PROFILE;
 const stateBucket = process.env.FINDLY_TERRAFORM_STATE_BUCKET;
 const region = process.env.FINDLY_AWS_REGION ?? 'eu-west-1';
-if (!profile || !stateBucket)
-  throw new Error(
-    'AWS_PROFILE and FINDLY_TERRAFORM_STATE_BUCKET are required.',
-  );
-const env = { ...process.env, AWS_PROFILE: profile };
+if (!stateBucket) throw new Error('FINDLY_TERRAFORM_STATE_BUCKET is required.');
+// Use a chosen profile when supplied; otherwise preserve the active AWS
+// credential chain, such as a temporary SSO or assumed-role session.
+const env = profile
+  ? { ...process.env, AWS_PROFILE: profile }
+  : { ...process.env };
 const run = (file, args, cwd = 'infra') => {
   const result = spawnSync(file, args, { cwd, env, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
