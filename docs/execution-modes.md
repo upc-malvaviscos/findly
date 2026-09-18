@@ -37,10 +37,11 @@ sigue siendo un adaptador local.
 ## Local contra AWS sandbox
 
 ```sh
-AWS_PROFILE=<perfil> FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run dev:aws
+FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run dev:aws
 ```
 
-Requiere sesión AWS temporal y un bucket de estado externo. Opcionalmente acepta
+Requiere una sesión AWS temporal activa y un bucket de estado externo. Acepta
+opcionalmente `AWS_PROFILE=<perfil>` para seleccionar un perfil y
 `FINDLY_AWS_REGION` (por defecto, `eu-west-1`). Usa sólo el estado
 S3 cifrado y bloqueado `findly/sandbox/terraform.tfstate`; aplica `infra/` para
 `environment=sandbox` y nunca apunta a producción ni al root efímero de PR.
@@ -49,7 +50,7 @@ Tras el apply crea un usuario Cognito sintético único y muestra sus credencial
 sólo en la terminal; lo elimina al detener Vite. Para desmontar todo:
 
 ```sh
-AWS_PROFILE=<perfil> FINDLY_TERRAFORM_STATE_BUCKET=<bucket> \
+FINDLY_TERRAFORM_STATE_BUCKET=<bucket> \
   npm run dev:aws-destroy -- --confirm
 ```
 

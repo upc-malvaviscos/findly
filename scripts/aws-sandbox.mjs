@@ -7,14 +7,15 @@ const profile = process.env.AWS_PROFILE;
 const stateBucket = process.env.FINDLY_TERRAFORM_STATE_BUCKET;
 const region = process.env.FINDLY_AWS_REGION ?? 'eu-west-1';
 const webPort = process.env.WEB_PORT ?? '5173';
-if (!profile || !stateBucket)
-  throw new Error(
-    'AWS_PROFILE and FINDLY_TERRAFORM_STATE_BUCKET are required.',
-  );
+if (!stateBucket) throw new Error('FINDLY_TERRAFORM_STATE_BUCKET is required.');
 if (destroy && !process.argv.includes('--confirm'))
   throw new Error('Refusing to destroy the sandbox without --confirm.');
 
-const env = { ...process.env, AWS_PROFILE: profile };
+// Use a chosen profile when supplied; otherwise preserve the active AWS
+// credential chain, such as a temporary SSO or assumed-role session.
+const env = profile
+  ? { ...process.env, AWS_PROFILE: profile }
+  : { ...process.env };
 const commandOutput = (file, args) => {
   const result = spawnSync(file, args, { cwd: 'infra', env, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
