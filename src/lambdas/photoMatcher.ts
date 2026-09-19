@@ -19,6 +19,12 @@ import {
 } from '../shared/lib/dynamoKeys';
 import { parseEventPhotoObjectKey } from '../shared/lib/s3Keys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
+import {
+  emitLog,
+  errorNameOf,
+  resolveCorrelationId,
+  type LambdaContextLike,
+} from './lib/logger';
 import type { MatchEntity } from '../shared/types/entities';
 
 const FACE_MATCH_THRESHOLD = 95.0;
@@ -183,18 +189,48 @@ async function matchPhoto(
 
 export async function photoMatcher(
   event: PhotoMatcherEvent,
+  context?: LambdaContextLike,
 ): Promise<PhotoMatcherResult> {
+  const batchStartedAt = Date.now();
+  const batchId = resolveCorrelationId(context?.awsRequestId);
   const batchItemFailures: Array<{ itemIdentifier: string }> = [];
 
   for (const record of event.Records) {
+    // One correlation ID per SQS message: it is what a redelivery and the DLQ
+    // entry share, so a failed photo can be followed across its retries.
+    const correlationId = resolveCorrelationId(
+      record.messageId,
+      context?.awsRequestId,
+    );
+    let current: { eventId: string; photoId: string } | undefined;
     try {
       const photoEvents = parseS3PhotoEvents(record.body);
-      for (const { bucket, eventId, photoId } of photoEvents)
+      for (const { bucket, eventId, photoId } of photoEvents) {
+        current = { eventId, photoId };
+        const photoStartedAt = Date.now();
         await matchPhoto(bucket, eventId, photoId);
-    } catch {
+        emitLog('INFO', 'photo_processed', correlationId, {
+          eventId,
+          photoId,
+          durationMs: Date.now() - photoStartedAt,
+        });
+      }
+    } catch (caught) {
+      // Without this line a failing message would only surface as a DLQ
+      // alarm with nothing to diagnose it. Only the error name is logged.
+      emitLog('ERROR', 'photo_matching_failed', correlationId, {
+        ...current,
+        errorName: errorNameOf(caught),
+      });
       batchItemFailures.push({ itemIdentifier: record.messageId });
     }
   }
+
+  emitLog('INFO', 'photo_batch_processed', batchId, {
+    recordCount: event.Records.length,
+    failedCount: batchItemFailures.length,
+    durationMs: Date.now() - batchStartedAt,
+  });
 
   return { batchItemFailures };
 }

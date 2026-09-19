@@ -21,6 +21,11 @@ import {
 import { selfieObjectKey } from '../shared/lib/s3Keys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { isMissingResourceError } from './lib/awsErrors';
+import {
+  withRequestLog,
+  type LambdaContextLike,
+  type RequestLog,
+} from './lib/logger';
 import type {
   GalleryTokenEntity,
   MatchEntity,
@@ -30,6 +35,7 @@ import type {
 type DeleteRegistrationEvent = {
   pathParameters?: Record<string, string | undefined> | null;
   headers?: Record<string, string | undefined> | null;
+  requestContext?: { requestId?: string } | null;
 };
 
 export type DeleteRegistrationResult = {
@@ -61,8 +67,8 @@ const error = (
   statusCode: number,
   code: string,
   message: string,
-): DeleteRegistrationResult =>
-  json(statusCode, { code, message, requestId: crypto.randomUUID() });
+  requestId: string,
+): DeleteRegistrationResult => json(statusCode, { code, message, requestId });
 
 const noContent = (): DeleteRegistrationResult => ({
   statusCode: 204,
@@ -72,11 +78,29 @@ const noContent = (): DeleteRegistrationResult => ({
 
 export async function deleteRegistration(
   event: DeleteRegistrationEvent,
+  context?: LambdaContextLike,
 ): Promise<DeleteRegistrationResult> {
+  return withRequestLog(
+    'delete_registration_request',
+    {
+      requestId: event.requestContext?.requestId,
+      awsRequestId: context?.awsRequestId,
+    },
+    (request) => eraseRegistration(event, request),
+  );
+}
+
+async function eraseRegistration(
+  event: DeleteRegistrationEvent,
+  request: RequestLog,
+): Promise<DeleteRegistrationResult> {
+  const fail = (statusCode: number, code: string, message: string) =>
+    error(statusCode, code, message, request.correlationId);
+
   const registrationId = event.pathParameters?.registrationId;
   const token = event.headers?.['x-gallery-token'];
   if (!registrationId || !token)
-    return error(
+    return fail(
       400,
       'INVALID_REQUEST',
       'A registrationId and the X-Gallery-Token header are required.',
@@ -99,9 +123,10 @@ export async function deleteRegistration(
     !tokenRecord.eventId ||
     tokenRecord.registrationId !== registrationId
   )
-    return error(404, 'REGISTRATION_NOT_FOUND', 'Registration not found.');
+    return fail(404, 'REGISTRATION_NOT_FOUND', 'Registration not found.');
 
   const { eventId } = tokenRecord;
+  request.annotate({ eventId });
 
   const registrationRecord = (
     await dynamo.send(
@@ -180,15 +205,15 @@ export async function deleteRegistration(
     }),
   );
 
-  console.log(
-    JSON.stringify({
-      event: 'registration_erased',
-      eventId,
-      registrationId,
-      matchesDeleted: photoIds.length,
-      faceDeleted: Boolean(registrationRecord?.faceId),
-    }),
-  );
+  // Audit line for the erasure metric. It carries no registrationId: the
+  // identifier of a person who asked to be forgotten would otherwise stay in
+  // CloudWatch Logs for the retention period. The correlationId ties it to the
+  // request summary line and to the requestId the client received.
+  request.info('registration_erased', {
+    eventId,
+    matchesDeleted: photoIds.length,
+    faceDeleted: Boolean(registrationRecord?.faceId),
+  });
 
   return noContent();
 }

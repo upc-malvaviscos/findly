@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { captureLogs } from './lib/logCapture';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -101,5 +102,116 @@ describe('admin events handlers', () => {
     });
     expect(result.statusCode).toBe(404);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+  });
+});
+
+describe('admin events structured logging', () => {
+  let logs: ReturnType<typeof captureLogs>;
+  beforeEach(() => {
+    logs = captureLogs();
+  });
+  afterEach(() => logs.restore());
+
+  it('logs the created event by id only, never its name or date', async () => {
+    dynamoMock.on(PutCommand).resolves({});
+    const result = await createAdminEvent(
+      {
+        body: JSON.stringify({
+          name: 'Confidential Board Retreat',
+          date: '2026-10-01T10:00:00.000Z',
+          retentionDays: 30,
+        }),
+        requestContext: { requestId: 'apigw-req-1' },
+      },
+      { awsRequestId: 'lambda-req-1' },
+    );
+
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'admin_create_event',
+        correlationId: 'apigw-req-1',
+        eventId: JSON.parse(result.body).eventId,
+        statusCode: 201,
+      }),
+    ]);
+    const output = logs.lines.join('');
+    expect(output).not.toContain('Confidential Board Retreat');
+    expect(output).not.toContain('2026-10-01');
+  });
+
+  it('returns the correlation ID as requestId on validation errors', async () => {
+    const result = await createAdminEvent({
+      body: '{}',
+      requestContext: { requestId: 'apigw-req-2' },
+    });
+    expect(result.statusCode).toBe(400);
+    expect(JSON.parse(result.body).requestId).toBe('apigw-req-2');
+    expect(logs.records()[0]).toMatchObject({
+      level: 'WARN',
+      correlationId: 'apigw-req-2',
+      statusCode: 400,
+    });
+  });
+
+  it('does not log an unvalidated eventId taken from the URL', async () => {
+    dynamoMock.on(GetCommand).resolves({});
+    await createPhotoUploads({
+      pathParameters: { eventId: 'victim@example.com' },
+      body: JSON.stringify({
+        files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+      }),
+    });
+    expect(logs.records()).toEqual([
+      expect.objectContaining({ level: 'WARN', statusCode: 404 }),
+    ]);
+    expect(logs.records()[0]).not.toHaveProperty('eventId');
+    expect(logs.lines.join('')).not.toContain('victim@example.com');
+  });
+
+  it('logs the event and upload count once the event exists, without URLs', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: { eventId: 'evt-1' } });
+    dynamoMock.on(PutCommand).resolves({});
+    await createPhotoUploads(
+      {
+        pathParameters: { eventId: 'evt-1' },
+        body: JSON.stringify({
+          files: [
+            { fileName: 'a.jpg', contentType: 'image/jpeg' },
+            { fileName: 'b.jpg', contentType: 'image/jpeg' },
+          ],
+        }),
+      },
+      { awsRequestId: 'lambda-req-3' },
+    );
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'admin_create_photo_uploads',
+        correlationId: 'lambda-req-3',
+        eventId: 'evt-1',
+        photoCount: 2,
+        statusCode: 200,
+      }),
+    ]);
+    expect(logs.lines.join('')).not.toContain('s3.example.test');
+  });
+
+  it('logs the list request without its result payload', async () => {
+    dynamoMock
+      .on(QueryCommand)
+      .resolves({ Items: [{ eventId: 'evt-1', name: 'Secret Gala' }] });
+    await listAdminEvents(
+      { requestContext: { requestId: 'apigw-req-4' } },
+      { awsRequestId: 'lambda-req-4' },
+    );
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        event: 'admin_list_events',
+        correlationId: 'apigw-req-4',
+        statusCode: 200,
+      }),
+    ]);
+    expect(logs.lines.join('')).not.toContain('Secret Gala');
   });
 });

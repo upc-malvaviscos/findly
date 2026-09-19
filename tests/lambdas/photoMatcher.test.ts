@@ -10,8 +10,9 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { photoMatcher } from '../../src/lambdas/photoMatcher';
+import { captureLogs } from './lib/logCapture';
 
 const rekognitionMock = mockClient(RekognitionClient);
 const dynamoMock = mockClient(DynamoDBDocumentClient);
@@ -272,5 +273,81 @@ describe('photoMatcher', () => {
     });
 
     expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg-fail' }]);
+  });
+});
+
+describe('photoMatcher structured logging', () => {
+  let logs: ReturnType<typeof captureLogs>;
+  beforeEach(() => {
+    logs = captureLogs();
+  });
+  afterEach(() => logs.restore());
+
+  it('logs each processed photo and a batch summary', async () => {
+    rekognitionMock.on(IndexFacesCommand).resolves({ FaceRecords: [] });
+
+    await photoMatcher(
+      { Records: [sqsRecord('msg-ok', 'photo-ok')] },
+      { awsRequestId: 'lambda-req-1' },
+    );
+
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'photo_processed',
+        correlationId: 'msg-ok',
+        eventId: 'demo-2026',
+        photoId: 'photo-ok',
+      }),
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'photo_batch_processed',
+        correlationId: 'lambda-req-1',
+        recordCount: 1,
+        failedCount: 0,
+      }),
+    ]);
+  });
+
+  it('logs a failing message by error name, with the messageId as correlation ID', async () => {
+    const failure = new Error(
+      'rekognition denied s3://findly-secret/events/demo-2026/photos/x.jpg',
+    );
+    failure.name = 'AccessDeniedException';
+    rekognitionMock.on(IndexFacesCommand).rejects(failure);
+
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-fail', 'photo-fail')],
+    });
+
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg-fail' }]);
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'ERROR',
+        event: 'photo_matching_failed',
+        correlationId: 'msg-fail',
+        eventId: 'demo-2026',
+        photoId: 'photo-fail',
+        errorName: 'AccessDeniedException',
+      }),
+      expect.objectContaining({
+        event: 'photo_batch_processed',
+        recordCount: 1,
+        failedCount: 1,
+      }),
+    ]);
+    expect(logs.lines.join('')).not.toContain('findly-secret');
+  });
+
+  it('never logs the error message, only its class name', async () => {
+    rekognitionMock.on(IndexFacesCommand).rejects(new Error('boom'));
+
+    await photoMatcher({ Records: [sqsRecord('msg-1', 'photo-1')] });
+
+    const failure = logs
+      .records()
+      .find((record) => record.event === 'photo_matching_failed');
+    expect(failure).toMatchObject({ errorName: 'Error' });
+    expect(logs.lines.join('')).not.toContain('boom');
   });
 });
