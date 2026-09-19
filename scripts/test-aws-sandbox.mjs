@@ -48,7 +48,7 @@ const credentials = {
     sessionToken: exportedCredentials.SessionToken,
   }),
 };
-const run = (file, args, cwd = 'infra') => {
+const run = (file, args, cwd = 'infra/environments/sandbox') => {
   const result = spawnSync(file, args, { cwd, env: awsEnv, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
   return result.stdout.trim();
