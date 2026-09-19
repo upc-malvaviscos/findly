@@ -45,8 +45,8 @@ las credenciales temporales sólo a los subprocesos AWS/Terraform, sin escribirl
 ni pasarlas a Vite. Acepta opcionalmente `AWS_PROFILE=<perfil>` para seleccionar
 un perfil y
 `FINDLY_AWS_REGION` (por defecto, `eu-west-1`). Usa sólo el estado
-S3 cifrado y bloqueado `findly/sandbox/terraform.tfstate`; aplica `infra/` para
-`environment=sandbox` y nunca apunta a producción ni al root efímero de PR.
+S3 cifrado y bloqueado `findly/sandbox/terraform.tfstate`; aplica
+`infra/environments/sandbox` y nunca apunta a producción ni al root efímero de PR.
 
 Tras el apply crea un usuario Cognito sintético único y muestra sus credenciales
 sólo en la terminal; lo elimina al detener Vite. Para desmontar todo:
