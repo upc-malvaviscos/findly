@@ -32,6 +32,19 @@ const requiredTraceability = [
     ['#11', 'ADR-009', 'issue-11-terraform-remote-state.md'],
   ],
   [
+    'specs/12-observability-alerts-and-finops-controls.md',
+    ['#13', 'issue-13-observability-finops.md', 'infra/modules/monitoring'],
+  ],
+  [
+    'docs/evidence/issue-13-observability-finops.md',
+    [
+      '#13',
+      'aws_budgets_budget',
+      'correlationId',
+      'Nada se ha aplicado en AWS',
+    ],
+  ],
+  [
     'AGENTS.md',
     ['implementación, las specs y las issues de GitHub', 'npm run sync:check'],
   ],

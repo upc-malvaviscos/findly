@@ -37,6 +37,7 @@ flowchart LR
   X --> S2
   X --> R
   CW[CloudWatch + AWS Budgets] -. observabilidad y coste .-> API
+  CW -->|alarma DLQ y 80 % del presupuesto| SNS[SNS alertas]
 ```
 
 ## Stack y recursos AWS
@@ -48,7 +49,7 @@ flowchart LR
 | API y procesamiento        | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 22.                 |
 | Datos, imágenes y matching | Amazon DynamoDB on-demand, buckets privados de Amazon S3 y Amazon Rekognition. |
 | Automatización y retención | Amazon EventBridge Scheduler y Lambda de retención.                            |
-| Observabilidad y FinOps    | Amazon CloudWatch y AWS Budgets.                                               |
+| Observabilidad y FinOps    | Amazon CloudWatch, Amazon SNS y AWS Budgets.                                   |
 | Infraestructura y entrega  | Terraform y GitHub Actions.                                                    |
 
 No se usan RDS, NAT, VPC, EKS ni servicios persistentes de coste fijo.
@@ -104,6 +105,16 @@ navegadores se restauran de caché por SO y lockfile. La cuenta AWS y las
 variables GitHub requeridas se configuran siguiendo el
 [runbook externo](docs/runbooks/ephemeral-pr-ci-external-setup.md); no se usan
 claves AWS de larga duración ni `terraform apply` desde desarrollo local.
+
+### Observabilidad y FinOps
+
+Las Lambdas escriben logs JSON con `correlationId` y una lista cerrada de
+metadatos, sin datos personales; los grupos de logs conservan 14 días. La alarma
+de la DLQ de fotos y un presupuesto que avisa al 80 % de 5 USD publican en un
+topic SNS. El correo de destino se pasa al aplicar con `TF_VAR_alert_email` y
+nunca se versiona; el destinatario debe confirmar la suscripción de AWS. Detalle
+y límites de validación en
+[`docs/evidence/issue-13-observability-finops.md`](docs/evidence/issue-13-observability-finops.md).
 
 ## Participantes del equipo
 
