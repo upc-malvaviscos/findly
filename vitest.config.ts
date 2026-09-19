@@ -14,6 +14,7 @@ export default defineConfig({
     projects: [
       {
         test: {
+          env: { VITE_FINDLY_EXECUTION_MODE: 'mock' },
           environment: 'jsdom',
           include: ['tests/web/**/*.test.{ts,tsx}'],
           setupFiles: ['tests/web/setup.ts'],

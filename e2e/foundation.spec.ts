@@ -1,4 +1,86 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+const API = 'https://api.findly.test';
+const UPLOAD_URL = 'https://s3.findly.test/selfies/reg-e2e';
+
+/** HTTP mock that follows the real backend contract (spec 18); synthetic data only. */
+async function mockBackend(page: Page) {
+  let statusReads = 0;
+  await page.route(`${API}/**`, async (route) => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const json = (body: unknown, status = 200) =>
+      route.fulfill({
+        status,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify(body),
+      });
+    if (request.method() === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        },
+      });
+    if (pathname === '/events/demo-2026')
+      return json({
+        eventId: 'demo-2026',
+        name: 'Findly Demo Night',
+        date: '2026-09-18T19:30:00+02:00',
+      });
+    if (pathname === '/events/demo-2026/registrations') {
+      expect(request.postDataJSON()).toMatchObject({
+        consentBiometrics: true,
+        consentTerms: true,
+      });
+      return json(
+        {
+          registrationId: 'reg-e2e',
+          uploadUrl: UPLOAD_URL,
+          expiresInSeconds: 300,
+        },
+        201,
+      );
+    }
+    if (pathname === '/registrations/reg-e2e/status') {
+      statusReads += 1;
+      return json({
+        registrationId: 'reg-e2e',
+        status: statusReads >= 2 ? 'ENROLLED' : 'PROCESSING',
+      });
+    }
+    if (pathname === '/gallery')
+      return json({
+        eventId: 'demo-2026',
+        eventName: 'Findly Demo Night',
+        registrationId: 'registration-demo',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        photos: [1, 2].map((n) => ({
+          photoId: `photo-${n}`,
+          url: `${API}/photos/${n}.jpg`,
+          matchedAt: '2026-09-18T20:04:00+02:00',
+        })),
+      });
+    return json(
+      { code: 'NOT_FOUND', message: 'not found', requestId: 'e2e' },
+      404,
+    );
+  });
+  await page.route(UPLOAD_URL, (route) => {
+    expect(route.request().headers()['content-type']).toBe('image/jpeg');
+    return route.fulfill({
+      status: 200,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    });
+  });
+}
+
+test.beforeEach(async ({ page }) => {
+  await mockBackend(page);
+});
 
 test('renders the public enrollment page', async ({ page }) => {
   await page.goto('/');
