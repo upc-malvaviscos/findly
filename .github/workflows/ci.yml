@@ -44,10 +44,9 @@ jobs:
       - uses: terraform-linters/setup-tflint@v6
       - run: npm ci
       - run: npm exec github-actionlint -- .github/workflows/*.yml
-      - run: terraform -chdir=infra fmt -check -recursive
-      - run: terraform -chdir=infra init -backend=false -input=false
-      - run: terraform -chdir=infra validate
-      - run: tflint --chdir=infra
+      - run: npm run terraform:format
+      - run: npm run terraform:validate
+      - run: npm run lint:terraform
 
   security-and-sync:
     runs-on: ubuntu-latest

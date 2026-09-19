@@ -35,6 +35,13 @@ export default defineConfig({
           name: 'shared',
         },
       },
+      {
+        test: {
+          environment: 'node',
+          include: ['tests/infra/**/*.test.ts'],
+          name: 'infra',
+        },
+      },
     ],
   },
 });

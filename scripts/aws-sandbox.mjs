@@ -38,7 +38,7 @@ const awsEnv = {
 };
 const commandOutput = (file, args) => {
   const result = spawnSync(file, args, {
-    cwd: 'infra',
+    cwd: 'infra/environments/sandbox',
     env: awsEnv,
     encoding: 'utf8',
   });
@@ -56,7 +56,6 @@ const accountId = commandOutput('aws', [
 const variables = [
   `-var=aws_region=${region}`,
   '-var=project=findly',
-  '-var=environment=sandbox',
   '-var=cost_center=findly',
   '-var=data_class=synthetic',
   `-var=frontend_domain_url=http://127.0.0.1:${webPort}`,
