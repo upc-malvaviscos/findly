@@ -9,6 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SelfieCaptureForm } from '../../src/web/components/SelfieCaptureForm';
 import { resetMockState } from '../../src/web/fixtures';
+import { createRegistration } from '../../src/web/api';
 
 afterEach(() => {
   cleanup();
@@ -41,6 +42,14 @@ function fillValidForm() {
   attachSelfie();
 }
 
+vi.mock('../../src/web/api', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/web/api')>();
+  return {
+    ...original,
+    createRegistration: vi.fn(original.createRegistration),
+  };
+});
+
 describe('SelfieCaptureForm', () => {
   it('shows inline validation before submitting', () => {
     render(<SelfieCaptureForm eventId="demo-2026" />);
@@ -53,6 +62,23 @@ describe('SelfieCaptureForm', () => {
       screen.getByText('Acepta los términos de privacidad para continuar.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Selecciona una imagen.')).toBeInTheDocument();
+  });
+
+  it('sends nothing before consent and sends consent as true afterwards', async () => {
+    const create = vi.mocked(createRegistration);
+    create.mockClear();
+    render(<SelfieCaptureForm eventId="demo-2026" />);
+    attachSelfie();
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
+    expect(create).not.toHaveBeenCalled();
+
+    acceptConsent();
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0]?.[1]).toMatchObject({
+      consentBiometrics: true,
+      consentTerms: true,
+    });
   });
 
   it('validates email format only when one is provided', () => {
