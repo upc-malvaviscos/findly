@@ -42,6 +42,7 @@ export default tseslint.config(
       'src/shared/**/*.ts',
       'tests/lambdas/**/*.ts',
       'tests/shared/**/*.ts',
+      'tests/infra/**/*.ts',
       'scripts/**/*.mjs',
       '*.{js,mjs,cjs}',
     ],
