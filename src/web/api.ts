@@ -1,52 +1,12 @@
-import { DEMO_EVENT, nextMockStatus } from './fixtures';
-import type {
-  RegistrationRequest,
-  RegistrationResponse,
-  RegistrationStatusResponse,
-  UploadProgress,
-} from './types';
+import { executionMode } from './executionMode';
+import * as mockApi from './mockApi';
+import * as realApi from './realApi';
 
-const wait = (milliseconds: number) =>
-  new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
-export async function getEvent(eventId: string) {
-  await wait(80);
-  return eventId === DEMO_EVENT.eventId ? DEMO_EVENT : null;
-}
-export async function createRegistration(
-  eventId: string,
-  request: RegistrationRequest,
-): Promise<RegistrationResponse> {
-  await wait(120);
-  const emailSlug = (request.email ?? 'anonimo')
-    .replaceAll(/[^a-z0-9]/gi, '')
-    .toLowerCase();
-  const registrationKey = `${eventId}-${emailSlug}`;
-  return {
-    registrationId: `reg-${registrationKey}`,
-    uploadUrl: 'mock://findly/selfies/upload',
-    expiresInSeconds: 300,
-  };
-}
-export async function uploadFileToS3(
-  _uploadUrl: string,
-  file: File,
-  onProgress: (progress: UploadProgress) => void,
-) {
-  if (file.name.toLowerCase().includes('fail-upload'))
-    throw new Error('UPLOAD_FAILED');
-  const total = Math.max(file.size, 1);
-  for (const percentage of [25, 50, 75, 100]) {
-    await wait(45);
-    onProgress({
-      loaded: Math.round((total * percentage) / 100),
-      total,
-      percentage,
-    });
-  }
-}
-export async function getRegistrationStatus(
-  registrationId: string,
-): Promise<RegistrationStatusResponse> {
-  await wait(80);
-  return nextMockStatus(registrationId);
-}
+// The adapter is fixed at build time so presentation components stay unaware
+// of whether they talk to the in-memory mock or to the serverless backend.
+const adapter = executionMode === 'mock' ? mockApi : realApi;
+
+export const getEvent = adapter.getEvent;
+export const createRegistration = adapter.createRegistration;
+export const uploadFileToS3 = adapter.uploadFileToS3;
+export const getRegistrationStatus = adapter.getRegistrationStatus;

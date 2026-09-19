@@ -10,6 +10,9 @@ class MockXhr {
   upload = { onprogress: null as ((event: ProgressEvent) => void) | null };
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  ontimeout: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  timeout = 0;
 
   constructor() {
     MockXhr.instances.push(this);
@@ -22,6 +25,10 @@ class MockXhr {
 
   setRequestHeader(name: string, value: string) {
     this.requestHeaders[name] = value;
+  }
+
+  abort() {
+    this.onabort?.();
   }
 
   send() {
@@ -116,5 +123,39 @@ describe('uploadFileToS3', () => {
     getXhr().onerror?.();
 
     await expect(uploadPromise).rejects.toThrow('UPLOAD_FAILED');
+  });
+
+  it('sets a timeout and rejects with UPLOAD_TIMEOUT when it fires', async () => {
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
+    const file = new File(['selfie'], 'selfie.jpg', { type: 'image/jpeg' });
+    const uploadPromise = uploadFileToS3(
+      'https://s3.example.com/signed-put',
+      file,
+      vi.fn(),
+    );
+    const xhr = getXhr();
+    expect(xhr.timeout).toBeGreaterThan(0);
+    xhr.ontimeout?.();
+    await expect(uploadPromise).rejects.toThrow('UPLOAD_TIMEOUT');
+  });
+
+  it('aborts the request when the signal is aborted', async () => {
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
+    const file = new File(['selfie'], 'selfie.jpg', { type: 'image/jpeg' });
+    const controller = new AbortController();
+    const uploadPromise = uploadFileToS3(
+      'https://s3.example.com/signed-put',
+      file,
+      vi.fn(),
+      controller.signal,
+    );
+    controller.abort();
+    await expect(uploadPromise).rejects.toThrow('UPLOAD_ABORTED');
   });
 });

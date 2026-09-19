@@ -1,18 +1,23 @@
 import type { UploadProgress } from './types';
 
+// Presigned URLs live at most 300 s; a stalled PUT must fail well before that.
+export const UPLOAD_TIMEOUT_MS = 60_000;
+
 export function uploadFileToS3(
   uploadUrl: string,
   file: File,
   onProgress: (progress: UploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
-  if (uploadUrl.startsWith('mock://')) {
-    const total = Math.max(file.size, 1);
-    onProgress({ loaded: total, total, percentage: 100 });
-    return Promise.resolve();
-  }
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('UPLOAD_ABORTED'));
+      return;
+    }
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl, true);
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.setRequestHeader('Content-Type', file.type);
     xhr.upload.onprogress = (event) => {
       if (!event.lengthComputable) return;
@@ -31,6 +36,8 @@ export function uploadFileToS3(
       }
     };
     xhr.onerror = () => reject(new Error('UPLOAD_FAILED'));
+    xhr.ontimeout = () => reject(new Error('UPLOAD_TIMEOUT'));
+    xhr.onabort = () => reject(new Error('UPLOAD_ABORTED'));
     xhr.send(file);
   });
 }

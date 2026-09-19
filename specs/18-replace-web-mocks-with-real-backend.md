@@ -78,3 +78,16 @@ Los errores seguirán el formato `{ code, message, requestId }`. El frontend no 
 - Galería privada y envío de emails.
 - Integración directa del SDK de AWS en el navegador.
 - Cambios en el algoritmo de Rekognition o en el modelo de matching.
+
+## Estado de implementación (issue #22)
+
+Implementado en el cliente web (evidencia: [issue-22-web-real-backend.md](../docs/evidence/issue-22-web-real-backend.md)):
+
+- Selector de adaptador por modo de ejecución (`src/web/api.ts`): `mock` usa `mockApi.ts`; `floci`/`aws` usan `realApi.ts`.
+- Subida XHR con timeout y cancelación, y polling extraído a `pollRegistrationStatus.ts` (10 intentos cada 1,5 s).
+- Pruebas unitarias/contrato y E2E contra un backend HTTP simulado compatible con el contrato.
+
+Pendiente, sin cerrar la issue #22:
+
+- Los endpoints `GET /events/{eventId}`, `POST /events/{eventId}/registrations` y `GET /registrations/{registrationId}/status` no existen todavía en `infra/` ni en `src/lambdas/`; dependen de la issue #7.
+- Smoke E2E contra el entorno `demo`, métricas de error de registro/subida/polling y verificación de CORS con S3 real (issue #45).

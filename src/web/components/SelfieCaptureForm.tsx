@@ -4,6 +4,7 @@ import {
   getRegistrationStatus,
   uploadFileToS3,
 } from '../api';
+import { pollRegistrationStatus } from '../pollRegistrationStatus';
 import { ensureJpegFile } from '../imageConversion';
 import type { RegistrationStatus } from '../types';
 import {
@@ -96,13 +97,13 @@ export function SelfieCaptureForm({ eventId }: Props) {
         ({ percentage }) => setProgress(percentage),
       );
       setMessage(describeStatus('PROCESSING'));
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const result = await getRegistrationStatus(registration.registrationId);
-        setStatus(result.status);
-        setMessage(describeStatus(result.status, result.failureReason));
-        if (result.status === 'ENROLLED' || result.status === 'FAILED') break;
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
-      }
+      await pollRegistrationStatus(
+        () => getRegistrationStatus(registration.registrationId),
+        (result) => {
+          setStatus(result.status);
+          setMessage(describeStatus(result.status, result.failureReason));
+        },
+      );
     } catch {
       setStatus('FAILED');
       setMessage(
