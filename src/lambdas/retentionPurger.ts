@@ -11,6 +11,12 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { isMissingResourceError } from './lib/awsErrors';
+import {
+  emitLog,
+  errorNameOf,
+  resolveCorrelationId,
+  type LambdaContextLike,
+} from './lib/logger';
 import type { EventEntity } from '../shared/types/entities';
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -111,19 +117,39 @@ async function deleteEventObjects(eventId: string): Promise<void> {
   } while (continuationToken);
 }
 
-export async function retentionPurger(): Promise<RetentionPurgerResult> {
-  const expiredEvents = await findExpiredEvents(Date.now());
+export async function retentionPurger(
+  _event?: unknown,
+  context?: LambdaContextLike,
+): Promise<RetentionPurgerResult> {
+  const startedAt = Date.now();
+  const correlationId = resolveCorrelationId(context?.awsRequestId);
+  let purged = 0;
 
-  for (const event of expiredEvents) {
-    await deleteEventCollection(event.eventId);
-    await deleteEventObjects(event.eventId);
-    console.log(
-      JSON.stringify({
-        event: 'event_retention_purged',
+  try {
+    const expiredEvents = await findExpiredEvents(Date.now());
+
+    for (const event of expiredEvents) {
+      await deleteEventCollection(event.eventId);
+      await deleteEventObjects(event.eventId);
+      purged += 1;
+      emitLog('INFO', 'event_retention_purged', correlationId, {
         eventId: event.eventId,
-      }),
-    );
-  }
+      });
+    }
 
-  return { expiredEvents: expiredEvents.length };
+    emitLog('INFO', 'retention_purge_completed', correlationId, {
+      expiredEvents: expiredEvents.length,
+      durationMs: Date.now() - startedAt,
+    });
+    return { expiredEvents: expiredEvents.length };
+  } catch (caught) {
+    // A failure aborts the whole run, leaving later expired events un-purged
+    // until the next schedule, so it must be visible.
+    emitLog('ERROR', 'retention_purge_failed', correlationId, {
+      purgedEvents: purged,
+      errorName: errorNameOf(caught),
+      durationMs: Date.now() - startedAt,
+    });
+    throw caught;
+  }
 }

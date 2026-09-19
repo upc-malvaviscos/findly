@@ -4,7 +4,7 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: vi
     .fn()
@@ -13,6 +13,7 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
     ),
 }));
 import { gallery } from '../../src/lambdas/gallery';
+import { captureLogs } from './lib/logCapture';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
@@ -104,5 +105,99 @@ describe('gallery lambda', () => {
       registrationId: 'registration-demo',
       photos: [],
     });
+  });
+});
+
+describe('gallery structured logging', () => {
+  let logs: ReturnType<typeof captureLogs>;
+  beforeEach(() => {
+    logs = captureLogs();
+  });
+  afterEach(() => logs.restore());
+
+  it('logs one summary line correlated to the API Gateway request, never the token', async () => {
+    dynamoMock.on(GetCommand).resolves({});
+    const result = await gallery({
+      queryStringParameters: { token: 'secret-token' },
+      requestContext: { requestId: 'apigw-req-1' },
+    });
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'WARN',
+        event: 'gallery_request',
+        correlationId: 'apigw-req-1',
+        statusCode: 404,
+      }),
+    ]);
+    expect(JSON.parse(result.body).requestId).toBe('apigw-req-1');
+    expect(logs.lines.join('')).not.toContain('secret-token');
+  });
+
+  it('falls back to the Lambda request ID when there is no API Gateway one', async () => {
+    const result = await gallery(
+      { queryStringParameters: {} },
+      { awsRequestId: 'lambda-req-1' },
+    );
+    expect(logs.records()[0]).toMatchObject({
+      correlationId: 'lambda-req-1',
+      statusCode: 400,
+    });
+    expect(JSON.parse(result.body).requestId).toBe('lambda-req-1');
+  });
+
+  it('logs the event and photo count of a served gallery, not names or URLs', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          registrationId: 'registration-demo',
+          eventId: 'demo-2026',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+        },
+      })
+      .resolvesOnce({ Item: { name: 'Private Launch Party' } })
+      .resolvesOnce({ Item: { s3Key: 'events/demo-2026/photos/photo-1.jpg' } });
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [{ photoId: 'photo-1', matchedAt: '2026-09-04T10:00:00.000Z' }],
+    });
+
+    await gallery({
+      queryStringParameters: { token: 'demo-gallery' },
+      requestContext: { requestId: 'apigw-req-2' },
+    });
+
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        eventId: 'demo-2026',
+        photoCount: 1,
+        statusCode: 200,
+      }),
+    ]);
+    const output = logs.lines.join('');
+    expect(output).not.toContain('demo-gallery');
+    expect(output).not.toContain('Private Launch Party');
+    expect(output).not.toContain('registration-demo');
+    expect(output).not.toContain('signature=local');
+  });
+
+  it('logs an ERROR with only the error name when a dependency fails, then rethrows', async () => {
+    const failure = new Error('table findly-secret is unreachable');
+    failure.name = 'ServiceUnavailableException';
+    dynamoMock.on(GetCommand).rejects(failure);
+
+    await expect(
+      gallery({ queryStringParameters: { token: 'secret-token' } }),
+    ).rejects.toBe(failure);
+
+    expect(logs.records()).toEqual([
+      expect.objectContaining({
+        level: 'ERROR',
+        event: 'gallery_request_failed',
+        errorName: 'ServiceUnavailableException',
+      }),
+    ]);
+    expect(logs.lines.join('')).not.toContain('findly-secret');
+    expect(logs.lines.join('')).not.toContain('secret-token');
   });
 });

@@ -9,8 +9,9 @@ import {
 } from '@aws-sdk/client-s3';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { retentionPurger } from '../../src/lambdas/retentionPurger';
+import { captureLogs } from './lib/logCapture';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const rekognitionMock = mockClient(RekognitionClient);
@@ -147,5 +148,70 @@ describe('retentionPurger lambda', () => {
     expect(result.expiredEvents).toBe(1);
     expect(s3Mock.commandCalls(ListObjectsV2Command)).toHaveLength(2);
     expect(s3Mock.commandCalls(DeleteObjectsCommand)).toHaveLength(2);
+  });
+});
+
+describe('retentionPurger structured logging', () => {
+  let logs: ReturnType<typeof captureLogs>;
+  beforeEach(() => {
+    logs = captureLogs();
+  });
+  afterEach(() => logs.restore());
+
+  it('logs each purged event and a completion summary under one correlation ID', async () => {
+    dynamoMock.on(ScanCommand).resolves({
+      Items: [
+        { eventId: 'evt-expired', createdAt: oldEnoughDate, retentionDays: 30 },
+      ],
+    });
+    rekognitionMock.on(DeleteCollectionCommand).resolves({});
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+
+    await retentionPurger({}, { awsRequestId: 'lambda-req-1' });
+
+    expect(logs.records()).toEqual([
+      {
+        level: 'INFO',
+        event: 'event_retention_purged',
+        correlationId: 'lambda-req-1',
+        eventId: 'evt-expired',
+      },
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'retention_purge_completed',
+        correlationId: 'lambda-req-1',
+        expiredEvents: 1,
+      }),
+    ]);
+  });
+
+  it('logs an ERROR with the events purged so far, then rethrows', async () => {
+    dynamoMock.on(ScanCommand).resolves({
+      Items: [
+        { eventId: 'evt-a', createdAt: oldEnoughDate, retentionDays: 30 },
+        { eventId: 'evt-b', createdAt: oldEnoughDate, retentionDays: 30 },
+      ],
+    });
+    rekognitionMock
+      .on(DeleteCollectionCommand, { CollectionId: 'findly-event-evt-a' })
+      .resolves({});
+    const failure = new Error('bucket findly-secret denied');
+    failure.name = 'AccessDenied';
+    rekognitionMock
+      .on(DeleteCollectionCommand, { CollectionId: 'findly-event-evt-b' })
+      .rejects(failure);
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+
+    await expect(retentionPurger()).rejects.toBe(failure);
+
+    const failed = logs
+      .records()
+      .find((record) => record.event === 'retention_purge_failed');
+    expect(failed).toMatchObject({
+      level: 'ERROR',
+      purgedEvents: 1,
+      errorName: 'AccessDenied',
+    });
+    expect(logs.lines.join('')).not.toContain('findly-secret');
   });
 });

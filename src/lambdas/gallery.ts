@@ -14,6 +14,11 @@ import {
   photoKey,
   registrationPartitionKey,
 } from '../shared/lib/dynamoKeys';
+import {
+  withRequestLog,
+  type LambdaContextLike,
+  type RequestLog,
+} from './lib/logger';
 import type {
   EventEntity,
   GalleryTokenEntity,
@@ -23,6 +28,7 @@ import type {
 
 type GalleryEvent = {
   queryStringParameters?: Record<string, string | undefined> | null;
+  requestContext?: { requestId?: string } | null;
 };
 
 type GalleryResponse = {
@@ -65,13 +71,32 @@ const error = (
   statusCode: number,
   code: string,
   message: string,
-): GalleryResult =>
-  json(statusCode, { code, message, requestId: crypto.randomUUID() });
+  requestId: string,
+): GalleryResult => json(statusCode, { code, message, requestId });
 
-export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
+export async function gallery(
+  event: GalleryEvent,
+  context?: LambdaContextLike,
+): Promise<GalleryResult> {
+  return withRequestLog(
+    'gallery_request',
+    {
+      requestId: event.requestContext?.requestId,
+      awsRequestId: context?.awsRequestId,
+    },
+    (request) => serveGallery(event, request),
+  );
+}
+
+async function serveGallery(
+  event: GalleryEvent,
+  request: RequestLog,
+): Promise<GalleryResult> {
+  const fail = (statusCode: number, code: string, message: string) =>
+    error(statusCode, code, message, request.correlationId);
+
   const token = event.queryStringParameters?.token;
-  if (!token)
-    return error(400, 'INVALID_REQUEST', 'Gallery token is required.');
+  if (!token) return fail(400, 'INVALID_REQUEST', 'Gallery token is required.');
 
   const tokenHash = createHash('sha256').update(token).digest('hex');
   const tokenRecord = (
@@ -93,11 +118,12 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
     !tokenRecord.eventId ||
     !tokenRecord.expiresAt
   )
-    return error(404, 'GALLERY_NOT_FOUND', 'Gallery not found.');
-  if (Date.parse(tokenRecord.expiresAt) <= Date.now())
-    return error(410, 'GALLERY_EXPIRED', 'Gallery link has expired.');
+    return fail(404, 'GALLERY_NOT_FOUND', 'Gallery not found.');
 
   const { registrationId, eventId, expiresAt } = tokenRecord;
+  request.annotate({ eventId });
+  if (Date.parse(expiresAt) <= Date.now())
+    return fail(410, 'GALLERY_EXPIRED', 'Gallery link has expired.');
 
   const matches = (
     await dynamo.send(
@@ -167,5 +193,6 @@ export async function gallery(event: GalleryEvent): Promise<GalleryResult> {
       (photo): photo is NonNullable<typeof photo> => photo !== null,
     ),
   };
+  request.annotate({ photoCount: response.photos.length });
   return json(200, response);
 }
