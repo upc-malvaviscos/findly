@@ -68,6 +68,15 @@ Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos 
 
 La consola opcional de Floci se abre visitando `http://localhost:4566/_floci/ui`; la imagen necesita el socket Docker montado para crear su contenedor sidecar y queda disponible en `http://localhost:4500/console/aws`.
 
+## Infraestructura y estado Terraform
+
+`infra/modules/` contiene los módulos reutilizables (`findly-stack` compone el
+stack) y `infra/environments/{sandbox,demo,production}` son raíces finas, cada
+una con su propia clave de estado `findly/<entorno>/terraform.tfstate` en un
+bucket S3 cifrado y versionado creado por `infra/bootstrap`. El bloqueo usa el
+lockfile nativo de S3 ([ADR-009](docs/adr/ADR-009-terraform-remote-state-and-environment-isolation.md)).
+Consulta el [runbook](docs/runbooks/terraform-remote-state.md).
+
 ## Administración de eventos
 
 El área `/admin/login` usa Cognito `USER_PASSWORD_AUTH`, sin secretos de

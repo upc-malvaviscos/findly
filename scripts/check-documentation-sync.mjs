@@ -28,6 +28,10 @@ const requiredTraceability = [
     ['PR #55', 'PR #56', 'PR #57', 'npm run test:aws'],
   ],
   [
+    'specs/10-terraform-bootstrap-remote-state-and-environments.md',
+    ['#11', 'ADR-009', 'issue-11-terraform-remote-state.md'],
+  ],
+  [
     'AGENTS.md',
     ['implementación, las specs y las issues de GitHub', 'npm run sync:check'],
   ],
