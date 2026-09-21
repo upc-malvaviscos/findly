@@ -34,3 +34,8 @@ output "gallery_reader_function_name" {
   description = "Name of the public Lambda that resolves private galleries."
   value       = module.gallery_reader.function_name
 }
+
+output "alerts_topic_arn" {
+  description = "ARN del topic SNS de alertas."
+  value       = module.monitoring.alerts_topic_arn
+}

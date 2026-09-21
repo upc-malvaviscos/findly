@@ -44,6 +44,10 @@ module "findly" {
   frontend_domain_url  = var.frontend_domain_url
   uploads_bucket_name  = var.uploads_bucket_name
   allow_bucket_destroy = true
+  alert_email          = var.alert_email
+  # The budget is account-wide: sandbox owns it. Enable it here instead if
+  # this environment lives in a different AWS account.
+  enable_budget = var.enable_budget
 }
 
 # El estado sandbox existente se creó con estos módulos en la raíz; `moved`

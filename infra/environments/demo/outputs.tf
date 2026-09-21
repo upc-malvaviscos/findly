@@ -41,3 +41,7 @@ output "cognito_region" {
 output "gallery_reader_function_name" {
   value = module.findly.gallery_reader_function_name
 }
+
+output "alerts_topic_arn" {
+  value = module.findly.alerts_topic_arn
+}

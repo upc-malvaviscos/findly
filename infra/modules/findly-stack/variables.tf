@@ -42,3 +42,22 @@ variable "allow_bucket_destroy" {
   type        = bool
   default     = false
 }
+
+variable "alert_email" {
+  description = "Email that receives alerts (photos DLQ alarm and budget). Contact data: pass it at apply time with TF_VAR_alert_email, never in a tracked file. null = no subscription."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "budget_limit_usd" {
+  description = "Monthly budget limit in USD; warns at 80 % of actual spend. Spec 00 sets 5 USD for the demo."
+  type        = string
+  default     = "5"
+}
+
+variable "enable_budget" {
+  description = "Creates the cost budget. It is account-wide: only one environment per account should enable it, so it defaults to false and sandbox opts in."
+  type        = bool
+  default     = false
+}

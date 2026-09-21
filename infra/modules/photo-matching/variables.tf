@@ -30,7 +30,7 @@ variable "log_retention_days" {
 }
 
 variable "dlq_alarm_actions" {
-  description = "ARNs de notificacion (p.ej. SNS) para la alarma de mensajes en la DLQ. Vacio por defecto: ninguna spec define aun un destino de alertas."
+  description = "ARNs de notificacion (el topic SNS del modulo monitoring) para la alarma de mensajes en la DLQ. Vacio = la alarma existe pero no avisa a nadie."
   type        = list(string)
   default     = []
 }
