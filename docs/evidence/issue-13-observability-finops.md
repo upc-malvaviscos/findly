@@ -105,36 +105,50 @@ la copia. Después,
 ## Validación
 
 ```text
-npm run lint:code                     PASS
-npm run lint:format                   PASS
-npm run lint:markdown                 PASS
-npm run lint:terraform (tflint 0.64)  PASS
-github-actionlint (5 workflows)       PASS (esta issue no modifica workflows)
-npm run typecheck                     PASS
-npm run test                          PASS (22 archivos, 148 tests; logger.ts 100 % de líneas)
-npm run build                         PASS (web + 6 artefactos Lambda .js y .zip)
-npm run terraform:format              PASS
-npm run terraform:validate            PASS (raíz infra/)
-npm run security                      PASS
-npm run sync:check                    PASS
-terraform plan sin conexión a AWS     PASS (52 recursos)
+npm run harness:check                 PASS
+npm run verify                        PASS (completo; desglose a continuación)
+  lint:code, lint:format, lint:markdown             PASS
+  lint:terraform (tflint 0.64, 5 roots)             PASS
+  lint:workflows (github-actionlint)                PASS
+  typecheck                                         PASS
+  test                                              PASS (25 archivos, 188 tests; logger.ts 100 % de líneas)
+  build                                             PASS (web + 6 artefactos Lambda .js y .zip)
+  terraform:format                                  PASS
+  terraform:validate                                PASS (bootstrap, sandbox, demo, production, ephemeral)
+  security                                          PASS
+  sync:check                                        PASS
+terraform plan sin conexión a AWS     PASS (sandbox 52, demo 51, production 51 recursos)
 npm run test:e2e / test:e2e:local     NO EJECUTADOS: ningún flujo de usuario cambia
 ```
 
 Entorno: Node 24.17.0, npm 11.13.0, Terraform 1.15.5 y tflint 0.64.0
-(descargado de la release oficial y verificado con su `checksums.txt`).
+(descargado de la release oficial y verificado con su `checksums.txt`). La rama
+se rebasó sobre `origin/main` tras la issue #11 (raíces por entorno y
+`modules/findly-stack`); los resultados son de la rama ya rebasada.
 
-**`npm run verify` y `npm run harness:check` no se ejecutan tal cual en
-Windows**, por dos defectos previos de la base, ajenos a esta issue: en
-`package.json`, `lint:workflows` pasa `.github/workflows/*.yml` sin comillas y
-`cmd.exe` no expande el comodín, así que `verify` se detiene en ese paso; y
-`scripts/check-local-validation-environment.mjs` invoca
-`spawnSync('npm', ['--version'])` sin shell, lo que falla con `ENOENT` en Windows
-(`npm` es `npm.cmd`) y reporta erróneamente "npm 11+ is required" con npm 11.13.
-Por eso cada paso de `verify` se ejecutó por separado y los hooks `pre-push`
-(que ejecutan ambos comandos) no pueden pasar en esta máquina sin corregirlos.
-El checkout de Windows tenía además finales de línea CRLF, que Prettier rechaza;
-se normalizaron a LF localmente con `core.autocrlf=input`, sin cambios en Git.
+**Tres defectos previos de la base impedían ejecutar `npm run verify` y
+`npm run harness:check` en Windows, y se corrigen en esta rama** (commit
+`fix(dev)`), porque bloqueaban el hook `pre-push` sin relación con esta issue:
+
+- `lint:workflows` pasaba `.github/workflows/*.yml` sin comillas y `cmd.exe` no
+  expande el comodín, así que `verify` se detenía en ese paso. Ahora es
+  `github-actionlint` a secas, que descubre los workflows del repositorio; se
+  comprobó que falla (código 1) con un workflow inválido.
+- `lint:terraform` era un bucle `for d in …; do …; done` de shell POSIX, que
+  `cmd.exe` no ejecuta. Ahora lo ejecuta `scripts/terraform-lint.mjs` con la misma
+  lista de roots y el mismo nombre de script npm, de modo que CI no cambia; falla
+  con código 1 si `tflint` no está disponible.
+- `scripts/check-local-validation-environment.mjs` invocaba
+  `spawnSync('npm', ['--version'])` sin shell, lo que falla con `ENOENT` en
+  Windows (`npm` es `npm.cmd`) y reportaba "npm 11+ is required" con npm 11.13.
+  Ahora ejecuta sus comprobaciones, todas cadenas constantes, mediante shell. Se
+  comprobó que sigue fallando de forma cerrada cuando falta una herramienta
+  (sin `tflint` en el `PATH` termina con código 1).
+
+Con estas correcciones, `npm run harness:check` y `npm run verify` completos se
+ejecutan en Windows y los hooks `pre-push` pueden pasar. El checkout de Windows
+tenía además finales de línea CRLF, que Prettier rechaza; se normalizaron a LF
+localmente con `core.autocrlf=input`, sin cambios en Git.
 
 ## Pendiente
 

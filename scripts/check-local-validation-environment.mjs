@@ -4,8 +4,14 @@ import { spawnSync } from 'node:child_process';
 const requireE2e = process.argv.includes('--e2e');
 const failures = [];
 
+// On Windows npm is npm.cmd, which spawnSync cannot launch without a shell
+// (ENOENT). Every command line here is a constant, never user input.
+function run(commandLine) {
+  return spawnSync(commandLine, { encoding: 'utf8', shell: true });
+}
+
 function command(name, args, installation) {
-  const result = spawnSync(name, args, { encoding: 'utf8' });
+  const result = run([name, ...args].join(' '));
   if (result.status === 0) return;
   failures.push(`${name} is unavailable. Install it with: ${installation}`);
 }
@@ -17,7 +23,7 @@ if (process.versions.node.split('.')[0] !== expectedNode) {
   );
 }
 
-const npmVersion = spawnSync('npm', ['--version'], { encoding: 'utf8' });
+const npmVersion = run('npm --version');
 if (npmVersion.status !== 0 || Number.parseInt(npmVersion.stdout, 10) < 11) {
   failures.push(
     'npm 11+ is required. Install Node from .nvmrc, then run: npm ci',
