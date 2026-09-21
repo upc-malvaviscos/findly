@@ -70,3 +70,28 @@ module "gallery_reader" {
   cost_center          = var.cost_center
   data_class           = var.data_class
 }
+
+module "monitoring" {
+  source           = "../monitoring"
+  alert_email      = var.alert_email
+  budget_limit_usd = var.budget_limit_usd
+  enable_budget    = var.enable_budget
+  project          = var.project
+  environment      = var.environment
+  cost_center      = var.cost_center
+  data_class       = var.data_class
+}
+
+module "photo_matching" {
+  source               = "../photo-matching"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_id    = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/photoMatcher.zip"
+  dlq_alarm_actions    = [module.monitoring.alerts_topic_arn]
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
+}

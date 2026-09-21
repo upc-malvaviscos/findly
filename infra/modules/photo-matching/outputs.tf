@@ -1,10 +1,10 @@
 output "queue_arn" {
-  description = "ARN de la cola SQS findly-photos-queue."
+  description = "ARN de la cola SQS de fotos (findly-{env}-photos-queue)."
   value       = aws_sqs_queue.photos.arn
 }
 
 output "dlq_arn" {
-  description = "ARN de la DLQ findly-photos-dlq."
+  description = "ARN de la DLQ de fotos (findly-{env}-photos-dlq)."
   value       = aws_sqs_queue.photos_dlq.arn
 }
 

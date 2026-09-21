@@ -15,11 +15,13 @@ locals {
     CostCenter  = var.cost_center
     DataClass   = var.data_class
   }
-  lambda_timeout_seconds     = 30
-  sqs_visibility_timeout     = 180 # >= 6x lambda_timeout_seconds, per spec 07's own pitfall
-  queue_name                 = "findly-photos-queue"
-  dlq_name                   = "findly-photos-dlq"
-  function_name              = "findly-photo-matcher"
+  lambda_timeout_seconds = 30
+  sqs_visibility_timeout = 180 # >= 6x lambda_timeout_seconds, per spec 07's own pitfall
+  # Sufijo de entorno (spec 10): sin el, dos entornos en una misma cuenta
+  # colisionarian en nombre de cola, DLQ, Lambda y grupo de logs.
+  queue_name                 = "${var.project}-${var.environment}-photos-queue"
+  dlq_name                   = "${var.project}-${var.environment}-photos-dlq"
+  function_name              = "${var.project}-${var.environment}-photo-matcher"
   rekognition_collection_arn = "arn:aws:rekognition:*:*:collection/findly-event-*"
 }
 
@@ -66,8 +68,8 @@ resource "aws_cloudwatch_metric_alarm" "photos_dlq_has_messages" {
   statistic           = "Maximum"
   period              = 300
   evaluation_periods  = 1
-  threshold           = 0
-  comparison_operator = "GreaterThanThreshold"
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = var.dlq_alarm_actions
   tags                = local.tags
