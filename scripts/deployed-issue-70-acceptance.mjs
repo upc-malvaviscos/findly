@@ -88,6 +88,7 @@ const eventId = created.eventId;
 assert.match(eventId, /^evt-[A-Za-z0-9-]+$/);
 const grants = [];
 const browser = await chromium.launch();
+const acceptanceStartedAt = Date.now();
 let primaryFailure;
 const cleanupFailures = [];
 try {
@@ -218,6 +219,31 @@ try {
   );
 } catch (error) {
   primaryFailure = error;
+  for (const grant of grants) {
+    try {
+      const registration = await item(
+        `EVENT#${eventId}`,
+        `REG#${grant.registrationId}`,
+      );
+      const allowedStatuses = [
+        'UPLOAD_PENDING',
+        'PROCESSING',
+        'ENROLLED',
+        'FAILED',
+      ];
+      console.log('Acceptance registration state', {
+        exists: Boolean(registration),
+        status: allowedStatuses.includes(registration?.status)
+          ? registration.status
+          : 'UNKNOWN',
+        hasFaceId: Boolean(registration?.faceId),
+        hasProcessingClaim: Boolean(registration?.processingClaim),
+        erasureRequested: Boolean(registration?.erasureRequestedAt),
+      });
+    } catch {
+      console.log('Acceptance registration state unavailable');
+    }
+  }
   // Preserve only safe error categories before Terraform removes log groups.
   for (const handler of ['selfie-indexer', 'photo-matcher']) {
     try {
@@ -227,6 +253,8 @@ try {
           [
             'logs',
             'filter-log-events',
+            '--start-time',
+            String(acceptanceStartedAt),
             '--log-group-name',
             `/aws/lambda/${process.env.EPHEMERAL_RESOURCE_PREFIX}-${handler}`,
             '--output',
@@ -236,8 +264,10 @@ try {
         ),
       );
       const counts = new Map();
+      let invocationStarts = 0;
       for (const record of result.events ?? []) {
         const message = record.message ?? '';
+        if (message.startsWith('START RequestId:')) invocationStarts++;
         const start = message.indexOf('{');
         if (start < 0) continue;
         let entry;
@@ -253,11 +283,10 @@ try {
           continue;
         counts.set(entry.errorName, (counts.get(entry.errorName) ?? 0) + 1);
       }
-      console.log(
-        'Acceptance error categories',
-        handler,
-        Object.fromEntries(counts),
-      );
+      console.log('Acceptance error categories', handler, {
+        invocationStarts,
+        errors: Object.fromEntries(counts),
+      });
     } catch {
       console.log('Acceptance error categories unavailable', handler);
     }

@@ -114,3 +114,13 @@ Purga, redrive y observabilidad completa siguen pendientes de ejecución.
 CloudTrail también mostró un fallo intermitente de SearchFaces en el segundo
 procesamiento de foto; el match existente permaneció y el recorrido principal
 pasó. No se atribuye todavía ese error a una causa no demostrada.
+
+## Diagnóstico del polling sin estado terminal
+
+Run 36481040067 (20edab1) falló antes de purga: el primer smoke público agotó
+el polling de la selfie sin rostro. El teardown completó. Las categorías
+recuperadas no prueban la causa; la consulta anterior no acotaba los logs al
+intento. Se añade timestamp inicial y snapshot consistente limitado a estado,
+existencia y marcadores booleanos de REG. No se imprimen capacidades, claves
+ni FaceIds, ni se amplía IAM o el timeout. Esto prepara diagnóstico, no
+acredita recuperación ni aceptación completa.
