@@ -1,0 +1,60 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Pr71SyntheticDataAssertions",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:DeleteItem", "dynamodb:Query"],
+      "Resource": [
+        "arn:aws:dynamodb:eu-west-1:567158658992:table/findly-pr-71",
+        "arn:aws:dynamodb:eu-west-1:567158658992:table/findly-pr-71/index/GSI2"
+      ]
+    },
+    {
+      "Sid": "Pr71InvokeRetentionAcceptance",
+      "Effect": "Allow",
+      "Action": ["lambda:InvokeFunction"],
+      "Resource": "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-71-retention-purger"
+    },
+    {
+      "Sid": "Pr71SyntheticSelfieFixtures",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject"],
+      "Resource": "arn:aws:s3:::findly-pr-71-567158658992-eu-west-1/events/*/selfies/*"
+    },
+    {
+      "Sid": "Pr71FaceAssertionAndCleanup",
+      "Effect": "Allow",
+      "Action": ["rekognition:ListFaces", "rekognition:DeleteCollection"],
+      "Resource": "arn:aws:rekognition:eu-west-1:567158658992:collection/findly-pr-71-event-*"
+    },
+    {
+      "Sid": "Pr71PoisonQueueMessage",
+      "Effect": "Allow",
+      "Action": ["sqs:SendMessage"],
+      "Resource": "arn:aws:sqs:eu-west-1:567158658992:findly-pr-71-photos-queue"
+    },
+    {
+      "Sid": "Pr71DlqAndAlarmAssertions",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility"
+      ],
+      "Resource": [
+        "arn:aws:sqs:eu-west-1:567158658992:findly-pr-71-photos-dlq",
+        "arn:aws:sqs:eu-west-1:567158658992:findly-pr-71-alert-probe"
+      ]
+    },
+    {
+      "Sid": "Pr71ApplicationLogAssertions",
+      "Effect": "Allow",
+      "Action": ["logs:FilterLogEvents"],
+      "Resource": [
+        "arn:aws:logs:eu-west-1:567158658992:log-group:/aws/lambda/findly-pr-71-*",
+        "arn:aws:logs:eu-west-1:567158658992:log-group:/aws/lambda/findly-pr-71-*:*"
+      ]
+    }
+  ]
+}

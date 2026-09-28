@@ -48,7 +48,7 @@ export async function runPublicEnrollmentSmoke({
     registration.body.expiresInSeconds !== 300 ||
     !registration.body.galleryToken
   )
-    throw new Error('PUBLIC_REGISTRATION_FAILED');
+    throw new Error(`PUBLIC_REGISTRATION_FAILED_HTTP_${registration.status}`);
   const { registrationId, galleryToken, uploadUrl } = registration.body;
   // Register cleanup before upload or polling can fail; never print capabilities.
   await onRegistration({ eventId, registrationId, galleryToken });

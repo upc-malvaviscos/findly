@@ -10,8 +10,13 @@ La repetición encontró denegaciones adicionales y el teardown quedó bloqueado
 por lectura de suscripción SNS. Se inició recuperación desde el mismo estado
 remoto de PR #71. La aceptación desplegada sigue pendiente.
 
-`docs/evidence/issue-70-ci-permissions-followup.json` es una propuesta adicional
-pendiente de aprobación, no una política aplicada. La creación del enlace
+La ampliación adicional `findly-pr-71-approved-followup` fue aprobada y aplicada;
+su documento es `docs/evidence/issue-70-ci-permissions-followup.json`.
+También se aprobó el alcance completo de los runners en
+`docs/evidence/issue-70-ci-acceptance-permissions.json`. Se adjuntó exclusivamente
+al rol CI como política administrada `findly-pr-71-approved-acceptance` porque
+AWS rechazó añadirla inline al superar el límite agregado de 10240 bytes.
+El documento y alcance son idénticos a los aprobados. La creación del enlace
 SQS/Lambda exige Resource `*` porque AWS no permite limitar esa acción por
 ARN de mapping; se restringe por FunctionArn, región y etiquetas de PR.
 Referencia: [autorización Lambda](https://docs.aws.amazon.com/service-authorization/latest/reference/list_lambda.html).
