@@ -21,7 +21,8 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
 
 - Configuración Lambda: `memory_size = 256`, `timeout = 3`.
 - Método HTTP permitido: Únicamente `PUT`.
-- Expiración: Estrictamente 300 segundos (5 minutos).
+- Expiración: fotos 300 segundos (5 minutos); selfies hasta 300 segundos,
+  limitada además por la caducidad del evento.
 - Claves deterministas:
   - Selfies: `events/{eventId}/selfies/{registrationId}.selfie.jpg`
   - Fotos de evento: `events/{eventId}/photos/{photoId}.photo.jpg`
@@ -46,8 +47,9 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
-- [x] La URL prefirmada expira exactamente tras 5 minutos.
-      _(Verificado con test unitario en `createPresignedUploadUrl`.)_
+- [x] La URL de fotos expira tras 5 minutos; una selfie nunca supera esa
+      duración ni la caducidad del evento.
+      _(Verificado con tests unitarios del presigner y registro público.)_
 - [x] El bucket S3 esta configurado para permitir unicamente `PUT` desde el
       origen exacto del frontend, con cabeceras firmadas restringidas a
       `Content-Type` y `If-None-Match` para selfies de una sola escritura.
