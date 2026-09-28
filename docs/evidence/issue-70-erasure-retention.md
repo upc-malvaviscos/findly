@@ -71,3 +71,16 @@ Compatibilidad selfie: el borrado usa `selfieS3Key` almacenado únicamente si
 coincide con la clave canónica `.jpg` legacy o `.selfie.jpg` del mismo
 evento/registro. Sin campo usa el helper actual. Una clave ajena falla antes
 de borrar recursos y produce diagnóstico sin imprimir la clave ni PII.
+
+## Riesgos pendientes de decisión
+
+DynamoDB puede retirar REG por TTL antes del cron. En ese caso el purgador
+pierde registrationId/tokenHash y no garantiza el barrido explícito de MATCH
+y TOKEN. Se ha solicitado aprobar un localizador de limpieza sin TTL ni PII;
+no está implementado mientras la decisión permanezca pendiente.
+
+Si una indexación pierde la inscripción durante el borrado y falla también
+DeleteFaces, el reintento ya no dispone del FaceId. La eliminación de la
+colección al vencer el evento proporciona limpieza eventual, pero no acredita
+borrado inmediato. Tampoco se ha probado una carga firmada que llegue después
+del barrido S3 de un evento vencido. Estos límites impiden cerrar #10.
