@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0, < 6.0"
+      version = ">= 6.0, < 7.0"
     }
   }
 }
@@ -165,7 +165,7 @@ resource "aws_iam_role_policy" "photo_matcher" {
       {
         Sid      = "WriteMatches"
         Effect   = "Allow"
-        Action   = "dynamodb:PutItem"
+        Action   = ["dynamodb:PutItem", "dynamodb:ConditionCheckItem"]
         Resource = var.table_arn
       },
       {

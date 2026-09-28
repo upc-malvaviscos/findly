@@ -6,7 +6,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0, < 6.0"
+      version = ">= 6.0, < 7.0"
     }
   }
 }
@@ -97,6 +97,83 @@ module "gallery_reader" {
   uploads_bucket_arn   = module.uploads_bucket.bucket_arn
   lambda_artifact_path = "../../artifacts/lambdas/gallery.zip"
   frontend_domain_url  = var.frontend_domain_url
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+}
+
+module "delete_registration" {
+  source               = "../modules/delete-registration"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/deleteRegistration.zip"
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+  api_id               = module.api_gateway.api_id
+  api_execution_arn    = module.api_gateway.execution_arn
+}
+
+module "retention_purger" {
+  source               = "../modules/retention-purger"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/retentionPurger.zip"
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+}
+
+module "monitoring" {
+  source        = "../modules/monitoring"
+  project       = "findly"
+  environment   = local.environment
+  cost_center   = "findly-ci"
+  data_class    = "synthetic"
+  enable_budget = false
+}
+
+resource "aws_sqs_queue" "alert_probe" {
+  name                      = "findly-${local.environment}-alert-probe"
+  message_retention_seconds = 3600
+  tags                      = local.tags
+}
+resource "aws_sqs_queue_policy" "alert_probe" {
+  queue_url = aws_sqs_queue.alert_probe.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "sns.amazonaws.com" }
+      Action    = "sqs:SendMessage"
+      Resource  = aws_sqs_queue.alert_probe.arn
+      Condition = { ArnEquals = { "aws:SourceArn" = module.monitoring.alerts_topic_arn } }
+    }]
+  })
+}
+resource "aws_sns_topic_subscription" "alert_probe" {
+  topic_arn            = module.monitoring.alerts_topic_arn
+  protocol             = "sqs"
+  endpoint             = aws_sqs_queue.alert_probe.arn
+  raw_message_delivery = true
+  depends_on           = [aws_sqs_queue_policy.alert_probe]
+}
+
+module "photo_matching" {
+  source               = "../modules/photo-matching"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_id    = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/photoMatcher.zip"
+  dlq_alarm_actions    = [module.monitoring.alerts_topic_arn]
   project              = "findly"
   environment          = local.environment
   cost_center          = "findly-ci"

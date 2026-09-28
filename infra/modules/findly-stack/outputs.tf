@@ -43,3 +43,6 @@ output "alerts_topic_arn" {
 output "web_bucket_name" { value = try(module.web[0].bucket_name, null) }
 output "web_distribution_id" { value = try(module.web[0].distribution_id, null) }
 output "web_distribution_domain_name" { value = try(module.web[0].distribution_domain_name, null) }
+
+output "delete_registration_function_name" { value = module.delete_registration.lambda_function_name }
+output "retention_purger_function_name" { value = module.retention_purger.function_name }

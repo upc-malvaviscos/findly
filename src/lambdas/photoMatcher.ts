@@ -8,12 +8,13 @@ import {
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
-  PutCommand,
+  TransactWriteCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   faceGsi1PartitionKey,
   matchKey,
+  registrationKey,
   parseRegistrationId,
 } from '../shared/lib/dynamoKeys';
 import { parseEventPhotoObjectKey } from '../shared/lib/s3Keys';
@@ -56,7 +57,7 @@ function decodeObjectKey(rawKey: string): string {
 
 function parseS3PhotoEvents(
   body: string,
-): Array<{ bucket: string; eventId: string; photoId: string }> {
+): Array<{ bucket: string; key: string; eventId: string; photoId: string }> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
@@ -66,6 +67,7 @@ function parseS3PhotoEvents(
   const records = (parsed as { Records?: S3EventRecord[] }).Records ?? [];
   const parsedRecords: Array<{
     bucket: string;
+    key: string;
     eventId: string;
     photoId: string;
   }> = [];
@@ -76,7 +78,7 @@ function parseS3PhotoEvents(
     const key = decodeObjectKey(rawKey);
     const parsedKey = parseEventPhotoObjectKey(key);
     if (!parsedKey) continue;
-    parsedRecords.push({ bucket, ...parsedKey });
+    parsedRecords.push({ bucket, key, ...parsedKey });
   }
   return parsedRecords;
 }
@@ -84,7 +86,7 @@ function parseS3PhotoEvents(
 async function findRegistrationForFace(
   faceId: string,
   eventId: string,
-): Promise<{ registrationId: string; ttl: number } | null> {
+): Promise<{ registrationId: string; ttl: number; faceId: string } | null> {
   const result = await dynamo.send(
     new QueryCommand({
       TableName: tableName,
@@ -111,7 +113,7 @@ async function findRegistrationForFace(
   )
     return null;
   const registrationId = parseRegistrationId(item.GSI1SK);
-  return registrationId ? { registrationId, ttl: item.ttl } : null;
+  return registrationId ? { registrationId, ttl: item.ttl, faceId } : null;
 }
 
 async function writeMatch(
@@ -120,6 +122,7 @@ async function writeMatch(
   photoId: string,
   similarity: number,
   ttl: number,
+  faceId: string,
 ): Promise<void> {
   const matchedAt = new Date().toISOString();
   const match: MatchEntity = {
@@ -133,14 +136,49 @@ async function writeMatch(
   };
   try {
     await dynamo.send(
-      new PutCommand({
-        TableName: tableName,
-        Item: { ...matchKey(registrationId, photoId), ...match },
-        ConditionExpression: 'attribute_not_exists(PK)',
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            ConditionCheck: {
+              TableName: tableName,
+              Key: registrationKey(eventId, registrationId),
+              ConditionExpression:
+                '#status = :enrolled AND faceId = :face AND ttl = :ttl AND attribute_not_exists(erasureRequestedAt)',
+              ExpressionAttributeNames: { '#status': 'status' },
+              ExpressionAttributeValues: {
+                ':enrolled': 'ENROLLED',
+                ':face': faceId,
+                ':ttl': ttl,
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: tableName,
+              Item: { ...matchKey(registrationId, photoId), ...match },
+              ConditionExpression: 'attribute_not_exists(PK)',
+            },
+          },
+        ],
       }),
     );
   } catch (error) {
-    if ((error as { name?: string }).name === 'ConditionalCheckFailedException')
+    const failure = error as {
+      name?: string;
+      CancellationReasons?: Array<{ Code?: string }>;
+    };
+    if (
+      failure.name === 'TransactionCanceledException' &&
+      failure.CancellationReasons?.some(
+        (reason) => reason.Code === 'ConditionalCheckFailed',
+      ) &&
+      failure.CancellationReasons.every(
+        (reason) =>
+          !reason.Code ||
+          reason.Code === 'None' ||
+          reason.Code === 'ConditionalCheckFailed',
+      )
+    )
       return;
     throw error;
   }
@@ -150,6 +188,7 @@ async function matchPhoto(
   bucket: string,
   eventId: string,
   photoId: string,
+  key: string,
 ): Promise<void> {
   const collectionId = eventCollectionId(eventId);
   const indexed = await rekognition.send(
@@ -158,7 +197,7 @@ async function matchPhoto(
       Image: {
         S3Object: {
           Bucket: bucket,
-          Name: `events/${eventId}/photos/${photoId}.jpg`,
+          Name: key,
         },
       },
       ExternalImageId: `PHOTO#${photoId}`,
@@ -196,6 +235,7 @@ async function matchPhoto(
           photoId,
           similarity,
           registration.ttl,
+          registration.faceId,
         );
       }
     }
@@ -228,10 +268,10 @@ export async function photoMatcher(
     let current: { eventId: string; photoId: string } | undefined;
     try {
       const photoEvents = parseS3PhotoEvents(record.body);
-      for (const { bucket, eventId, photoId } of photoEvents) {
+      for (const { bucket, key, eventId, photoId } of photoEvents) {
         current = { eventId, photoId };
         const photoStartedAt = Date.now();
-        await matchPhoto(bucket, eventId, photoId);
+        await matchPhoto(bucket, eventId, photoId, key);
         emitLog('INFO', 'photo_processed', correlationId, {
           eventId,
           photoId,

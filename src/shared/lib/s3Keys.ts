@@ -2,14 +2,15 @@ export function selfieObjectKey(
   eventId: string,
   registrationId: string,
 ): string {
-  return `events/${eventId}/selfies/${registrationId}.jpg`;
+  return `events/${eventId}/selfies/${registrationId}.selfie.jpg`;
 }
 
 export function eventPhotoObjectKey(eventId: string, photoId: string): string {
-  return `events/${eventId}/photos/${photoId}.jpg`;
+  return `events/${eventId}/photos/${photoId}.photo.jpg`;
 }
 
-const EVENT_PHOTO_KEY_PATTERN = /^events\/([^/]+)\/photos\/([^/]+)\.jpg$/;
+const EVENT_PHOTO_KEY_PATTERN =
+  /^events\/([^/]+)\/photos\/([^/]+?)(?:\.photo)?\.jpg$/;
 
 export type ParsedEventPhotoKey = { eventId: string; photoId: string };
 

@@ -10,7 +10,7 @@ output "user_pool_arn" {
 
 output "issuer_url" {
   description = "URL del emisor del User Pool, usada por el autorizador JWT de API Gateway."
-  value       = "https://cognito-idp.${data.aws_region.current.name}.amazonaws.com/${aws_cognito_user_pool.organizers.id}"
+  value       = "https://cognito-idp.${data.aws_region.current.region}.amazonaws.com/${aws_cognito_user_pool.organizers.id}"
 }
 
 output "client_id" {
