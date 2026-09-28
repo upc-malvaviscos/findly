@@ -37,3 +37,10 @@ User Pool de Cognito. No crea VPC, NAT, EC2, RDS ni recursos permanentes. Sus
 datos son sintéticos y se etiquetan `Ephemeral=true` y `PullRequest=<numero>`.
 La configuración de cuenta, rol y backend se hace fuera del repositorio según
 el runbook; desarrollo local no ejecuta `terraform apply`.
+
+## Límite de verificación
+
+La aceptación original #16 acredita admin/galería y provision-test-destroy
+en PR #48/#50/#55/#57/#59/#60. No prueba los módulos públicos, matching,
+DELETE, retención ni CloudFront ausentes de aquel root. #70 amplía el smoke
+y exige evidencia separada para cada recorrido nuevo.

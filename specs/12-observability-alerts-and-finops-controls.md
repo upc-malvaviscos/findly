@@ -89,7 +89,9 @@ Pendiente, sin cerrar la issue hasta resolverlo:
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
-- [x] Todos los Log Groups de CloudWatch tienen retención fijada a 14 días.
+- [x] Los Log Groups declarados fijan retención de 14 días (validación estática).
+- [ ] Todos los grupos desplegados, incluido DELETE, verifican retención y logs
+      JSON sin PII en AWS.
       _(Los 4 bloques declarados —5 grupos en el `terraform plan` de cada root de
       entorno— fijan
       14 días y `tests/infra/observability.test.ts` lo exige en CI. Límite: el
@@ -99,7 +101,12 @@ Pendiente, sin cerrar la issue hasta resolverlo:
       _(`GreaterThanOrEqualToThreshold` 1 sobre `ApproximateNumberOfMessagesVisible`;
       el stack pasa `module.monitoring.alerts_topic_arn` en `dlq_alarm_actions`.
       Verificado con `terraform plan` offline y prueba estática; sin apply en AWS.)_
-- [x] El presupuesto de AWS Budgets está configurado para avisar al 80%.
+- [x] Terraform declara el presupuesto al 80% (plan offline).
+- [ ] El presupuesto está aplicado y el canal/disparo real tiene evidencia AWS.
       _(`GREATER_THAN` 80 % de gasto `ACTUAL` sobre 5 USD, publicando en el topic;
       verificado con `terraform plan` offline y prueba estática. El aviso real
       requiere una suscripción de correo confirmada y no se ha probado en AWS.)_
+
+La issue #13 permanece abierta: PR #64 valida configuración offline, no
+alarma/entrega SNS ni presupuesto aplicados. Un ALARM sin recepción no prueba
+entrega; publicar manualmente en SNS no prueba el umbral de AWS Budgets.

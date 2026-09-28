@@ -29,12 +29,12 @@ Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el
 
 ### Paso 1: Implementar la Lambda `GalleryReader`
 
-- En `build/lambdas/api/gallery.ts`, parsea `event.queryStringParameters.token`.
+- En `src/lambdas/gallery.ts`, parsea `event.queryStringParameters.token`.
 - Valida la existencia del tokenHash en DynamoDB y genera las URLs prefirmadas.
 
 ### Paso 2: Construir la Pantalla React (`GalleryPage.tsx`)
 
-- En `src/pages/GalleryPage.tsx`, parsea el token de la URL usando React Router (`useSearchParams`).
+- En `src/web/gallery/GalleryPage.tsx`, parsea el token de la URL usando React Router (`useSearchParams`).
 - Realiza el `fetch` a API Gateway y gestiona los 5 estados de UI (`LOADING`, `SUCCESS`, etc.).
 
 ## Errores Comunes a Evitar (Pitfalls)
@@ -57,3 +57,11 @@ Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el
 La SPA incorpora la ruta `/gallery?token=`, `GalleryPage`, el adaptador simulado, los estados de UI, la cuadrícula lazy, el visor y la descarga. La implementación local añade `GalleryReader`, DynamoDB y S3 compatibles mediante Floci. `infra/modules/gallery-reader/` declara la ejecución gestionada con 256 MB, timeout de cinco segundos, URLs `GET` de 300 segundos, IAM limitado a `dynamodb:GetItem`/`Query` y `s3:GetObject` de fotos del evento, y la ruta pública `GET /gallery` del HTTP API.
 
 La integración local reproducible está implementada con Floci, Docker Compose y `docs/evidence/issue-09-private-gallery.md`. Terraform se valida de forma estática y local; no se ejecuta `terraform apply` ni se provisionan recursos AWS como parte de esta entrega. El contrato de la Lambda y la configuración local se mantienen compatibles con la ejecución gestionada.
+
+## Verificación gestionada posterior
+
+La PR #50 añadió evidencia del check `provision-test-destroy`: galería 200,
+vacía, 404, 410 y JPEG sintética con URL GET. #9 se cierra dentro de ese
+alcance; no acredita matching facial, inscripción ni DELETE. La afirmación
+de ausencia de apply anterior describe la entrega local original, no esta
+verificación posterior.

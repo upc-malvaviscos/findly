@@ -63,3 +63,9 @@ infra/
 - [x] `terraform.tfvars` no contiene contraseñas o secretos en texto claro subidos al repositorio.
 
 > Pendiente (#61, subissue de #11): bootstrap completo en `eu-west-1` con permisos suficientes (el Learner Lab lo deniega) y `plan` de `moved` contra un estado sandbox existente con `0 to destroy`.
+
+## Límite de verificación
+
+La separación del plan y la sintaxis se verificaron offline. #61 conserva la
+verificación AWS del bootstrap y moved contra estado previo; no se acredita
+una migración real por planear un entorno vacío.

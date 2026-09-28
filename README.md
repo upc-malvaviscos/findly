@@ -126,3 +126,11 @@ y límites de validación en
 | Santiago Oliver Surinyach |
 
 La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyulled/IdeaProjects/findly/docs/README.md) y [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md).
+
+## Verificación pendiente y trazabilidad
+
+La [auditoría de cierres #70](docs/evidence/issue-checklist-audit.md) distingue
+frontend simulado, Floci y evidencia AWS. Las issues #6, #8, #10, #13 y #22
+permanecen abiertas por criterios desplegados pendientes. `npm run verify`
+valida gates locales; Playwright se ejecuta con `npm run test:e2e` y
+`npm run test:e2e:local`. Un merge o una suite mock verde no acredita demo AWS.
