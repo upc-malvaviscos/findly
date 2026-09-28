@@ -11,6 +11,7 @@ import {
   DeleteCommand,
   DynamoDBDocumentClient,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -20,6 +21,8 @@ import { captureLogs } from './lib/logCapture';
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const rekognitionMock = mockClient(RekognitionClient);
 const s3Mock = mockClient(S3Client);
+
+beforeEach(() => dynamoMock.on(UpdateCommand).resolves({}));
 
 afterEach(() => {
   dynamoMock.reset();

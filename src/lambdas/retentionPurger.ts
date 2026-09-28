@@ -12,6 +12,7 @@ import {
   DeleteCommand,
   DynamoDBDocumentClient,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   eventKey,
@@ -143,6 +144,24 @@ async function deleteEventRecords(eventId: string): Promise<void> {
     for (const item of page.Items ?? []) {
       if (item.SK === 'METADATA') continue;
       if (typeof item.registrationId === 'string') {
+        try {
+          await dynamo.send(
+            new UpdateCommand({
+              TableName: tableName,
+              Key: { PK: item.PK, SK: item.SK },
+              UpdateExpression:
+                'SET erasureRequestedAt = if_not_exists(erasureRequestedAt, :now)',
+              ExpressionAttributeValues: { ':now': new Date().toISOString() },
+              ConditionExpression: 'attribute_exists(PK)',
+            }),
+          );
+        } catch (markError) {
+          if (
+            (markError as { name?: string }).name !==
+            'ConditionalCheckFailedException'
+          )
+            throw markError;
+        }
         let matchCursor: Record<string, unknown> | undefined;
         do {
           const matches = await dynamo.send(

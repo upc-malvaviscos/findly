@@ -26,7 +26,7 @@ El ADR-010 registra la decisión aprobada. Los tokens legacy sin referencia
 inversa permanecen bajo TTL eventual. La política de TTL de productores debe
 alinearse con el evento; el cron desplegado y AWS siguen pendientes de prueba.
 
-Validación local: 24 pruebas unitarias pasan; typecheck, ESLint de los cuatro
+Validación local: 26 pruebas unitarias pasan; typecheck, ESLint de los cuatro
 archivos TypeScript, Markdownlint y Terraform validate de ambos módulos pasan.
 Terraform fmt aplicado. Ninguna validación ha ejecutado apply AWS.
 
@@ -60,3 +60,9 @@ sobre RetentionPurger del PR. No se concede ninguno desde este script.
 El rol de la Lambda conserva sus permisos propios para borrar colección,
 objetos y registros. Este script está preparado y validado estáticamente;
 su ejecución AWS y el IAM del runner son pendientes hasta integración.
+
+El borrado marca `erasureRequestedAt` atómicamente antes de borrar recursos,
+sin recrear REG ausentes; el FaceId se obtiene de la respuesta de esa escritura.
+Lecturas de autorización e inscripción son consistentes. Retención marca REG
+antes del barrido MATCH. SelfieIndexer y PhotoMatcher deben respetar ese
+marcador para evitar nuevos vectores/coincidencias durante el borrado.
