@@ -90,7 +90,15 @@ describe('photoMatcher', () => {
       FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 98.2 }],
     });
     dynamoMock.on(QueryCommand).resolves({
-      Items: [{ GSI1PK: 'FACE#enrolled-face-1', GSI1SK: 'REG#reg-1' }],
+      Items: [
+        {
+          GSI1PK: 'FACE#enrolled-face-1',
+          GSI1SK: 'REG#reg-1',
+          eventId: 'demo-2026',
+          status: 'ENROLLED',
+          ttl: 4102444800,
+        },
+      ],
     });
     dynamoMock.on(PutCommand).resolves({});
 
@@ -108,11 +116,35 @@ describe('photoMatcher', () => {
       registrationId: 'reg-1',
       photoId: 'photo-1',
       similarity: 98.2,
+      ttl: 4102444800,
     });
 
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);
     expect(deleteCalls).toHaveLength(1);
     expect(deleteCalls[0]?.args[0].input.FaceIds).toEqual(['detected-face-1']);
+  });
+
+  it.each([
+    { eventId: 'other-event', status: 'ENROLLED', ttl: 4102444800 },
+    { eventId: 'demo-2026', status: 'FAILED', ttl: 4102444800 },
+    { eventId: 'demo-2026', status: 'ENROLLED', ttl: 1 },
+    { eventId: 'demo-2026', status: 'ENROLLED', ttl: undefined },
+  ])('does not match an ineligible registration: %j', async (attributes) => {
+    rekognitionMock
+      .on(IndexFacesCommand)
+      .resolves({ FaceRecords: [{ Face: { FaceId: 'detected' } }] });
+    rekognitionMock.on(SearchFacesCommand).resolves({
+      FaceMatches: [{ Face: { FaceId: 'registered' }, Similarity: 99 }],
+    });
+    dynamoMock
+      .on(QueryCommand)
+      .resolves({ Items: [{ GSI1SK: 'REG#reg-1', ...attributes }] });
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
+    expect(result.batchItemFailures).toEqual([]);
+    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(1);
   });
 
   it('skips a match below the 95% threshold', async () => {
@@ -185,12 +217,30 @@ describe('photoMatcher', () => {
       .on(QueryCommand, {
         ExpressionAttributeValues: { ':pk': 'FACE#enrolled-face-1' },
       })
-      .resolves({ Items: [{ GSI1SK: 'REG#reg-1' }] });
+      .resolves({
+        Items: [
+          {
+            GSI1SK: 'REG#reg-1',
+            eventId: 'demo-2026',
+            status: 'ENROLLED',
+            ttl: 4102444800,
+          },
+        ],
+      });
     dynamoMock
       .on(QueryCommand, {
         ExpressionAttributeValues: { ':pk': 'FACE#enrolled-face-2' },
       })
-      .resolves({ Items: [{ GSI1SK: 'REG#reg-2' }] });
+      .resolves({
+        Items: [
+          {
+            GSI1SK: 'REG#reg-2',
+            eventId: 'demo-2026',
+            status: 'ENROLLED',
+            ttl: 4102444800,
+          },
+        ],
+      });
     dynamoMock.on(PutCommand).resolves({});
 
     const result = await photoMatcher({
@@ -213,7 +263,16 @@ describe('photoMatcher', () => {
     rekognitionMock.on(SearchFacesCommand).resolves({
       FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 98 }],
     });
-    dynamoMock.on(QueryCommand).resolves({ Items: [{ GSI1SK: 'REG#reg-1' }] });
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [
+        {
+          GSI1SK: 'REG#reg-1',
+          eventId: 'demo-2026',
+          status: 'ENROLLED',
+          ttl: 4102444800,
+        },
+      ],
+    });
     const conditionalError = new Error('conditional check failed');
     conditionalError.name = 'ConditionalCheckFailedException';
     dynamoMock.on(PutCommand).rejects(conditionalError);

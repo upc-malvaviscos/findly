@@ -95,3 +95,15 @@ module "photo_matching" {
   cost_center          = var.cost_center
   data_class           = var.data_class
 }
+
+module "web" {
+  count               = var.enable_web ? 1 : 0
+  source              = "../cloudfront"
+  bucket_name         = var.web_bucket_name
+  custom_domain_name  = var.web_domain_name
+  acm_certificate_arn = var.web_certificate_arn
+  project             = var.project
+  environment         = var.environment
+  cost_center         = var.cost_center
+  data_class          = "public"
+}

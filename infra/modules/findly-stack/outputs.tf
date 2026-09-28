@@ -39,3 +39,7 @@ output "alerts_topic_arn" {
   description = "ARN del topic SNS de alertas."
   value       = module.monitoring.alerts_topic_arn
 }
+
+output "web_bucket_name" { value = try(module.web[0].bucket_name, null) }
+output "web_distribution_id" { value = try(module.web[0].distribution_id, null) }
+output "web_distribution_domain_name" { value = try(module.web[0].distribution_domain_name, null) }

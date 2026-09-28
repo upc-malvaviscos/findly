@@ -37,3 +37,24 @@ variable "alert_email" {
   default     = null
   sensitive   = true
 }
+
+variable "enable_web" {
+  description = "Opt-in to provision static hosting after domain and deployment permissions review."
+  type        = bool
+  default     = false
+}
+variable "web_bucket_name" {
+  description = "Globally unique private web bucket name; required when enable_web is true."
+  type        = string
+  default     = ""
+}
+variable "web_domain_name" {
+  description = "Approved frontend domain; required for TLSv1.2_2021."
+  type        = string
+  default     = ""
+}
+variable "web_certificate_arn" {
+  description = "Existing ACM certificate ARN in us-east-1 for web_domain_name."
+  type        = string
+  default     = ""
+}
