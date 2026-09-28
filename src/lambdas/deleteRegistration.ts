@@ -137,11 +137,12 @@ async function eraseRegistration(
       new GetCommand({
         TableName: tableName,
         Key: registrationKey(eventId, registrationId),
-        ProjectionExpression: 'faceId',
+        ProjectionExpression: 'faceId, selfieS3Key',
         ConsistentRead: true,
       }),
     )
-  ).Item as Partial<Pick<RegistrationEntity, 'faceId'>> | undefined;
+  ).Item as
+    Partial<Pick<RegistrationEntity, 'faceId' | 'selfieS3Key'>> | undefined;
 
   try {
     const marked = await dynamo.send(
@@ -165,6 +166,19 @@ async function eraseRegistration(
     )
       throw markError;
   }
+
+  const storedSelfieKey = registrationRecord?.selfieS3Key;
+  const legacySelfieKey = `events/${eventId}/selfies/${registrationId}.jpg`;
+  const currentSelfieKey = `events/${eventId}/selfies/${registrationId}.selfie.jpg`;
+  if (
+    storedSelfieKey !== undefined &&
+    storedSelfieKey !== legacySelfieKey &&
+    storedSelfieKey !== currentSelfieKey
+  ) {
+    request.info('registration_erasure_invalid_selfie_key', { eventId });
+    throw new Error('InvalidRegistrationSelfieKey');
+  }
+  const selfieKey = storedSelfieKey ?? selfieObjectKey(eventId, registrationId);
 
   if (registrationRecord?.faceId) {
     try {
@@ -191,7 +205,7 @@ async function eraseRegistration(
     await s3.send(
       new DeleteObjectCommand({
         Bucket: selfieBucket,
-        Key: selfieObjectKey(eventId, registrationId),
+        Key: selfieKey,
       }),
     );
   } catch (deleteSelfieError) {

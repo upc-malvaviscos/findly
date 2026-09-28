@@ -26,7 +26,7 @@ El ADR-010 registra la decisión aprobada. Los tokens legacy sin referencia
 inversa permanecen bajo TTL eventual. La política de TTL de productores debe
 alinearse con el evento; el cron desplegado y AWS siguen pendientes de prueba.
 
-Validación local: 26 pruebas unitarias pasan; typecheck, ESLint de los cuatro
+Validación local: 29 pruebas unitarias pasan; typecheck, ESLint de los cuatro
 archivos TypeScript, Markdownlint y Terraform validate de ambos módulos pasan.
 Terraform fmt aplicado. Ninguna validación ha ejecutado apply AWS.
 
@@ -66,3 +66,8 @@ sin recrear REG ausentes; el FaceId se obtiene de la respuesta de esa escritura.
 Lecturas de autorización e inscripción son consistentes. Retención marca REG
 antes del barrido MATCH. SelfieIndexer y PhotoMatcher deben respetar ese
 marcador para evitar nuevos vectores/coincidencias durante el borrado.
+
+Compatibilidad selfie: el borrado usa `selfieS3Key` almacenado únicamente si
+coincide con la clave canónica `.jpg` legacy o `.selfie.jpg` del mismo
+evento/registro. Sin campo usa el helper actual. Una clave ajena falla antes
+de borrar recursos y produce diagnóstico sin imprimir la clave ni PII.
