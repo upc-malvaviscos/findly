@@ -102,7 +102,7 @@ resource "aws_lambda_function" "retention_purger" {
   function_name    = local.function_name
   role             = aws_iam_role.retention_purger.arn
   handler          = "retentionPurger.retentionPurger"
-  runtime          = "nodejs22.x" # runtime AWS Lambda gestionado; el tooling local usa Node 24 (ver README)
+  runtime          = "nodejs24.x"
   memory_size      = local.lambda_memory_mb
   timeout          = local.lambda_timeout_seconds
   filename         = var.lambda_artifact_path

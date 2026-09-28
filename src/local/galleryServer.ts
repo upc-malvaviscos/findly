@@ -4,6 +4,7 @@ import {
   createPublicRegistration,
   getPublicRegistrationStatus,
 } from '../lambdas/publicEnrollment';
+import { deleteRegistration } from '../lambdas/deleteRegistration';
 import { gallery } from '../lambdas/gallery';
 import {
   createAdminEvent,
@@ -23,7 +24,7 @@ const server = createServer(async (request, response) => {
         'access-control-allow-origin': process.env.CORS_ORIGIN ?? '*',
         'access-control-allow-headers':
           'content-type, authorization, x-gallery-token',
-        'access-control-allow-methods': 'GET, POST, OPTIONS',
+        'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
       })
       .end();
     return;
@@ -35,6 +36,31 @@ const server = createServer(async (request, response) => {
       },
     });
     response.writeHead(result.statusCode, result.headers).end(result.body);
+    return;
+  }
+  const erasureMatch = url.pathname.match(/^\/registrations\/([^/]+)$/);
+  if (request.method === 'DELETE' && erasureMatch) {
+    try {
+      const result = await deleteRegistration({
+        pathParameters: { registrationId: decodeURIComponent(erasureMatch[1]) },
+        headers: {
+          'x-gallery-token':
+            typeof request.headers['x-gallery-token'] === 'string'
+              ? request.headers['x-gallery-token']
+              : undefined,
+        },
+      });
+      response
+        .writeHead(result.statusCode, {
+          ...result.headers,
+          'access-control-allow-origin': process.env.CORS_ORIGIN ?? '*',
+        })
+        .end(result.body);
+    } catch {
+      response
+        .writeHead(500, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ code: 'ERASURE_FAILED' }));
+    }
     return;
   }
   const publicEventMatch = url.pathname.match(/^\/events\/([^/]+)$/);
