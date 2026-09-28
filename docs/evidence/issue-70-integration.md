@@ -8,9 +8,10 @@ Terraform, pruebas de aceptación y documentación de las decisiones aprobadas.
 
 ## Resultado local
 
-- `npm run verify`: éxito; pre-push final 35 archivos, 246 tests con Vitest 5.0.1.
-- Líneas: handlers Lambda 97,36 %, helpers Lambda 100 %, shared/lib 100 %.
-  El gate se aplica por separado a Lambdas y shared/lib; global 80,44 %.
+- `npm run verify` tras integrar las tres decisiones: éxito; 38 archivos,
+  293 tests con Vitest 5.0.1.
+- Líneas: handlers Lambda 93,78 %, helpers Lambda 100 %, shared/lib 100 %.
+  El gate se aplica por separado a Lambdas y shared/lib; global 81,34 %.
 - `npm run test:e2e`: 12 pruebas pasan en Chromium, Firefox y WebKit.
 - `WEB_PORT=4175 LOCAL_API_PORT=8790 FLOCI_PORT=4568 npm run test:e2e:local`:
   21 pruebas pasan; teardown de contenedores, volúmenes y red completado.

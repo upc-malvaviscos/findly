@@ -70,5 +70,11 @@ Procesar asíncronamente las fotografías publicadas por los fotógrafos/organiz
       (#46). No equivale a tres reintentos adicionales.
 
 El módulo está conectado a `infra/modules/findly-stack` desde PR #64; el
-root efímero auditado no lo instancia. #8 permanece abierta hasta la evidencia
+root efímero del snapshot auditado no lo instanciaba. La entrega #70 de PR #71
+lo conecta también al root efímero. #8 permanece abierta hasta la evidencia
 AWS de #46. Véase [auditoría #70](../docs/evidence/issue-checklist-audit.md).
+
+ADR-015 comparte `FINDLY_COLLECTION_NAMESPACE` entre PhotoMatcher,
+SelfieIndexer y los handlers de limpieza. Las colecciones y los permisos IAM
+se restringen al entorno; las colecciones legacy requieren inventario y
+migración explícita antes de cualquier borrado.

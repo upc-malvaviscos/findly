@@ -15,12 +15,12 @@ Procesar asíncronamente las selfies subidas por los asistentes, indexando la in
 
 - **Runtime**: Node.js 24.x LTS.
 - **Memoria**: `512 MB`, **Timeout**: `10 segundos`.
-- **Variables de Entorno**: `TABLE_NAME`, `REKOGNITION_COLLECTION_PREFIX`.
+- **Variables de Entorno**: `FINDLY_TABLE_NAME`, `FINDLY_COLLECTION_NAMESPACE`.
 
 ### Flujo de Eventos S3 -> Lambda -> Rekognition
 
-1. La subida finalizada del archivo selfie a S3 (`events/{eventId}/selfies/{registrationId}.jpg`) dispara un evento `ObjectCreated:Put` a la Lambda de inscripción facial.
-2. La Lambda ejecuta `IndexFacesCommand` de AWS Rekognition sobre `findly-event-{eventId}` con `ExternalImageId = registrationId`, `MaxFaces = 1`, `QualityFilter = "AUTO"`.
+1. La subida finalizada del archivo selfie a S3 (`events/{eventId}/selfies/{registrationId}.selfie.jpg`) dispara un evento `ObjectCreated:Put` a la Lambda de inscripción facial.
+2. La Lambda ejecuta `IndexFacesCommand` de AWS Rekognition sobre `${project}-${environment}-event-${eventId}` con `ExternalImageId = registrationId`, `MaxFaces = 1`, `QualityFilter = "AUTO"`.
 3. Transiciones en DynamoDB: `UPLOAD_PENDING` -> `PROCESSING` -> `ENROLLED` (éxito) / `FAILED` (error o sin cara).
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
@@ -57,3 +57,18 @@ S3 notification del módulo photo-matching usa los sufijos de ADR-012. La
 colección se crea idempotentemente y con etiquetas por entorno. Se mantienen
 sin marcar los criterios de indexación desplegada hasta ejecutar el smoke
 efímero con el fixture adulto ficticio, y destruir sus colecciones dinámicas.
+
+## Recuperación y aislamiento aprobados (issue #70)
+
+ADR-013 mantiene un locator RETENTION sin TTL y los FaceIds conocidos;
+ListFaces paginado por ExternalImageId permite recuperar una indexación cuya
+persistencia quedó interrumpida. Antes de publicar ENROLLED se registran los
+candidatos y se comprueba que no haya comenzado el borrado. Los eventos tardíos
+reconcilian la limpieza sin reactivar la inscripción.
+
+ADR-014 exige PUT firmado con `If-None-Match: *`. ADR-015 exige el namespace
+por entorno para indexer, matcher y limpieza; no permite fallback legacy en
+AWS. El parser admite claves antiguas, pero las notificaciones nuevas usan
+los sufijos de ADR-012. Terraform limita la edad del evento asíncrono a 21600
+segundos y dos reintentos. Estas garantías tienen pruebas locales; la
+aceptación desplegada permanece pendiente.
