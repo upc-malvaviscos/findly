@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { chromium } from '@playwright/test';
 
 const api = process.env.EPHEMERAL_API_ENDPOINT?.replace(/\/$/, '');
@@ -73,16 +77,18 @@ function keyOf(url) {
   return decodeURIComponent(url.pathname.slice(1));
 }
 async function absent(url) {
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: keyOf(url) }));
-    assert.fail('A rejected upload created an object.');
-  } catch (error) {
-    assert.equal(
-      error.$metadata?.httpStatusCode,
-      404,
-      'Object absence requires a definitive S3 404, not an IAM denial.',
-    );
-  }
+  const key = keyOf(url);
+  // HEAD has no s3:prefix context and would require unconditioned ListBucket
+  // permission to distinguish missing objects from denial. A scoped listing
+  // proves absence without broadening the CI role. An exact key sorts before
+  // any longer key sharing its prefix, so one result is sufficient.
+  const listed = await s3.send(
+    new ListObjectsV2Command({ Bucket: bucket, Prefix: key, MaxKeys: 1 }),
+  );
+  assert(
+    !(listed.Contents ?? []).some((object) => object.Key === key),
+    'A rejected upload created an object.',
+  );
 }
 // Each mutation has a fresh key so a previous successful PUT cannot hide failure.
 for (const mutation of ['method', 'key', 'content-type']) {

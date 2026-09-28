@@ -70,7 +70,7 @@ const body = JSON.stringify({
       s3: {
         bucket: { name: bucket },
         object: {
-          key: `events/evt-poison-${poisonId}/photos/photo-${poisonId}.jpg`,
+          key: `events/evt-poison-${poisonId}/photos/photo-${poisonId}.photo.jpg`,
         },
       },
     },
