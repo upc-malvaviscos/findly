@@ -34,7 +34,8 @@ Establecer la estrategia completa de verificación técnica y calidad del sistem
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
 - [x] `npm run test` alcanza una cobertura >= 90% en la lógica de negocio:
-      Lambdas 96,10% y librerías compartidas 96,77%.
+      líneas de Lambdas 98,38% y shared/lib 100% en el run auditado del
+      28 de septiembre de 2026 (188 tests). Cobertura global de líneas 82,12%.
 - [x] `npm run test:e2e` completa exitosamente sin errores de tiempo de espera:
       12 pruebas en Chromium, Firefox y WebKit.
 
@@ -52,3 +53,9 @@ La estrategia ejecutable está en
 [`docs/testing-strategy.md`](../docs/testing-strategy.md) y la evidencia de
 cierre en
 [`docs/evidence/issue-51-54-local-execution-modes.md`](../docs/evidence/issue-51-54-local-execution-modes.md).
+
+El alcance del 90% es líneas de lógica de negocio de Lambdas y shared/lib;
+no es cobertura global ni de ramas. La configuración auditada reporta
+cobertura sin imponer umbral: el gate automático se sigue en #70.
+Las pruebas SDK mock, Playwright interceptado y Floci conservan su nivel
+de evidencia; no acreditan los recorridos AWS pendientes en #22/#45/#46/#47.
