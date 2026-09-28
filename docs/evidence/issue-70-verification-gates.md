@@ -39,8 +39,12 @@ suite incompleta no puede producir un resultado de cobertura aprobado.
 `EPHEMERAL_API_ENDPOINT`, `EPHEMERAL_ID_TOKEN`,
 `EPHEMERAL_UPLOADS_BUCKET_NAME` y `EPHEMERAL_FRONTEND_ORIGIN`.
 La sesión necesita los permisos del smoke administrativo existente y
-`s3:GetObject` en las claves sintéticas y `s3:ListBucket` limitado al prefijo
-de pruebas, para distinguir un objeto ausente (404) de un acceso denegado (403).
+`s3:GetObject` en las claves sintéticas para HEAD de la subida exitosa y
+`s3:ListBucket` limitado mediante `s3:prefix` a `events/*`.
+La ausencia se comprueba con ListObjectsV2, Prefix igual a la clave exacta y
+MaxKeys=1, filtrando igualdad de Key; los errores IAM no cuentan como ausencia.
+Se evita HEAD de objetos ausentes, porque no aporta el contexto `s3:prefix`
+y obligaría a ampliar el permiso ListBucket para distinguir 404 de 403.
 
 El script usa claves distintas para mutar método, clave y Content-Type,
 exige 403 de S3 y verifica que ningún objeto exista. Chromium ejecuta PUT
@@ -66,6 +70,8 @@ la DLQ y elimina solo ese mensaje. No confunde el receive count de la DLQ
 con el número de intentos en origen. El destroy del stack elimina cualquier
 mensaje remanente tras un fallo. No cambia el visibility timeout de la cola
 ni su política redrive.
+El evento poison usa el sufijo nuevo `.photo.jpg`; su transporte directo a
+SQS no se presenta como prueba del filtro de notificaciones S3.
 
 Para probar el canal de alertas, `EPHEMERAL_KEEP_POISON_IN_DLQ=1` deja visible
 el mensaje tras encontrarlo, mediante `sqs:ChangeMessageVisibility` de ese
