@@ -108,6 +108,10 @@ describe('photoMatcher', () => {
 
     expect(result.batchItemFailures).toEqual([]);
     const putCalls = dynamoMock.commandCalls(TransactWriteCommand);
+    const condition =
+      putCalls[0]?.args[0].input.TransactItems?.[0]?.ConditionCheck;
+    expect(condition?.ConditionExpression).not.toMatch(/(?<![#:\w])ttl\b/i);
+    expect(condition?.ExpressionAttributeNames?.['#ttl']).toBe('ttl');
     expect(putCalls).toHaveLength(1);
     expect(
       putCalls[0]?.args[0].input.TransactItems?.[1]?.Put?.Item,

@@ -143,8 +143,8 @@ async function writeMatch(
               TableName: tableName,
               Key: registrationKey(eventId, registrationId),
               ConditionExpression:
-                '#status = :enrolled AND faceId = :face AND ttl = :ttl AND attribute_not_exists(erasureRequestedAt)',
-              ExpressionAttributeNames: { '#status': 'status' },
+                '#status = :enrolled AND faceId = :face AND #ttl = :ttl AND attribute_not_exists(erasureRequestedAt)',
+              ExpressionAttributeNames: { '#status': 'status', '#ttl': 'ttl' },
               ExpressionAttributeValues: {
                 ':enrolled': 'ENROLLED',
                 ':face': faceId,

@@ -214,8 +214,8 @@ async function processSelfies(
           UpdateExpression:
             'SET #status = :processing, processingLeaseUntil = :lease, processingClaim = :claim',
           ConditionExpression:
-            'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND ttl > :nowEpoch AND (#status = :pending OR (#status = :processing AND processingLeaseUntil < :now))',
-          ExpressionAttributeNames: { '#status': 'status' },
+            'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND #ttl > :nowEpoch AND (#status = :pending OR (#status = :processing AND processingLeaseUntil < :now))',
+          ExpressionAttributeNames: { '#status': 'status', '#ttl': 'ttl' },
           ExpressionAttributeValues: {
             ':processing': 'PROCESSING',
             ':pending': 'UPLOAD_PENDING',
@@ -292,8 +292,8 @@ async function processSelfies(
             ? 'SET #status = :status, faceId = :face, GSI1PK = :gpk, GSI1SK = :gsk REMOVE processingLeaseUntil, processingClaim'
             : 'SET #status = :status REMOVE processingLeaseUntil, processingClaim',
           ConditionExpression:
-            'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND processingClaim = :claim AND ttl > :nowEpoch',
-          ExpressionAttributeNames: { '#status': 'status' },
+            'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND processingClaim = :claim AND #ttl > :nowEpoch',
+          ExpressionAttributeNames: { '#status': 'status', '#ttl': 'ttl' },
           ExpressionAttributeValues: {
             ':status': faceId ? 'ENROLLED' : 'FAILED',
             ':nowEpoch': Math.floor(Date.now() / 1000),

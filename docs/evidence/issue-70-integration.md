@@ -61,3 +61,13 @@ Recuperación del intento 3 completada: 12 recursos restantes destruidos,
 0 creados/cambiados; terraform state list devuelve vacío. No se han borrado
 backend ni políticas del rol CI. El check continúa fallido hasta repetir
 con la corrección y el permiso de lectura adicional ya aprobado.
+
+## Expresiones DynamoDB del smoke desplegado
+
+El run 36471948755 (head 37a22c7) completó provisión y teardown, pero el
+smoke falló con PUBLIC_SELFIE_POLLING_TIMEOUT. Las condiciones de SelfieIndexer
+y PhotoMatcher usaban `ttl` sin alias, reservado por DynamoDB. Se corrigen a
+`#ttl` con ExpressionAttributeNames y los mocks validan esta restricción que
+antes omitían. Véase [palabras reservadas AWS](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html).
+La aceptación se repetirá con esta corrección; el timeout no se amplía para
+ocultar la expresión inválida.

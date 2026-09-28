@@ -29,6 +29,10 @@ const conditional = () =>
     name: 'ConditionalCheckFailedException',
   });
 function update(input: UpdateCommand['input']) {
+  // DynamoDB reserves TTL; SDK mocks otherwise accept invalid expressions.
+  expect(input.ConditionExpression).not.toMatch(/(?<![#:\w])ttl\b/i);
+  if (input.ConditionExpression?.includes('#ttl'))
+    expect(input.ExpressionAttributeNames?.['#ttl']).toBe('ttl');
   if (input.UpdateExpression?.startsWith('ADD faceIds')) {
     if (!locator) throw conditional();
     const known =
