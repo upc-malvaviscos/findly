@@ -23,12 +23,14 @@ environments, otros repositorios ni forks. Floci sigue siendo la dependencia
 local de E2E: los handlers reales de eventos y prefirmado se ejercitan contra
 DynamoDB y S3 emulados con datos sintéticos.
 
-El check AWS no ejecuta Floci ni Playwright. Entre `apply` y `destroy`, crea un
-usuario Cognito temporal de CI, obtiene un ID token, y verifica contra los
-outputs del stack la lista, creación y selección de evento y la subida de una
-JPEG sintética por URL prefirmada. El job `e2e` continúa siendo el único que
-arranca Floci y Playwright; conserva sus binarios en `~/.cache/ms-playwright`
-con una clave exacta de sistema operativo y `package-lock.json`.
+El check AWS ejecuta Playwright contra los endpoints reales del stack efímero,
+sin Floci. Entre `apply` y `destroy`, crea un usuario Cognito temporal y verifica
+administración, firmas S3, inscripción pública, polling y galería con datos
+sintéticos. Los runners adicionales comprueban borrado, purga, redrive y
+observabilidad; su preparación no acredita criterios que todavía no pasan.
+El job `e2e` mantiene un recorrido independiente contra Floci y conserva los
+binarios Playwright en `~/.cache/ms-playwright` con una clave exacta de sistema
+operativo y `package-lock.json`.
 
 El ruleset `Main` exige también el check de estado
 `provision-test-destroy`, además de las puertas existentes de frontend,

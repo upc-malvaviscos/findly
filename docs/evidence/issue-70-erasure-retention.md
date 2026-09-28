@@ -59,7 +59,9 @@ ausencia mediante ListObjectsV2, con condición de prefijo `events/*`; `lambda:I
 sobre RetentionPurger del PR. No se concede ninguno desde este script.
 El rol de la Lambda conserva sus permisos propios para borrar colección,
 objetos y registros. Este script está preparado y validado estáticamente;
-su ejecución AWS y el IAM del runner son pendientes hasta integración.
+el IAM del runner fue aprobado y aplicado durante la integración de PR #71.
+La aceptación AWS completa sigue pendiente; véase
+`docs/runbooks/issue-70-aws-review.md` y `issue-70-integration.md`.
 
 El borrado marca `erasureRequestedAt` atómicamente antes de borrar recursos,
 sin recrear REG ausentes; el FaceId se obtiene de la respuesta de esa escritura.
@@ -92,10 +94,13 @@ FaceIds y claves de inscripción son sensibles: no se imprimen.
 
 Los permisos Lambda añaden ListFaces en su colección aislada, GetItem para
 validar localizadores y UpdateItem para referencias y marcadores. No se
-modifica IAM persistente ni se ejecuta AWS desde esta entrega.
+amplía IAM de entornos demo/production. Durante la integración se aprobaron
+y aplicaron políticas adicionales del rol CI externo, limitadas al alcance
+PR #71 documentado en el runbook, y se ejecutó provisión/teardown AWS efímero.
 
 Validación de esta ampliación: 41 pruebas enfocadas (borrado, retención y
 localizador), suite unitaria completa con gate de cobertura, typecheck,
 ESLint enfocado, Markdownlint, Terraform fmt y TFLint de ambos módulos.
-AWS y cron no ejecutados. El rol RetentionPurger necesita además GetItem
+La aceptación AWS completa y el cron real permanecen pendientes. El rol
+RetentionPurger incluye además GetItem
 para validar el origen de localizadores cuando REG legacy conserva FaceId.
