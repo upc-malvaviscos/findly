@@ -8,7 +8,7 @@ Terraform, pruebas de aceptación y documentación de las decisiones aprobadas.
 
 ## Resultado local
 
-- `npm run verify`: éxito; 34 archivos, 245 tests con Vitest 5.0.1.
+- `npm run verify`: éxito; pre-push final 35 archivos, 246 tests con Vitest 5.0.1.
 - Líneas: handlers Lambda 97,36 %, helpers Lambda 100 %, shared/lib 100 %.
   El gate se aplica por separado a Lambdas y shared/lib; global 80,44 %.
 - `npm run test:e2e`: 12 pruebas pasan en Chromium, Firefox y WebKit.
@@ -33,3 +33,11 @@ No se declara borrado completo ni se cierran #10, #22 o #70 con pruebas locales.
 
 La PR permanece draft para revisión de código y CI ordinaria. Pasarla a ready
 activaría provisión efímera y exige revisar antes los permisos y el plan.
+
+Revisión final: el nombre Rekognition actual no incluye entorno. Eventos
+idénticos podrían compartir colección entre stacks; namespace y compatibilidad
+legacy requieren aprobación antes de ejecutar AWS. El runner queda bloqueado.
+
+CI detectó SC2155 mediante ShellCheck, ausente del entorno local. Los workflows
+separan asignación de outputs y export para no ocultar fallos Terraform.
+La provisión efímera aplica exactamente el archivo de plan inspeccionado.
