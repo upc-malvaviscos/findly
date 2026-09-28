@@ -45,6 +45,15 @@ describe('selfie indexer', () => {
       MaxFaces: 1,
       QualityFilter: 'AUTO',
     });
+    expect(
+      faces.commandCalls(CreateCollectionCommand)[0]?.args[0].input.Tags,
+    ).toMatchObject({
+      Project: 'findly',
+      Environment: 'local',
+      ManagedBy: 'Terraform',
+      CostCenter: 'local-validation',
+      DataClass: 'synthetic',
+    });
     const updates = db.commandCalls(UpdateCommand);
     expect(updates[0]?.args[0].input.ConditionExpression).toContain(
       'processingLeaseUntil < :now',
