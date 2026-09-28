@@ -100,3 +100,17 @@ y OPTIONS al retirarlo. Los dos runners ejecutan ahora page.unroute antes
 de acceder a API/S3. Se conservan las aserciones de firma, CORS y ausencia;
 no se cambia CORS, IAM ni el contrato de subida. La aceptación completa
 del nuevo head aún requiere CI AWS.
+
+## Dependencia del runner de purga
+
+Run 36479208707, head 71c458b, pasó firmas manipuladas, CORS con preflight
+nativo y SSE-S3, además del recorrido de inscripción/matching/galería/borrado.
+Teardown completado. La siguiente suite abortó antes de invocar la purga:
+ERR_MODULE_NOT_FOUND para @aws-sdk/client-lambda, importado pero no declarado.
+Se añade 3.1140.0 como dependencia de desarrollo/CI, alineada con el SDK
+Rekognition existente. No cambia el bundle Lambda ni permisos. Los trece
+imports externos de todos los runners desplegados están declarados y resueltos.
+Purga, redrive y observabilidad completa siguen pendientes de ejecución.
+CloudTrail también mostró un fallo intermitente de SearchFaces en el segundo
+procesamiento de foto; el match existente permaneció y el recorrido principal
+pasó. No se atribuye todavía ese error a una causa no demostrada.
