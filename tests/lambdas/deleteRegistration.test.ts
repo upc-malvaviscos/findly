@@ -70,7 +70,12 @@ describe('deleteRegistration lambda', () => {
       .resolvesOnce({
         Item: { registrationId: 'reg-1', eventId: 'evt-1' },
       })
-      .resolvesOnce({ Item: { faceId: 'face-1' } });
+      .resolvesOnce({
+        Item: {
+          faceId: 'face-1',
+          selfieS3Key: 'events/evt-1/selfies/reg-1.jpg',
+        },
+      });
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ photoId: 'photo-1' }, { photoId: 'photo-2' }],
     });
@@ -196,6 +201,46 @@ describe('deleteRegistration lambda', () => {
       (await deleteRegistration(request('reg-1', 'token'))).statusCode,
     ).toBe(204);
     expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
+  });
+
+  it.each([
+    'events/evt-1/selfies/reg-1.jpg',
+    'events/evt-1/selfies/reg-1.selfie.jpg',
+  ])(
+    'deletes the exact stored canonical selfie key %s',
+    async (selfieS3Key) => {
+      dynamoMock
+        .on(GetCommand)
+        .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+        .resolvesOnce({ Item: { selfieS3Key } });
+      dynamoMock.on(QueryCommand).resolves({ Items: [] });
+      dynamoMock.on(DeleteCommand).resolves({});
+      s3Mock.on(DeleteObjectCommand).resolves({});
+      expect(
+        (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+      ).toBe(204);
+      expect(
+        s3Mock.commandCalls(DeleteObjectCommand)[0]?.args[0].input.Key,
+      ).toBe(selfieS3Key);
+    },
+  );
+
+  it('rejects an invalid stored selfie key without deleting another registration', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({
+        Item: {
+          faceId: 'face-1',
+          selfieS3Key: 'events/evt-1/selfies/reg-other.jpg',
+        },
+      });
+    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
+      'InvalidRegistrationSelfieKey',
+    );
+    expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
   });
 
   it('skips the Rekognition call when the registration has no faceId', async () => {
