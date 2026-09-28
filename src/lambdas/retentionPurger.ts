@@ -8,7 +8,17 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import {
+  eventKey,
+  galleryTokenKey,
+  registrationPartitionKey,
+  EVENT_LISTING_GSI2_PARTITION_KEY,
+} from '../shared/lib/dynamoKeys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { isMissingResourceError } from './lib/awsErrors';
 import {
@@ -61,12 +71,12 @@ async function findExpiredEvents(now: number): Promise<ExpiredEvent[]> {
   let exclusiveStartKey: Record<string, unknown> | undefined;
   do {
     const page = await dynamo.send(
-      new ScanCommand({
+      new QueryCommand({
         TableName: tableName,
-        FilterExpression: 'SK = :metadata AND begins_with(PK, :eventPrefix)',
+        IndexName: 'GSI2',
+        KeyConditionExpression: 'GSI2PK = :events',
         ExpressionAttributeValues: {
-          ':metadata': 'METADATA',
-          ':eventPrefix': 'EVENT#',
+          ':events': EVENT_LISTING_GSI2_PARTITION_KEY,
         },
         ProjectionExpression: 'eventId, createdAt, retentionDays',
         ExclusiveStartKey: exclusiveStartKey,
@@ -106,15 +116,81 @@ async function deleteEventObjects(eventId: string): Promise<void> {
       .filter((key): key is string => Boolean(key));
     for (let start = 0; start < keys.length; start += S3_DELETE_BATCH_SIZE) {
       const batch = keys.slice(start, start + S3_DELETE_BATCH_SIZE);
-      await s3.send(
+      const deleted = await s3.send(
         new DeleteObjectsCommand({
           Bucket: uploadsBucket,
           Delete: { Objects: batch.map((Key) => ({ Key })) },
         }),
       );
+      if (deleted.Errors?.length) throw new Error('ObjectDeletionFailed');
     }
     continuationToken = page.NextContinuationToken;
   } while (continuationToken);
+}
+
+async function deleteEventRecords(eventId: string): Promise<void> {
+  let cursor: Record<string, unknown> | undefined;
+  do {
+    const page = await dynamo.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: { ':pk': eventKey(eventId).PK },
+        ConsistentRead: true,
+        ExclusiveStartKey: cursor,
+      }),
+    );
+    for (const item of page.Items ?? []) {
+      if (item.SK === 'METADATA') continue;
+      if (typeof item.registrationId === 'string') {
+        let matchCursor: Record<string, unknown> | undefined;
+        do {
+          const matches = await dynamo.send(
+            new QueryCommand({
+              TableName: tableName,
+              KeyConditionExpression: 'PK = :pk',
+              ExpressionAttributeValues: {
+                ':pk': registrationPartitionKey(item.registrationId),
+              },
+              ConsistentRead: true,
+              ExclusiveStartKey: matchCursor,
+            }),
+          );
+          for (const match of matches.Items ?? []) {
+            await dynamo.send(
+              new DeleteCommand({
+                TableName: tableName,
+                Key: { PK: match.PK, SK: match.SK },
+              }),
+            );
+          }
+          matchCursor = matches.LastEvaluatedKey;
+        } while (matchCursor);
+        // Legacy registrations have no inverse token reference; those tokens
+        // remain governed by their existing TTL until their expiry.
+        if (typeof item.tokenHash === 'string') {
+          await dynamo.send(
+            new DeleteCommand({
+              TableName: tableName,
+              Key: galleryTokenKey(item.tokenHash),
+            }),
+          );
+        }
+      }
+      await dynamo.send(
+        new DeleteCommand({
+          TableName: tableName,
+          Key: { PK: item.PK, SK: item.SK },
+        }),
+      );
+    }
+    cursor = page.LastEvaluatedKey;
+  } while (cursor);
+  // Metadata is the retry marker. Remove it only after all external resources
+  // and linked records were successfully removed.
+  await dynamo.send(
+    new DeleteCommand({ TableName: tableName, Key: eventKey(eventId) }),
+  );
 }
 
 export async function retentionPurger(
@@ -131,6 +207,7 @@ export async function retentionPurger(
     for (const event of expiredEvents) {
       await deleteEventCollection(event.eventId);
       await deleteEventObjects(event.eventId);
+      await deleteEventRecords(event.eventId);
       purged += 1;
       emitLog('INFO', 'event_retention_purged', correlationId, {
         eventId: event.eventId,
