@@ -159,6 +159,8 @@ jobs:
           EPHEMERAL_FRONTEND_ORIGIN="$(terraform -chdir=infra/ephemeral output -raw frontend_origin)"
           export EPHEMERAL_FRONTEND_ORIGIN
           export EPHEMERAL_RESOURCE_PREFIX="findly-pr-${{ github.event.pull_request.number }}"
+          EPHEMERAL_COLLECTION_NAMESPACE="$(terraform -chdir=infra/ephemeral output -raw collection_namespace)"
+          export EPHEMERAL_COLLECTION_NAMESPACE
           EPHEMERAL_RETENTION_FUNCTION_NAME="$(terraform -chdir=infra/ephemeral output -raw retention_purger_function_name)"
           export EPHEMERAL_RETENTION_FUNCTION_NAME
           EPHEMERAL_PHOTOS_QUEUE_URL="$(terraform -chdir=infra/ephemeral output -raw photos_queue_url)"
