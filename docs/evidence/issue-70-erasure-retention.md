@@ -26,6 +26,8 @@ El ADR-010 registra la decisión aprobada. Los tokens legacy sin referencia
 inversa permanecen bajo TTL eventual. La política de TTL de productores debe
 alinearse con el evento; el cron desplegado y AWS siguen pendientes de prueba.
 
-Validación local: 23 pruebas unitarias pasan; typecheck, ESLint de los cuatro
+Validación local: 24 pruebas unitarias pasan; typecheck, ESLint de los cuatro
 archivos TypeScript, Markdownlint y Terraform validate de ambos módulos pasan.
 Terraform fmt aplicado. Ninguna validación ha ejecutado apply AWS.
+
+Un fallo individual de DeleteFaces conserva el registro y token para reintento.
