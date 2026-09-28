@@ -39,7 +39,7 @@ resource "aws_lambda_function" "selfie" {
   filename         = var.lambda_artifact_path
   source_code_hash = filebase64sha256(var.lambda_artifact_path)
   environment {
-    variables = { FINDLY_TABLE_NAME = var.table_name }
+    variables = { FINDLY_TABLE_NAME = var.table_name, FINDLY_PROJECT = var.project, FINDLY_ENVIRONMENT = var.environment, FINDLY_COST_CENTER = var.cost_center, FINDLY_DATA_CLASS = var.data_class }
   }
   depends_on = [aws_cloudwatch_log_group.selfie]
   tags       = local.tags

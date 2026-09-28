@@ -94,6 +94,13 @@ export async function selfieIndexer(
         await rekognition.send(
           new CreateCollectionCommand({
             CollectionId: eventCollectionId(eventId!),
+            Tags: {
+              Project: process.env.FINDLY_PROJECT ?? 'findly',
+              Environment: process.env.FINDLY_ENVIRONMENT ?? 'local',
+              ManagedBy: 'Terraform',
+              CostCenter: process.env.FINDLY_COST_CENTER ?? 'local-validation',
+              DataClass: process.env.FINDLY_DATA_CLASS ?? 'synthetic',
+            },
           }),
         );
       } catch (error) {
