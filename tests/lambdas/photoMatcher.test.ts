@@ -107,6 +107,10 @@ describe('photoMatcher', () => {
     });
 
     expect(result.batchItemFailures).toEqual([]);
+    const externalImageId =
+      rekognitionMock.commandCalls(IndexFacesCommand)[0]?.args[0].input
+        .ExternalImageId;
+    expect(externalImageId).toMatch(/^[a-zA-Z0-9_.:-]{1,255}$/);
     const putCalls = dynamoMock.commandCalls(TransactWriteCommand);
     const condition =
       putCalls[0]?.args[0].input.TransactItems?.[0]?.ConditionCheck;
