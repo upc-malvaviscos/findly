@@ -34,6 +34,15 @@ ExternalImageId; un registro terminal no vuelve a indexarse. Los fallos AWS
 transitorios se propagan para que S3 reintente; imagen inválida o sin rostro
 termina en FAILED.
 
+La continuación aprobada incorpora ADR-013, ADR-014 y ADR-015: REG, TOKEN y
+RETENTION sin TTL se crean juntos; el PUT de selfie firma `If-None-Match: *`
+y caduca como máximo a los 300 s o con el evento. El FaceId se guarda primero
+como candidato durable y la reconciliación usa ListFaces por identificador
+externo, incluso si REG desaparece. La colección se resuelve por entorno.
+Los marcadores no se retiran antes de la purga del evento. Una URL emitida
+antes de DELETE puede recrear un objeto borrado hasta su caducidad, por lo que
+el consumidor y el cron siguen limpiando las entregas tardías.
+
 ## Verificación
 
 Las pruebas unitarias cubren consentimiento, transacción de registro/token,
