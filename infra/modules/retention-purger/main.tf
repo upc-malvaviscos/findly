@@ -1,3 +1,6 @@
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 terraform {
   required_version = ">= 1.10"
   required_providers {
@@ -22,7 +25,7 @@ locals {
   # razonables para un cron por lotes sin presion de latencia de usuario.
   lambda_memory_mb           = 512
   lambda_timeout_seconds     = 300
-  rekognition_collection_arn = "arn:aws:rekognition:*:*:collection/findly-event-*"
+  rekognition_collection_arn = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${var.project}-${var.environment}-event-*"
 }
 
 resource "aws_cloudwatch_log_group" "retention_purger" {
@@ -110,8 +113,9 @@ resource "aws_lambda_function" "retention_purger" {
 
   environment {
     variables = {
-      FINDLY_TABLE_NAME     = var.table_name
-      FINDLY_UPLOADS_BUCKET = var.uploads_bucket_name
+      FINDLY_TABLE_NAME           = var.table_name
+      FINDLY_UPLOADS_BUCKET       = var.uploads_bucket_name
+      FINDLY_COLLECTION_NAMESPACE = "${var.project}-${var.environment}"
     }
   }
 

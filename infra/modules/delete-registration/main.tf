@@ -72,7 +72,7 @@ resource "aws_iam_role_policy" "delete_registration" {
         Sid      = "DeleteRegistrationFace"
         Effect   = "Allow"
         Action   = "rekognition:DeleteFaces"
-        Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*"
+        Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${var.project}-${var.environment}-event-*"
       },
     ]
   })
@@ -90,8 +90,9 @@ resource "aws_lambda_function" "delete_registration" {
 
   environment {
     variables = {
-      FINDLY_SELFIE_BUCKET = var.uploads_bucket_name
-      FINDLY_TABLE_NAME    = var.table_name
+      FINDLY_SELFIE_BUCKET        = var.uploads_bucket_name
+      FINDLY_TABLE_NAME           = var.table_name
+      FINDLY_COLLECTION_NAMESPACE = "${var.project}-${var.environment}"
     }
   }
 

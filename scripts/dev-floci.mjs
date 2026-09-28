@@ -1,5 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process';
 
+// This compatibility opt-in is only accepted by the helper against Floci.
+process.env.FINDLY_ALLOW_LEGACY_COLLECTIONS = '1';
+
 const compose = (args) =>
   spawnSync('docker', ['compose', '-f', 'docker-compose.yml', ...args], {
     stdio: 'inherit',

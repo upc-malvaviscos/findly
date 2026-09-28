@@ -47,7 +47,7 @@ if (!Array.isArray(initialEvents.events))
 const created = await admin('/admin/events', {
   method: 'POST',
   body: JSON.stringify({
-    name: `CI ephemeral event ${process.env.GITHUB_RUN_ID ?? 'local'}`,
+    name: `CI ephemeral event ${process.env.GITHUB_RUN_ID ?? 'local'} ${randomUUID()}`,
     date: '2030-01-01T12:00:00.000Z',
     retentionDays: 1,
   }),

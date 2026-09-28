@@ -26,7 +26,7 @@ resource "aws_iam_role_policy" "selfie" {
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.selfie.arn}:*" },
     { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:UpdateItem"], Resource = var.table_arn },
     { Effect = "Allow", Action = ["s3:GetObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" },
-    { Effect = "Allow", Action = ["rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*" }
+    { Effect = "Allow", Action = ["rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${local.prefix}-event-*" }
   ] })
 }
 resource "aws_lambda_function" "selfie" {
@@ -39,7 +39,7 @@ resource "aws_lambda_function" "selfie" {
   filename         = var.lambda_artifact_path
   source_code_hash = filebase64sha256(var.lambda_artifact_path)
   environment {
-    variables = { FINDLY_TABLE_NAME = var.table_name, FINDLY_PROJECT = var.project, FINDLY_ENVIRONMENT = var.environment, FINDLY_COST_CENTER = var.cost_center, FINDLY_DATA_CLASS = var.data_class }
+    variables = { FINDLY_COLLECTION_NAMESPACE = local.prefix, FINDLY_TABLE_NAME = var.table_name, FINDLY_PROJECT = var.project, FINDLY_ENVIRONMENT = var.environment, FINDLY_COST_CENTER = var.cost_center, FINDLY_DATA_CLASS = var.data_class }
   }
   depends_on = [aws_cloudwatch_log_group.selfie]
   tags       = local.tags

@@ -16,6 +16,8 @@ output "alert_probe_queue_url" { value = aws_sqs_queue.alert_probe.url }
 output "public_function_names" { value = module.public_enrollment.lambda_function_names }
 output "selfie_indexer_function_name" { value = module.selfie_indexer.lambda_function_name }
 
+output "collection_namespace" { value = "findly-${local.environment}" }
+
 output "frontend_origin" { value = var.frontend_domain_url }
 output "lambda_function_names" {
   value = concat(values(module.public_enrollment.lambda_function_names), module.admin_api.function_names, [

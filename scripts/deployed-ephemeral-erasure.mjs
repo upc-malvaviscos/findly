@@ -16,6 +16,9 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { requireEphemeralCollectionNamespace } from './lib/ephemeralCollections.mjs';
+
+requireEphemeralCollectionNamespace();
 
 const api = process.env.EPHEMERAL_API_ENDPOINT?.replace(/\/$/, '');
 const table =

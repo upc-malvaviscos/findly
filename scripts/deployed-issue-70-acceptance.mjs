@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
@@ -15,6 +16,12 @@ import {
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
 import { runPublicEnrollmentSmoke } from './public-enrollment-smoke.mjs';
+import {
+  ephemeralCollectionId,
+  requireEphemeralCollectionNamespace,
+} from './lib/ephemeralCollections.mjs';
+
+requireEphemeralCollectionNamespace();
 
 const api = process.env.EPHEMERAL_API_ENDPOINT?.replace(/\/$/, '');
 const idToken = process.env.EPHEMERAL_ID_TOKEN;
@@ -71,7 +78,7 @@ function runScript(file, env = {}) {
 const created = await admin(
   '/admin/events',
   {
-    name: 'Synthetic public acceptance',
+    name: `Synthetic public acceptance ${randomUUID()}`,
     date: '2030-01-01T12:00:00.000Z',
     retentionDays: 1,
   },
@@ -197,7 +204,7 @@ try {
     undefined,
   );
   const faces = await rekognition.send(
-    new ListFacesCommand({ CollectionId: `findly-event-${eventId}` }),
+    new ListFacesCommand({ CollectionId: ephemeralCollectionId(eventId) }),
   );
   assert(
     !faces.Faces?.some((face) => face.FaceId === registration.faceId),
@@ -228,7 +235,9 @@ try {
   // Collections are created dynamically and are not in Terraform state.
   try {
     await rekognition.send(
-      new DeleteCollectionCommand({ CollectionId: `findly-event-${eventId}` }),
+      new DeleteCollectionCommand({
+        CollectionId: ephemeralCollectionId(eventId),
+      }),
     );
   } catch (error) {
     if (error.name !== 'ResourceNotFoundException')

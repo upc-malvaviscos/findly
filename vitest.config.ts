@@ -30,6 +30,7 @@ export default defineConfig({
         test: {
           environment: 'node',
           include: ['tests/lambdas/**/*.test.ts'],
+          env: { FINDLY_ALLOW_LEGACY_COLLECTIONS: '1' },
           name: 'lambdas',
         },
       },
@@ -37,6 +38,7 @@ export default defineConfig({
         test: {
           environment: 'node',
           include: ['tests/shared/**/*.test.ts'],
+          env: { FINDLY_ALLOW_LEGACY_COLLECTIONS: '1' },
           name: 'shared',
         },
       },

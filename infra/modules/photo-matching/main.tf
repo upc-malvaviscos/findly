@@ -1,3 +1,6 @@
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 terraform {
   required_providers {
     aws = {
@@ -22,7 +25,7 @@ locals {
   queue_name                 = "${var.project}-${var.environment}-photos-queue"
   dlq_name                   = "${var.project}-${var.environment}-photos-dlq"
   function_name              = "${var.project}-${var.environment}-photo-matcher"
-  rekognition_collection_arn = "arn:aws:rekognition:*:*:collection/findly-event-*"
+  rekognition_collection_arn = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${var.project}-${var.environment}-event-*"
 }
 
 resource "aws_sqs_queue" "photos_dlq" {
@@ -190,7 +193,8 @@ resource "aws_lambda_function" "photo_matcher" {
 
   environment {
     variables = {
-      FINDLY_TABLE_NAME = var.table_name
+      FINDLY_TABLE_NAME           = var.table_name
+      FINDLY_COLLECTION_NAMESPACE = "${var.project}-${var.environment}"
     }
   }
 

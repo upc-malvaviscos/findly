@@ -18,7 +18,7 @@ describe('SelfieIndexer collection creation IAM', () => {
     expect(tagging).toHaveLength(1);
     expect(tagging[0]!.actions).toContain('rekognition:CreateCollection');
     expect(tagging[0]!.resource).toBe(
-      'arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*',
+      'arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${local.prefix}-event-*',
     );
   });
 });
