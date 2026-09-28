@@ -29,6 +29,12 @@ galería, borrado FaceId, firma/CORS, purga manual y redrive/alarma/SNS.
 Sólo el documento vacío del origen se suministra localmente: las llamadas API
 y S3 no se interceptan. Esto no equivale a navegar una SPA demo publicada.
 
+Para selfies, verifica la cabecera firmada `If-None-Match: *`: omitirla
+debe devolver 403, la primera escritura 200 y repetirla 412. Las fotos del
+organizador mantienen su PUT anterior. El stack debe proporcionar el namespace
+de colección al runner; las comprobaciones y cleanup usan únicamente ese
+namespace del PR, con nombres de evento sintético únicos por ejecución.
+
 Se registran cleanup de inscripción y colección antes de abandonar el runner.
 Terraform destroy se intenta con always tras éxito o fallo. Las colecciones
 Rekognition creadas por handlers no están en el estado Terraform y el smoke
