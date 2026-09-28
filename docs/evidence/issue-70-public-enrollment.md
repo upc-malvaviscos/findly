@@ -32,3 +32,12 @@ recursos requieren la prueba AWS efímera antes de cerrar las issues.
 - Smoke real disponible en scripts/public-enrollment-smoke.mjs: canvas JPEG
   sintético sin cara, consentimiento, capacidad, subida y terminal FAILED.
   No se ha ejecutado contra AWS en esta entrega.
+
+## Recuperación e inmutabilidad
+
+La revisión incorpora locator RETENTION sin TTL, candidatos faciales durables
+y ListFaces paginado para el crash entre IndexFaces y DynamoDB. Polling falla
+cerrado ante el marcador de borrado. La selfie firma If-None-Match:* y el
+uploader lo envía sólo para selfies. Las fotografías conservan su contrato.
+La prueba de firma usa el SDK real con credenciales sintéticas y sin red; la
+prueba S3 de overwrite 412 y header omitido 403 requiere el smoke AWS.

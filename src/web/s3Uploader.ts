@@ -8,6 +8,7 @@ export function uploadFileToS3(
   file: File,
   onProgress: (progress: UploadProgress) => void,
   signal?: AbortSignal,
+  options: { writeOnce?: boolean } = {},
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -19,6 +20,7 @@ export function uploadFileToS3(
     xhr.timeout = UPLOAD_TIMEOUT_MS;
     signal?.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.setRequestHeader('Content-Type', file.type);
+    if (options.writeOnce) xhr.setRequestHeader('If-None-Match', '*');
     xhr.upload.onprogress = (event) => {
       if (!event.lengthComputable) return;
       onProgress({

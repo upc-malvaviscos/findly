@@ -98,6 +98,8 @@ export function SelfieCaptureForm({ eventId }: Props) {
         registration.uploadUrl,
         uploadFile,
         ({ percentage }) => setProgress(percentage),
+        undefined,
+        { writeOnce: true },
       );
       setMessage(describeStatus('PROCESSING'));
       await pollRegistrationStatus(

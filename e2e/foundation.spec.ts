@@ -83,6 +83,7 @@ async function mockBackend(page: Page) {
   });
   await page.route(UPLOAD_URL, (route) => {
     expect(route.request().headers()['content-type']).toBe('image/jpeg');
+    expect(route.request().headers()['if-none-match']).toBe('*');
     return route.fulfill({
       status: 200,
       headers: { 'Access-Control-Allow-Origin': '*' },
