@@ -71,3 +71,12 @@ y PhotoMatcher usaban `ttl` sin alias, reservado por DynamoDB. Se corrigen a
 antes omitían. Véase [palabras reservadas AWS](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html).
 La aceptación se repetirá con esta corrección; el timeout no se amplía para
 ocultar la expresión inválida.
+
+## Identificador temporal de Rekognition
+
+Run 36473484010 (bf629de) alcanzó FAILED y ENROLLED reales, pero PhotoMatcher
+registró ValidationException y no persistió matching. ExternalImageId usaba
+PHOTO#; se corrige a PHOTO: y el test exige el patrón admitido por AWS.
+Referencia: [IndexFaces](https://docs.aws.amazon.com/rekognition/latest/APIReference/API_IndexFaces.html).
+El teardown del run fue exitoso. La aceptación completa sigue pendiente de
+repetir el smoke con la corrección.

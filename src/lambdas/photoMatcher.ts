@@ -200,7 +200,7 @@ async function matchPhoto(
           Name: key,
         },
       },
-      ExternalImageId: `PHOTO#${photoId}`,
+      ExternalImageId: `PHOTO:${photoId}`,
       QualityFilter: 'AUTO',
     }),
   );

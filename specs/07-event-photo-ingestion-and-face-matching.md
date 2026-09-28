@@ -78,3 +78,7 @@ ADR-015 comparte `FINDLY_COLLECTION_NAMESPACE` entre PhotoMatcher,
 SelfieIndexer y los handlers de limpieza. Las colecciones y los permisos IAM
 se restringen al entorno; las colecciones legacy requieren inventario y
 migración explícita antes de cualquier borrado.
+
+Las fotos temporales usan `ExternalImageId = PHOTO:{photoId}`; Rekognition
+no admite `#` en ese campo. Esto no modifica las claves DynamoDB `PHOTO#`
+ni los IDs de inscripción usados para reconciliar borrado.
