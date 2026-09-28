@@ -215,6 +215,50 @@ try {
   );
 } catch (error) {
   primaryFailure = error;
+  // Preserve only safe error categories before Terraform removes log groups.
+  for (const handler of ['selfie-indexer', 'photo-matcher']) {
+    try {
+      const result = JSON.parse(
+        execFileSync(
+          'aws',
+          [
+            'logs',
+            'filter-log-events',
+            '--log-group-name',
+            `/aws/lambda/${process.env.EPHEMERAL_RESOURCE_PREFIX}-${handler}`,
+            '--output',
+            'json',
+          ],
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+        ),
+      );
+      const counts = new Map();
+      for (const record of result.events ?? []) {
+        const message = record.message ?? '';
+        const start = message.indexOf('{');
+        if (start < 0) continue;
+        let entry;
+        try {
+          entry = JSON.parse(message.slice(start));
+        } catch {
+          continue;
+        }
+        if (
+          entry.level !== 'ERROR' ||
+          !/^[A-Za-z0-9_]{1,80}$/.test(entry.errorName ?? '')
+        )
+          continue;
+        counts.set(entry.errorName, (counts.get(entry.errorName) ?? 0) + 1);
+      }
+      console.log(
+        'Acceptance error categories',
+        handler,
+        Object.fromEntries(counts),
+      );
+    } catch {
+      console.log('Acceptance error categories unavailable', handler);
+    }
+  }
 } finally {
   await browser.close().catch(() => cleanupFailures.push('browser'));
   for (const grant of grants) {
