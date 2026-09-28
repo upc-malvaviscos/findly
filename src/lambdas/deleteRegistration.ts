@@ -3,6 +3,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import {
   DeleteFacesCommand,
+  ListFacesCommand,
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
 import {
@@ -19,6 +20,12 @@ import {
   registrationKey,
   registrationPartitionKey,
 } from '../shared/lib/dynamoKeys';
+import {
+  cleanupDeadline,
+  localCleanupWithoutBiometrics,
+  isRetentionLocator,
+  retentionLocatorKey,
+} from '../shared/lib/retentionCleanup';
 import { selfieObjectKey } from '../shared/lib/s3Keys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { isMissingResourceError } from './lib/awsErrors';
@@ -167,7 +174,41 @@ async function eraseRegistration(
       throw markError;
   }
 
-  const storedSelfieKey = registrationRecord?.selfieS3Key;
+  const locatorItem = (
+    await dynamo.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: retentionLocatorKey(eventId, registrationId),
+        ConsistentRead: true,
+      }),
+    )
+  ).Item;
+  const locator = isRetentionLocator(locatorItem) ? locatorItem : undefined;
+  if (
+    process.env.FINDLY_COLLECTION_NAMESPACE &&
+    ((locator && locator.collectionId !== eventCollectionId(eventId)) ||
+      (!locator && registrationRecord?.faceId))
+  )
+    throw new Error('LegacyFaceCollectionMigrationRequired');
+  if (locator) {
+    await dynamo.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: retentionLocatorKey(eventId, registrationId),
+        UpdateExpression:
+          'SET cleanupState = :state, erasureRequestedAt = if_not_exists(erasureRequestedAt, :now), cleanupAfter = if_not_exists(cleanupAfter, :after)',
+        ExpressionAttributeValues: {
+          ':state': 'DELETING',
+          ':now': new Date().toISOString(),
+          ':after': cleanupDeadline(locator.uploadExpiresAt),
+        },
+        ConditionExpression: 'attribute_exists(PK)',
+      }),
+    );
+  }
+
+  const storedSelfieKey =
+    locator?.selfieS3Key ?? registrationRecord?.selfieS3Key;
   const legacySelfieKey = `events/${eventId}/selfies/${registrationId}.jpg`;
   const currentSelfieKey = `events/${eventId}/selfies/${registrationId}.selfie.jpg`;
   if (
@@ -180,12 +221,51 @@ async function eraseRegistration(
   }
   const selfieKey = storedSelfieKey ?? selfieObjectKey(eventId, registrationId);
 
-  if (registrationRecord?.faceId) {
+  const faceIds = new Set(locator?.faceIds ?? []);
+  if (registrationRecord?.faceId) faceIds.add(registrationRecord.faceId);
+  // Reconcile the crash window between IndexFaces and durable persistence.
+  const localWithoutBiometrics = localCleanupWithoutBiometrics(
+    endpoint,
+    faceIds.size,
+  );
+  if (!localWithoutBiometrics) {
+    let nextToken: string | undefined;
+    try {
+      do {
+        const page = await rekognition.send(
+          new ListFacesCommand({
+            CollectionId: eventCollectionId(eventId),
+            NextToken: nextToken,
+            MaxResults: 4096,
+          }),
+        );
+        for (const face of page.Faces ?? []) {
+          if (face.ExternalImageId === registrationId && face.FaceId)
+            faceIds.add(face.FaceId);
+        }
+        nextToken = page.NextToken;
+      } while (nextToken);
+    } catch (listError) {
+      if (!isMissingResourceError(listError)) throw listError;
+    }
+  }
+  if (locator && faceIds.size) {
+    await dynamo.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: retentionLocatorKey(eventId, registrationId),
+        UpdateExpression: 'ADD faceIds :faces',
+        ExpressionAttributeValues: { ':faces': faceIds },
+        ConditionExpression: 'attribute_exists(PK)',
+      }),
+    );
+  }
+  for (const faceId of faceIds) {
     try {
       const deleted = await rekognition.send(
         new DeleteFacesCommand({
           CollectionId: eventCollectionId(eventId),
-          FaceIds: [registrationRecord.faceId],
+          FaceIds: [faceId],
         }),
       );
       if (
@@ -262,6 +342,22 @@ async function eraseRegistration(
     }),
   );
 
+  if (locator) {
+    await dynamo.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: retentionLocatorKey(eventId, registrationId),
+        UpdateExpression:
+          'SET cleanupState = :state, cleanupCompletedAt = :now REMOVE faceIds, tokenHash',
+        ExpressionAttributeValues: {
+          ':state': 'CLEANED',
+          ':now': new Date().toISOString(),
+        },
+        ConditionExpression: 'attribute_exists(PK)',
+      }),
+    );
+  }
+
   // Audit line for the erasure metric. It carries no registrationId: the
   // identifier of a person who asked to be forgotten would otherwise stay in
   // CloudWatch Logs for the retention period. The correlationId ties it to the
@@ -269,7 +365,7 @@ async function eraseRegistration(
   request.info('registration_erased', {
     eventId,
     matchesDeleted,
-    faceDeleted: Boolean(registrationRecord?.faceId),
+    faceDeleted: faceIds.size > 0,
   });
 
   return noContent();

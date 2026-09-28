@@ -67,7 +67,7 @@ resource "aws_iam_role_policy" "retention_purger" {
       {
         Sid      = "QueryEvents"
         Effect   = "Allow"
-        Action   = "dynamodb:Query"
+        Action   = ["dynamodb:Query", "dynamodb:GetItem"]
         Resource = [var.table_arn, "${var.table_arn}/index/GSI2"]
       },
       {
@@ -79,7 +79,7 @@ resource "aws_iam_role_policy" "retention_purger" {
       {
         Sid      = "PurgeFaceCollections"
         Effect   = "Allow"
-        Action   = "rekognition:DeleteCollection"
+        Action   = ["rekognition:DeleteCollection", "rekognition:DeleteFaces", "rekognition:ListFaces"]
         Resource = local.rekognition_collection_arn
       },
       {

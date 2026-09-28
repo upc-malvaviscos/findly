@@ -1,5 +1,6 @@
 import {
   DeleteFacesCommand,
+  ListFacesCommand,
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -11,7 +12,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteRegistration } from '../../src/lambdas/deleteRegistration';
 import { captureLogs } from './lib/logCapture';
 
@@ -19,12 +20,17 @@ const dynamoMock = mockClient(DynamoDBDocumentClient);
 const rekognitionMock = mockClient(RekognitionClient);
 const s3Mock = mockClient(S3Client);
 
-beforeEach(() => dynamoMock.on(UpdateCommand).resolves({}));
+beforeEach(() => {
+  dynamoMock.on(UpdateCommand).resolves({});
+  dynamoMock.on(GetCommand).resolves({});
+  rekognitionMock.on(ListFacesCommand).resolves({ Faces: [] });
+});
 
 afterEach(() => {
   dynamoMock.reset();
   rekognitionMock.reset();
   s3Mock.reset();
+  vi.unstubAllEnvs();
 });
 
 function request(registrationId: string, token: string) {
@@ -75,7 +81,8 @@ describe('deleteRegistration lambda', () => {
           faceId: 'face-1',
           selfieS3Key: 'events/evt-1/selfies/reg-1.jpg',
         },
-      });
+      })
+      .resolves({});
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ photoId: 'photo-1' }, { photoId: 'photo-2' }],
     });
@@ -116,7 +123,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: {} });
+      .resolvesOnce({ Item: {} })
+      .resolves({});
     const cursor = { PK: 'REG#reg-1', SK: 'MATCH#photo-1' };
     dynamoMock
       .on(QueryCommand)
@@ -146,7 +154,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: {} });
+      .resolvesOnce({ Item: {} })
+      .resolves({});
     dynamoMock.on(QueryCommand).resolves({ Items: [{ photoId: 'photo-1' }] });
     dynamoMock.on(DeleteCommand).rejects(new Error('temporary outage'));
     s3Mock.on(DeleteObjectCommand).resolves({});
@@ -160,7 +169,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: {} });
+      .resolvesOnce({ Item: {} })
+      .resolves({});
     dynamoMock
       .on(UpdateCommand)
       .resolves({ Attributes: { faceId: 'concurrent-face' } });
@@ -190,7 +200,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({});
+      .resolvesOnce({})
+      .resolves({});
     const missing = new Error('missing registration');
     missing.name = 'ConditionalCheckFailedException';
     dynamoMock.on(UpdateCommand).rejects(missing);
@@ -212,7 +223,8 @@ describe('deleteRegistration lambda', () => {
       dynamoMock
         .on(GetCommand)
         .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-        .resolvesOnce({ Item: { selfieS3Key } });
+        .resolvesOnce({ Item: { selfieS3Key } })
+        .resolves({});
       dynamoMock.on(QueryCommand).resolves({ Items: [] });
       dynamoMock.on(DeleteCommand).resolves({});
       s3Mock.on(DeleteObjectCommand).resolves({});
@@ -234,7 +246,8 @@ describe('deleteRegistration lambda', () => {
           faceId: 'face-1',
           selfieS3Key: 'events/evt-1/selfies/reg-other.jpg',
         },
-      });
+      })
+      .resolves({});
     await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
       'InvalidRegistrationSelfieKey',
     );
@@ -243,11 +256,112 @@ describe('deleteRegistration lambda', () => {
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
   });
 
+  it('cleans a durable locator after REG TTL expiry and reconciles only its own faces across pages', async () => {
+    const locator = {
+      PK: 'EVENT#evt-1',
+      SK: 'RETENTION#reg-1',
+      eventId: 'evt-1',
+      registrationId: 'reg-1',
+      tokenHash: 'hash',
+      selfieS3Key: 'events/evt-1/selfies/reg-1.selfie.jpg',
+      faceIds: new Set(['known-face']),
+      uploadExpiresAt: Math.floor(Date.now() / 1000) + 300,
+    };
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({})
+      .resolvesOnce({ Item: locator })
+      .resolves({});
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    rekognitionMock
+      .on(ListFacesCommand)
+      .resolvesOnce({
+        Faces: [{ FaceId: 'photo-face', ExternalImageId: 'PHOTO#1' }],
+        NextToken: 'next',
+      })
+      .resolvesOnce({
+        Faces: [{ FaceId: 'crash-face', ExternalImageId: 'reg-1' }],
+      });
+    rekognitionMock.on(DeleteFacesCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(204);
+    expect(
+      rekognitionMock
+        .commandCalls(DeleteFacesCommand)
+        .flatMap((call) => call.args[0].input.FaceIds),
+    ).toEqual(['known-face', 'crash-face']);
+    expect(
+      dynamoMock
+        .commandCalls(UpdateCommand)
+        .some((call) =>
+          call.args[0].input.UpdateExpression?.includes('ADD faceIds'),
+        ),
+    ).toBe(true);
+    expect(
+      dynamoMock
+        .commandCalls(DeleteCommand)
+        .map((call) => call.args[0].input.Key),
+    ).not.toContainEqual({ PK: locator.PK, SK: locator.SK });
+    expect(
+      dynamoMock.commandCalls(UpdateCommand).at(-1)?.args[0].input
+        .ExpressionAttributeValues?.[':state'],
+    ).toBe('CLEANED');
+  });
+
+  it('preserves the durable locator if discovered-face deletion fails', async () => {
+    const locator = {
+      PK: 'EVENT#evt-1',
+      SK: 'RETENTION#reg-1',
+      eventId: 'evt-1',
+      registrationId: 'reg-1',
+      selfieS3Key: 'events/evt-1/selfies/reg-1.selfie.jpg',
+    };
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({})
+      .resolvesOnce({ Item: locator })
+      .resolves({});
+    rekognitionMock.on(ListFacesCommand).resolves({
+      Faces: [{ FaceId: 'crash-face', ExternalImageId: 'reg-1' }],
+    });
+    rekognitionMock
+      .on(DeleteFacesCommand)
+      .rejects(new Error('temporary failure'));
+    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
+      'temporary failure',
+    );
+    expect(
+      dynamoMock.commandCalls(UpdateCommand).at(-1)?.args[0].input
+        .ExpressionAttributeValues?.[':faces'],
+    ).toEqual(new Set(['crash-face']));
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
+  });
+
+  it('fails closed when a legacy FaceId has no known collection origin in a namespaced deployment', async () => {
+    vi.stubEnv('FINDLY_COLLECTION_NAMESPACE', 'findly-pr-71');
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({ Item: { faceId: 'legacy-face' } })
+      .resolves({});
+    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
+      'LegacyFaceCollectionMigrationRequired',
+    );
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
+  });
+
   it('skips the Rekognition call when the registration has no faceId', async () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: {} });
+      .resolvesOnce({ Item: {} })
+      .resolves({});
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
     dynamoMock.on(DeleteCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
@@ -262,7 +376,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: { faceId: 'face-1' } });
+      .resolvesOnce({ Item: { faceId: 'face-1' } })
+      .resolves({});
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
     dynamoMock.on(DeleteCommand).resolves({});
     const missing = new Error('not found');
@@ -281,7 +396,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: { faceId: 'face-1' } });
+      .resolvesOnce({ Item: { faceId: 'face-1' } })
+      .resolves({});
     rekognitionMock.on(DeleteFacesCommand).resolves({
       UnsuccessfulFaceDeletions: [
         { FaceId: 'face-1', Reasons: ['ASSOCIATED_TO_AN_EXISTING_USER'] },
@@ -298,7 +414,8 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: { faceId: 'face-1' } });
+      .resolvesOnce({ Item: { faceId: 'face-1' } })
+      .resolves({});
     rekognitionMock
       .on(DeleteFacesCommand)
       .rejects(new Error('service unavailable'));
@@ -320,7 +437,8 @@ describe('deleteRegistration structured logging', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: { faceId: 'face-secret-1' } });
+      .resolvesOnce({ Item: { faceId: 'face-secret-1' } })
+      .resolves({});
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ photoId: 'photo-1' }, { photoId: 'photo-2' }],
     });
@@ -380,7 +498,8 @@ describe('deleteRegistration structured logging', () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
-      .resolvesOnce({ Item: { faceId: 'face-1' } });
+      .resolvesOnce({ Item: { faceId: 'face-1' } })
+      .resolves({});
     const failure = new Error('rekognition arn:aws:secret is unreachable');
     failure.name = 'ServiceUnavailableException';
     rekognitionMock.on(DeleteFacesCommand).rejects(failure);

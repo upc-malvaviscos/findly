@@ -64,3 +64,15 @@ Evidencia: `docs/evidence/issue-70-erasure-retention.md`.
 - [ ] Cron real ejecuta purga y prueba ausencia de datos en AWS.
 
 Las pruebas unitarias usan mocks SDK; no certifican las casillas AWS.
+
+## Localizador durable y productores concurrentes (ADR-013)
+
+Los registros nuevos mantienen RETENTION sin TTL, independiente de REG.
+El borrado recupera FaceIds conocidos y caras descubiertas por identificador
+externo. El cron también reconcilia borrados de eventos activos. La purga
+mantiene metadatos durante la barrera URL/asíncrona y borra la colección al
+final. Las colecciones legacy sin origen confirmado requieren migración.
+
+La evidencia local cubre REG desaparecido por TTL, caras no persistidas,
+reconciliación de subidas tardías, paginación y conservación de referencias
+en errores. No sustituye las pruebas AWS ni acredita ejecución del cron real.

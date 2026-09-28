@@ -71,7 +71,7 @@ resource "aws_iam_role_policy" "delete_registration" {
       {
         Sid      = "DeleteRegistrationFace"
         Effect   = "Allow"
-        Action   = "rekognition:DeleteFaces"
+        Action   = ["rekognition:DeleteFaces", "rekognition:ListFaces"]
         Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${var.project}-${var.environment}-event-*"
       },
     ]
