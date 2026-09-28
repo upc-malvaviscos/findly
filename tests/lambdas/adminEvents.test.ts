@@ -24,12 +24,37 @@ import {
 } from '../../src/lambdas/adminEvents';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
+const openEvent = {
+  eventId: 'evt-1',
+  createdAt: new Date().toISOString(),
+  retentionDays: 30,
+  status: 'OPEN',
+};
 afterEach(() => {
   dynamoMock.reset();
   signMock.mockClear();
 });
 
 describe('admin events handlers', () => {
+  it.each([
+    { ...openEvent, createdAt: '2000-01-01T00:00:00.000Z' },
+    { ...openEvent, status: 'CLOSED' },
+    { ...openEvent, createdAt: 'invalid' },
+  ])(
+    'does not issue a new PUT capability for an expired or invalid event',
+    async (Item) => {
+      dynamoMock.on(GetCommand).resolves({ Item });
+      const result = await createPhotoUploads({
+        pathParameters: { eventId: 'evt-1' },
+        body: JSON.stringify({
+          files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+        }),
+      });
+      expect(result.statusCode).toBe(410);
+      expect(signMock).not.toHaveBeenCalled();
+      expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    },
+  );
   it('lists events through GSI2 without a scan', async () => {
     dynamoMock
       .on(QueryCommand)
@@ -75,7 +100,7 @@ describe('admin events handlers', () => {
     );
   });
   it('requires an existing event and signs JPEG uploads for exactly 300 seconds', async () => {
-    dynamoMock.on(GetCommand).resolves({ Item: { eventId: 'evt-1' } });
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
     dynamoMock.on(PutCommand).resolves({});
     const result = await createPhotoUploads({
       pathParameters: { eventId: 'evt-1' },
@@ -170,7 +195,7 @@ describe('admin events structured logging', () => {
   });
 
   it('logs the event and upload count once the event exists, without URLs', async () => {
-    dynamoMock.on(GetCommand).resolves({ Item: { eventId: 'evt-1' } });
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
     dynamoMock.on(PutCommand).resolves({});
     await createPhotoUploads(
       {

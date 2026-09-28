@@ -16,7 +16,10 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
-import { requireEphemeralCollectionNamespace } from './lib/ephemeralCollections.mjs';
+import {
+  ephemeralCollectionId,
+  requireEphemeralCollectionNamespace,
+} from './lib/ephemeralCollections.mjs';
 
 requireEphemeralCollectionNamespace();
 
@@ -69,6 +72,7 @@ async function seed(expired) {
   ).toISOString();
   const eventKey = { PK: `EVENT#${eventId}`, SK: 'METADATA' };
   const regKey = { PK: eventKey.PK, SK: `REG#${registrationId}` };
+  const locatorKey = { PK: eventKey.PK, SK: `RETENTION#${registrationId}` };
   const tokenKey = { PK: `TOKEN#${hash(token)}`, SK: 'METADATA' };
   const matchKey = { PK: `REG#${registrationId}`, SK: `MATCH#${photoId}` };
   const photoKey = { PK: eventKey.PK, SK: `PHOTO#${photoId}` };
@@ -105,6 +109,18 @@ async function seed(expired) {
     ttl: Math.floor(now.getTime() / 1000) + 3600,
   });
   await put({
+    ...locatorKey,
+    eventId,
+    registrationId,
+    tokenHash: hash(token),
+    selfieS3Key: selfie,
+    collectionId: ephemeralCollectionId(eventId),
+    cleanupState: 'ACTIVE',
+    uploadExpiresAt:
+      Math.floor(now.getTime() / 1000) + (expired ? -86400 : 300),
+    ...(expired ? { cleanupAfter: Math.floor(now.getTime() / 1000) - 1 } : {}),
+  });
+  await put({
     ...matchKey,
     eventId,
     registrationId,
@@ -127,6 +143,7 @@ async function seed(expired) {
     token,
     eventKey,
     regKey,
+    locatorKey,
     tokenKey,
     matchKey,
     photoKey,
@@ -181,9 +198,18 @@ try {
   ])
     assert.equal(await get(key), undefined);
   await absentObject(individual.selfie);
+  const tombstone = await get(individual.locatorKey);
+  assert.equal(tombstone.cleanupState, 'CLEANED');
+  assert.equal(tombstone.ttl, undefined);
+  assert.equal(tombstone.tokenHash, undefined);
 
   const expired = await seed(true);
   const active = await seed(false);
+  // Simulate the TTL race deterministically; this does not test the TTL scheduler.
+  await dynamo.send(
+    new DeleteCommand({ TableName: table, Key: expired.regKey }),
+  );
+  assert.equal(await get(expired.regKey), undefined);
   // GSI propagation is eventual: wait boundedly before manual invocation.
   let visible = false;
   for (let attempt = 0; attempt < 30; attempt++) {
@@ -226,6 +252,7 @@ try {
     expired.matchKey,
     expired.tokenKey,
     expired.photoKey,
+    expired.locatorKey,
   ])
     assert.equal(await get(key), undefined);
   await absentObject(expired.selfie);
@@ -236,6 +263,7 @@ try {
     active.matchKey,
     active.tokenKey,
     active.photoKey,
+    active.locatorKey,
   ])
     assert.ok(
       await get(key),
