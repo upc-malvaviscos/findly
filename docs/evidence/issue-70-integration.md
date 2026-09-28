@@ -25,18 +25,19 @@ publicación demo. La sesión AWS local está caducada. El alcance de permisos
 a revisar está en `docs/runbooks/issue-70-aws-review.md`; el runner reproducible
 está descrito en `docs/runbooks/issue-70-acceptance.md`.
 
-La purga si REG desaparece por TTL y los FaceIds huérfanos tras indexación
-concurrente requieren una decisión de modelo/reconciliación. Un localizador
-sin TTL y candidatos está pendiente de aprobación; persistir candidatos no
-elimina por sí solo la ventana de fallo entre IndexFaces y su escritura.
-No se declara borrado completo ni se cierran #10, #22 o #70 con pruebas locales.
+La persona responsable aprobó las tres decisiones de continuación:
+localizador sin TTL, selfies de una sola escritura y namespace por entorno.
+ADR-013, ADR-014 y ADR-015 registran modelo, contrato, reconciliación y
+compatibilidad. Su integración y validación se registran a continuación;
+no se declara borrado AWS completo ni se cierran #10, #22 o #70 con mocks.
 
 La PR permanece draft para revisión de código y CI ordinaria. Pasarla a ready
 activaría provisión efímera y exige revisar antes los permisos y el plan.
 
-Revisión final: el nombre Rekognition actual no incluye entorno. Eventos
-idénticos podrían compartir colección entre stacks; namespace y compatibilidad
-legacy requieren aprobación antes de ejecutar AWS. El runner queda bloqueado.
+Las colecciones nuevas incluyen entorno y el runner exige ese namespace.
+Las colecciones legacy se conservan; su inventario, migración y retirada
+requieren una operación explícita. Ningún fallback AWS elimina colecciones
+globales para aparentar compatibilidad.
 
 CI detectó SC2155 mediante ShellCheck, ausente del entorno local. Los workflows
 separan asignación de outputs y export para no ocultar fallos Terraform.

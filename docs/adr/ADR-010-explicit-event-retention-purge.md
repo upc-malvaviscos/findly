@@ -14,6 +14,11 @@ Después recorre la partición del evento y las particiones de coincidencias,
 borra tokens referenciados, inscripciones y fotografías. Borra los metadatos
 al final: mientras quedan, un fallo puede reintentarse.
 
+ADR-013 amplía esta decisión: las inscripciones nuevas crean además RETENTION
+sin TTL para conservar referencias aunque desaparezca REG. La purga respeta
+la barrera de cargas/reintentos y elimina la colección después del barrido;
+el orden anterior de colección primero queda sustituido por ADR-013.
+
 ## Compatibilidad y consecuencias
 
 Las inscripciones previas carecen de `tokenHash`; sus tokens mantienen el TTL
@@ -31,3 +36,8 @@ Borrado y purga lo establecen antes del barrido de coincidencias. Los
 productores condicionan escrituras a su ausencia; SelfieIndexer debe limpiar
 el FaceId si pierde la carrera al completar. El marcador se mantiene en
 fallos parciales para reintentar sin habilitar nuevos datos.
+
+El localizador conserva un marcador después de retirar REG y TOKEN. ListFaces
+paginado por ExternalImageId reconcilia FaceIds no persistidos y el cron
+reintenta también borrados de eventos activos. ADR-015 limita las colecciones
+al entorno; datos faciales legacy necesitan migración con ownership confirmado.
