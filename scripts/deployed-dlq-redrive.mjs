@@ -106,12 +106,25 @@ while (Date.now() < deadline) {
     if (message.MessageId !== sent.MessageId || message.Body !== body) continue;
     // Reaching the configured DLQ proves source redrive. DLQ receive count is
     // not source attempt count, so do not assert that it equals three.
-    sqs('delete-message', [
-      '--queue-url',
-      dlq,
-      '--receipt-handle',
-      message.ReceiptHandle,
-    ]);
+    if (process.env.EPHEMERAL_KEEP_POISON_IN_DLQ === '1') {
+      // Let the real SQS metric trigger the alarm. The stack destroy is still
+      // mandatory; do not delete the poison before the alarm/SNS probe.
+      sqs('change-message-visibility', [
+        '--queue-url',
+        dlq,
+        '--receipt-handle',
+        message.ReceiptHandle,
+        '--visibility-timeout',
+        '0',
+      ]);
+    } else {
+      sqs('delete-message', [
+        '--queue-url',
+        dlq,
+        '--receipt-handle',
+        message.ReceiptHandle,
+      ]);
+    }
     received = true;
   }
   if (received) break;
@@ -122,5 +135,5 @@ assert(
   'Poison message did not arrive in its DLQ before the bounded deadline.',
 );
 console.log(
-  'AWS photo poison redrive passed: configured maxReceiveCount=3, original message reached its isolated DLQ and was removed.',
+  `AWS photo poison redrive passed: configured maxReceiveCount=3, original message reached its isolated DLQ; ${process.env.EPHEMERAL_KEEP_POISON_IN_DLQ === '1' ? 'retained for real alarm verification and mandatory stack destroy' : 'removed'}.`,
 );

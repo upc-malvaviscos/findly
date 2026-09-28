@@ -9,7 +9,7 @@ usa el SDK real, sin mock de `getSignedUrl`, y comprueba
 `content-type;host`, SigV4, clave de objeto y 300 segundos de expiración.
 No llama a AWS ni demuestra todavía el rechazo del servidor S3.
 
-`npm test`: 189 tests en 26 archivos, todos verdes. Líneas de handlers Lambda:
+`npm test`: 194 tests en 27 archivos, todos verdes. Líneas de handlers Lambda:
 98,38 %; helpers Lambda: 100 %; `src/shared/lib`: 100 %. `npm run typecheck`
 y `npm run lint:code` también pasan. La cobertura incluye todos los archivos
 `src/**/*.{ts,tsx}`, incluidos los no ejecutados, sin excluir lógica de negocio.
@@ -64,7 +64,41 @@ PhotoMatcher y no probaría redrive. Sondea durante cuatro visibility timeouts
 más 120 segundos, con máximo de 30 minutos. Exige mismo MessageId y body en
 la DLQ y elimina solo ese mensaje. No confunde el receive count de la DLQ
 con el número de intentos en origen. El destroy del stack elimina cualquier
-mensaje remanente tras un fallo. No cambia visibility timeout ni redrive.
+mensaje remanente tras un fallo. No cambia el visibility timeout de la cola
+ni su política redrive.
 
-Ninguno de los dos smoke se ha ejecutado en AWS en esta entrega.
-Las issues #6, #8, #45 y #46 conservan su verificación runtime pendiente.
+Para probar el canal de alertas, `EPHEMERAL_KEEP_POISON_IN_DLQ=1` deja visible
+el mensaje tras encontrarlo, mediante `sqs:ChangeMessageVisibility` de ese
+receipt; exige destroy del stack después del probe de observabilidad.
+Así el mensaje permanece el tiempo necesario para que la métrica real de SQS
+active la alarma, sin forzar estados ni publicar mensajes SNS manuales.
+
+## Probe de observabilidad preparado
+
+`scripts/deployed-observability.mjs` usa `PHOTOS_DLQ_ALARM_NAME`,
+`EPHEMERAL_ALERT_QUEUE_URL`, `EPHEMERAL_PHOTOS_DLQ_URL`,
+`EPHEMERAL_RESOURCE_PREFIX` y `EPHEMERAL_LAMBDA_FUNCTION_NAMES` como array JSON.
+El workflow debe haber invocado cada handler de la lista antes del probe.
+Los recursos deben pertenecer al prefijo del PR.
+
+Comprueba retención exacta de 14 días por grupo y al menos un log de aplicación
+por Lambda. Exige JSON con event, level y correlationId, rechazando campos
+sensibles anidados, emails y URLs firmadas. Acepta el prefijo textual del
+runtime Lambda y sus mensajes de plataforma sin tratarlos como logs propios.
+Sondea durante un máximo de 12 minutos una alarma de métrica SQS cuyo QueueName
+es la DLQ probada. Exige estado real ALARM y recepción en SQS de una notificación
+SNS con TopicArn igual a una acción de esa alarma, AlarmName exacto y estado
+ALARM. Elimina solo esa notificación; el poison se elimina con el stack.
+No ejecuta SetAlarmState ni Publish SNS y no afirma probar un aviso de Budgets.
+
+Permisos de lectura/verificación: `logs:DescribeLogGroups`,
+`logs:FilterLogEvents`, `cloudwatch:DescribeAlarms`, `sqs:ReceiveMessage` y
+`sqs:DeleteMessage` en el subscriber aislado. La suscripción SNS→SQS y su
+política se definen en Terraform; el script no crea ni amplía IAM.
+
+Cinco tests con un fixture de CLI, sin AWS, prueban las condiciones de aceptación
+y rechazo por retención, log sin JSON, campo sensible anidado y recurso fuera
+del PR. Sirven para verificar el probe; no acreditan el runtime AWS.
+
+Ninguno de estos smoke se ha ejecutado en AWS en esta entrega.
+Las issues #6, #8, #13, #45 y #46 conservan su verificación runtime pendiente.
