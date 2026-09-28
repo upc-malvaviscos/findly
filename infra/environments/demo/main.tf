@@ -35,6 +35,10 @@ provider "aws" {
 }
 
 module "findly" {
+  enable_web           = var.enable_web
+  web_bucket_name      = var.web_bucket_name
+  web_domain_name      = var.web_domain_name
+  web_certificate_arn  = var.web_certificate_arn
   source               = "../../modules/findly-stack"
   aws_region           = var.aws_region
   project              = var.project

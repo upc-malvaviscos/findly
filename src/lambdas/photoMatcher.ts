@@ -15,7 +15,6 @@ import {
   faceGsi1PartitionKey,
   matchKey,
   parseRegistrationId,
-  toEpochSeconds,
 } from '../shared/lib/dynamoKeys';
 import { parseEventPhotoObjectKey } from '../shared/lib/s3Keys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
@@ -29,8 +28,6 @@ import type { MatchEntity } from '../shared/types/entities';
 
 const FACE_MATCH_THRESHOLD = 95.0;
 const SEARCH_MAX_FACES = 50;
-const MATCH_RETENTION_DAYS = 30;
-const MATCH_RETENTION_SECONDS = MATCH_RETENTION_DAYS * 24 * 60 * 60;
 
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
 const endpoint = process.env.AWS_ENDPOINT_URL;
@@ -84,9 +81,10 @@ function parseS3PhotoEvents(
   return parsedRecords;
 }
 
-async function findRegistrationIdForFace(
+async function findRegistrationForFace(
   faceId: string,
-): Promise<string | null> {
+  eventId: string,
+): Promise<{ registrationId: string; ttl: number } | null> {
   const result = await dynamo.send(
     new QueryCommand({
       TableName: tableName,
@@ -96,9 +94,24 @@ async function findRegistrationIdForFace(
       Limit: 1,
     }),
   );
-  const item = result.Items?.[0] as { GSI1SK?: string } | undefined;
-  if (!item?.GSI1SK) return null;
-  return parseRegistrationId(item.GSI1SK);
+  const item = result.Items?.[0] as
+    | {
+        GSI1SK?: string;
+        eventId?: string;
+        status?: string;
+        ttl?: number;
+      }
+    | undefined;
+  if (
+    !item?.GSI1SK ||
+    item.eventId !== eventId ||
+    item.status !== 'ENROLLED' ||
+    typeof item.ttl !== 'number' ||
+    item.ttl <= Math.floor(Date.now() / 1000)
+  )
+    return null;
+  const registrationId = parseRegistrationId(item.GSI1SK);
+  return registrationId ? { registrationId, ttl: item.ttl } : null;
 }
 
 async function writeMatch(
@@ -106,6 +119,7 @@ async function writeMatch(
   registrationId: string,
   photoId: string,
   similarity: number,
+  ttl: number,
 ): Promise<void> {
   const matchedAt = new Date().toISOString();
   const match: MatchEntity = {
@@ -115,7 +129,7 @@ async function writeMatch(
     photoId,
     similarity,
     matchedAt,
-    ttl: toEpochSeconds(MATCH_RETENTION_SECONDS),
+    ttl,
   };
   try {
     await dynamo.send(
@@ -171,9 +185,18 @@ async function matchPhoto(
         if (!matchedFaceId || similarity === undefined) continue;
         if (matchedFaceId === detectedFaceId) continue;
         if (similarity < FACE_MATCH_THRESHOLD) continue;
-        const registrationId = await findRegistrationIdForFace(matchedFaceId);
-        if (!registrationId) continue;
-        await writeMatch(eventId, registrationId, photoId, similarity);
+        const registration = await findRegistrationForFace(
+          matchedFaceId,
+          eventId,
+        );
+        if (!registration) continue;
+        await writeMatch(
+          eventId,
+          registration.registrationId,
+          photoId,
+          similarity,
+          registration.ttl,
+        );
       }
     }
   } finally {

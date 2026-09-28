@@ -45,3 +45,7 @@ output "gallery_reader_function_name" {
 output "alerts_topic_arn" {
   value = module.findly.alerts_topic_arn
 }
+
+output "web_bucket_name" { value = module.findly.web_bucket_name }
+output "web_distribution_id" { value = module.findly.web_distribution_id }
+output "web_distribution_domain_name" { value = module.findly.web_distribution_domain_name }

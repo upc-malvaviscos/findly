@@ -45,7 +45,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "web" {
 }
 
 resource "aws_cloudfront_origin_access_control" "web" {
-  name                              = "findly-web-oac"
+  name                              = "${var.project}-${var.environment}-web-oac"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -53,6 +53,7 @@ resource "aws_cloudfront_origin_access_control" "web" {
 
 resource "aws_cloudfront_distribution" "web" {
   enabled             = true
+  comment             = "${var.project}-${var.environment}"
   default_root_object = "index.html"
   aliases             = local.has_custom_domain ? [var.custom_domain_name] : []
 
@@ -105,6 +106,13 @@ resource "aws_cloudfront_distribution" "web" {
     for_each = local.has_custom_domain ? [] : [1]
     content {
       cloudfront_default_certificate = true
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = local.has_custom_domain && startswith(var.acm_certificate_arn, "arn:aws:acm:us-east-1:") && var.bucket_name != ""
+      error_message = "Static hosting requires an approved domain, a us-east-1 ACM certificate and a nonempty private bucket name for TLSv1.2_2021."
     }
   }
 
