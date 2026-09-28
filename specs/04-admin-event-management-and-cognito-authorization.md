@@ -77,3 +77,12 @@ La evidencia reproducible está en
 [`docs/evidence/issue-04-frontend-auth.md`](../docs/evidence/issue-04-frontend-auth.md)
 y
 [`docs/evidence/issue-51-54-local-execution-modes.md`](../docs/evidence/issue-51-54-local-execution-modes.md).
+
+## Retención y nuevas cargas (#70)
+
+El endpoint de fotos lee los metadatos consistentemente y rechaza con
+`410 EVENT_EXPIRED` eventos caducados, cerrados o con caducidad inválida.
+No firma nuevas capacidades ni escribe Photo mientras los metadatos se
+conservan para reintentar una purga. Las fotos de un evento vigente mantienen
+PUT de 300 segundos. Las pruebas unitarias verifican ese rechazo; el plan
+de aceptación AWS sigue pendiente de ejecución.
