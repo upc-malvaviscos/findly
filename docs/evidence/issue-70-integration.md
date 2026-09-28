@@ -54,10 +54,10 @@ La validación local pasa 294 tests en 38 archivos. Este resultado no acredita
 aún inscripción, matching, purga, redrive o alarma desplegados.
 
 El teardown se bloqueó al consultar un mapping después de eliminarlo: AWS
-autoriza esa llamada con Resource `*`. La lectura regional adicional permanece
-pendiente de aprobación; recuperación usa el backend y plan PR #71 revisados.
+autoriza esa llamada con Resource `*`. La lectura regional adicional fue aprobada y aplicada como
+findly-pr-71-approved-mapping-read; recuperación usa el backend y plan PR #71 revisados.
 
 Recuperación del intento 3 completada: 12 recursos restantes destruidos,
 0 creados/cambiados; terraform state list devuelve vacío. No se han borrado
 backend ni políticas del rol CI. El check continúa fallido hasta repetir
-con la corrección y el permiso de lectura adicional aprobado.
+con la corrección y el permiso de lectura adicional ya aprobado.

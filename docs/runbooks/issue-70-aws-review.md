@@ -97,3 +97,12 @@ target Node 24 del empaquetado. No se migra ninguna tabla ni índice: hash_key
 y range_key mantienen el esquema existente. validate advierte deprecación;
 el esquema local del proveedor todavía no expone key_schema. Se conserva la
 configuración y se exige plan real sin destrucciones antes del apply.
+
+## Consulta de mapping eliminado
+
+La persona responsable aprobó la excepción de solo lectura
+`lambda:GetEventSourceMapping` con Resource `*` y región eu-west-1, necesaria
+para que el waiter Terraform confirme ausencia tras DeleteEventSourceMapping.
+Se aplicó `findly-pr-71-approved-mapping-read`; el JSON de evidencia está en
+`docs/evidence/issue-70-ci-mapping-read-proposal.json`. Los permisos de creación,
+modificación y borrado del mapping conservan las restricciones de PR #71.
