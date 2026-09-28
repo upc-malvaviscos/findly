@@ -24,7 +24,7 @@ El cliente conservará una interfaz equivalente a la del mock:
 getEvent(eventId: string): Promise<Event | null>
 createRegistration(request: RegistrationRequest): Promise<RegistrationResponse>
 uploadFileToS3(uploadUrl: string, file: File, onProgress: (progress: UploadProgress) => void): Promise<void>
-getRegistrationStatus(registrationId: string): Promise<RegistrationStatusResponse>
+getRegistrationStatus(registrationId: string, galleryToken: string): Promise<RegistrationStatusResponse>
 ```
 
 Las implementaciones reales usarán los siguientes endpoints:
@@ -89,5 +89,13 @@ Implementado en el cliente web (evidencia: [issue-22-web-real-backend.md](../doc
 
 Pendiente, sin cerrar la issue #22:
 
-- Los endpoints `GET /events/{eventId}`, `POST /events/{eventId}/registrations` y `GET /registrations/{registrationId}/status` no existen todavía en `infra/` ni en `src/lambdas/`; dependen de la issue #7.
+- Los endpoints públicos existen en `src/lambdas/publicEvents.ts` y `publicEnrollment.ts`, con módulos IaC aislados y rutas en el adaptador local. Su ensamblado y verificación AWS real pertenecen a #7/#70; los tests locales no acreditan ese despliegue.
 - Smoke E2E contra el entorno `demo`, métricas de error de registro/subida/polling y verificación de CORS con S3 real (issue #45).
+
+## Contrato público actualizado (issue #70)
+
+La inscripción devuelve `galleryToken` opaco y polling requiere
+`X-Gallery-Token`; véase ADR-011. Sólo el hash se persiste y la SPA entrega el
+enlace de galería al finalizar la inscripción. Esta implementación no añade
+entrega de correo. La verificación AWS efímera sigue siendo una evidencia
+independiente de los tests unitarios.

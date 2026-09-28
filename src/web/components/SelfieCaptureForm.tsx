@@ -40,6 +40,7 @@ function describeStatus(
 }
 
 export function SelfieCaptureForm({ eventId }: Props) {
+  const [galleryToken, setGalleryToken] = useState<string | null>(null);
   const [values, setValues] = useState({
     email: '',
     consentBiometrics: false,
@@ -79,6 +80,7 @@ export function SelfieCaptureForm({ eventId }: Props) {
       setMessage('Revisa los campos marcados antes de continuar.');
       return;
     }
+    setGalleryToken(null);
     setStatus('UPLOAD_PENDING');
     setMessage(describeStatus('UPLOAD_PENDING'));
     setProgress(0);
@@ -88,6 +90,7 @@ export function SelfieCaptureForm({ eventId }: Props) {
         consentBiometrics: true,
         consentTerms: true,
       });
+      setGalleryToken(registration.galleryToken);
       setStatus('PROCESSING');
       setMessage('Registro creado. Subiendo tu selfie…');
       const uploadFile = await ensureJpegFile(file as File);
@@ -98,7 +101,11 @@ export function SelfieCaptureForm({ eventId }: Props) {
       );
       setMessage(describeStatus('PROCESSING'));
       await pollRegistrationStatus(
-        () => getRegistrationStatus(registration.registrationId),
+        () =>
+          getRegistrationStatus(
+            registration.registrationId,
+            registration.galleryToken,
+          ),
         (result) => {
           setStatus(result.status);
           setMessage(describeStatus(result.status, result.failureReason));
@@ -114,6 +121,14 @@ export function SelfieCaptureForm({ eventId }: Props) {
   const isBusy = status === 'UPLOAD_PENDING' || status === 'PROCESSING';
   return (
     <>
+      {status === 'ENROLLED' && galleryToken ? (
+        <a
+          href={`/gallery?token=${encodeURIComponent(galleryToken)}`}
+          rel="noreferrer"
+        >
+          Abrir mi galería
+        </a>
+      ) : null}
       <form
         className="enrollment-form"
         onSubmit={(event) => void submit(event)}

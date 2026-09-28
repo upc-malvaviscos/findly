@@ -8,6 +8,10 @@ import type {
 
 const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
+export async function getEvents() {
+  await wait(80);
+  return [DEMO_EVENT];
+}
 export async function getEvent(eventId: string) {
   await wait(80);
   return eventId === DEMO_EVENT.eventId ? DEMO_EVENT : null;
@@ -23,6 +27,7 @@ export async function createRegistration(
   const registrationKey = `${eventId}-${emailSlug}`;
   return {
     registrationId: `reg-${registrationKey}`,
+    galleryToken: 'synthetic-local-gallery-token',
     uploadUrl: 'mock://findly/selfies/upload',
     expiresInSeconds: 300,
   };

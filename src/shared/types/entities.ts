@@ -12,6 +12,7 @@ export type EventEntity = {
 };
 
 export type RegistrationEntity = {
+  tokenHash?: string;
   registrationId: string;
   eventId: string;
   email?: string;

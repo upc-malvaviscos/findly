@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { App } from '../../src/web/App';
 
 describe('App', () => {
-  it('renders the public enrollment page', () => {
+  it('renders the public enrollment page', async () => {
     render(<App />);
 
-    expect(screen.getByText('Findly')).toBeInTheDocument();
+    expect(await screen.findByText('Findly')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Encuentra tu momento.' }),
     ).toBeInTheDocument();

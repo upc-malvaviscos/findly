@@ -15,6 +15,7 @@ export interface RegistrationRequest {
 }
 
 export interface RegistrationResponse {
+  galleryToken: string;
   registrationId: string;
   uploadUrl: string;
   expiresInSeconds: number;

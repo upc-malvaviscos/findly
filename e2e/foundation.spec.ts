@@ -25,6 +25,16 @@ async function mockBackend(page: Page) {
           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
         },
       });
+    if (pathname === '/events')
+      return json({
+        events: [
+          {
+            eventId: 'demo-2026',
+            name: 'Findly Demo Night',
+            date: '2026-09-18T19:30:00+02:00',
+          },
+        ],
+      });
     if (pathname === '/events/demo-2026')
       return json({
         eventId: 'demo-2026',
@@ -39,6 +49,7 @@ async function mockBackend(page: Page) {
       return json(
         {
           registrationId: 'reg-e2e',
+          galleryToken: 'synthetic-e2e-token',
           uploadUrl: UPLOAD_URL,
           expiresInSeconds: 300,
         },
@@ -46,6 +57,7 @@ async function mockBackend(page: Page) {
       );
     }
     if (pathname === '/registrations/reg-e2e/status') {
+      expect(request.headers()['x-gallery-token']).toBe('synthetic-e2e-token');
       statusReads += 1;
       return json({
         registrationId: 'reg-e2e',
