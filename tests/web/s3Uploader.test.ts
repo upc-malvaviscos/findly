@@ -66,6 +66,7 @@ describe('uploadFileToS3', () => {
     expect(xhr.method).toBe('PUT');
     expect(xhr.url).toBe('https://s3.example.com/signed-put');
     expect(xhr.requestHeaders['Content-Type']).toBe('image/jpeg');
+    expect(xhr.requestHeaders['If-None-Match']).toBeUndefined();
 
     xhr.upload.onprogress?.({
       lengthComputable: true,
@@ -87,6 +88,24 @@ describe('uploadFileToS3', () => {
       total: file.size,
       percentage: 100,
     });
+  });
+
+  it('uses a signed write-once condition for selfies without changing photo uploads', async () => {
+    vi.stubGlobal(
+      'XMLHttpRequest',
+      MockXhr as unknown as typeof XMLHttpRequest,
+    );
+    const file = new File(['synthetic'], 'selfie.jpg', { type: 'image/jpeg' });
+    const uploaded = uploadFileToS3(
+      'https://synthetic.invalid/put',
+      file,
+      vi.fn(),
+      undefined,
+      { writeOnce: true },
+    );
+    expect(getXhr().requestHeaders['If-None-Match']).toBe('*');
+    getXhr().onload?.();
+    await uploaded;
   });
 
   it('rejects when S3 responds with a non-2xx status', async () => {

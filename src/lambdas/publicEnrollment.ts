@@ -10,6 +10,11 @@ import {
   galleryTokenKey,
   registrationKey,
 } from '../shared/lib/dynamoKeys';
+import {
+  retentionLocatorKey,
+  cleanupDeadline,
+} from '../shared/lib/retentionCleanup';
+import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { selfieObjectKey } from '../shared/lib/s3Keys';
 import { enrollmentFormSchema } from '../shared/lib/validations';
 import { createPresignedUploadUrl } from './lib/presignedUpload';
@@ -80,6 +85,9 @@ export async function createPublicRegistration(
         Date.parse(metadata.createdAt) + metadata.retentionDays * 86400000;
       if (!Number.isFinite(expires) || expires <= Date.now())
         return fail(410, 'EVENT_EXPIRED');
+      const nowEpoch = Math.floor(Date.now() / 1000);
+      if (Math.floor(expires / 1000) <= nowEpoch)
+        return fail(410, 'EVENT_EXPIRED');
       const registrationId = randomUUID();
       const galleryToken = randomBytes(32).toString('base64url');
       const tokenHash = createHash('sha256').update(galleryToken).digest('hex');
@@ -89,6 +97,8 @@ export async function createPublicRegistration(
         bucket,
         key,
         contentType: 'image/jpeg',
+        writeOnce: true,
+        expiresInSeconds: Math.min(300, ttl - nowEpoch),
       });
       const registration: RegistrationEntity = {
         eventId,
@@ -133,6 +143,25 @@ export async function createPublicRegistration(
               Put: {
                 TableName: tableName,
                 Item: { ...galleryTokenKey(tokenHash), ...token },
+                ConditionExpression: 'attribute_not_exists(PK)',
+              },
+            },
+            {
+              Put: {
+                TableName: tableName,
+                Item: {
+                  ...retentionLocatorKey(eventId, registrationId),
+                  collectionId: eventCollectionId(eventId),
+                  eventId,
+                  registrationId,
+                  tokenHash,
+                  selfieS3Key: key,
+                  cleanupState: 'ACTIVE',
+                  uploadExpiresAt: nowEpoch + upload.expiresInSeconds,
+                  cleanupAfter: cleanupDeadline(
+                    nowEpoch + upload.expiresInSeconds,
+                  ),
+                },
                 ConditionExpression: 'attribute_not_exists(PK)',
               },
             },
@@ -189,7 +218,22 @@ export async function getPublicRegistrationStatus(
           }),
         )
       ).Item as RegistrationEntity | undefined;
-      if (!registration) return fail(404, 'REGISTRATION_NOT_FOUND');
+      if (!registration || 'erasureRequestedAt' in registration)
+        return fail(404, 'REGISTRATION_NOT_FOUND');
+      const locator = (
+        await db.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: retentionLocatorKey(grant.eventId, registrationId),
+            ConsistentRead: true,
+          }),
+        )
+      ).Item;
+      if (
+        locator &&
+        (locator.cleanupState !== 'ACTIVE' || locator.erasureRequestedAt)
+      )
+        return fail(404, 'REGISTRATION_NOT_FOUND');
       return json(200, { registrationId, status: registration.status });
     },
   );

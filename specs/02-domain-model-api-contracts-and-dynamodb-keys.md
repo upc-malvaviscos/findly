@@ -136,3 +136,12 @@ La inscripción devuelve `galleryToken` opaco y polling requiere
 enlace de galería al finalizar la inscripción. Esta implementación no añade
 entrega de correo. La verificación AWS efímera sigue siendo una evidencia
 independiente de los tests unitarios.
+
+## Selfies inmutables y recuperación (issue #70)
+
+Las selfies usan PUT firmado `If-None-Match: *`, con vigencia máxima de 300
+segundos acotada por la caducidad del evento. REG, TOKEN y locator RETENTION
+sin TTL se crean en una única transacción. El locator conserva IDs faciales
+conocidos; ListFaces paginado recupera la ventana IndexFaces → persistencia.
+Polling no devuelve estado de inscripciones marcadas para borrado.
+Véase ADR-014; los tests del SDK no sustituyen la verificación S3 403/412.

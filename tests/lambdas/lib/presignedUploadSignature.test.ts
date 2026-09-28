@@ -28,4 +28,31 @@ describe('real SDK upload signing', () => {
     expect(url.searchParams.get('X-Amz-Algorithm')).toBe('AWS4-HMAC-SHA256');
     expect(url.searchParams.get('X-Amz-Signature')).toMatch(/^[a-f0-9]{64}$/);
   });
+  it('cryptographically binds write-once for selfies and bounds expiry', async () => {
+    const { createPresignedUploadUrl } =
+      await import('../../../src/lambdas/lib/presignedUpload');
+    const url = new URL(
+      (
+        await createPresignedUploadUrl({
+          bucket: 'findly-synthetic-signature-test',
+          key: 'events/synthetic/selfies/registration.selfie.jpg',
+          contentType: 'image/jpeg',
+          writeOnce: true,
+          expiresInSeconds: 40,
+        })
+      ).uploadUrl,
+    );
+    expect(url.searchParams.get('X-Amz-SignedHeaders')).toBe(
+      'content-type;host;if-none-match',
+    );
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('40');
+    await expect(
+      createPresignedUploadUrl({
+        bucket: 'synthetic',
+        key: 'synthetic',
+        contentType: 'image/jpeg',
+        expiresInSeconds: 301,
+      }),
+    ).rejects.toThrow('INVALID_UPLOAD_EXPIRY');
+  });
 });

@@ -16,6 +16,8 @@ export type PresignedUploadRequest = {
   bucket: string;
   key: string;
   contentType: 'image/jpeg';
+  writeOnce?: boolean;
+  expiresInSeconds?: number;
 };
 
 export type PresignedUploadResult = {
@@ -26,15 +28,27 @@ export type PresignedUploadResult = {
 export async function createPresignedUploadUrl(
   request: PresignedUploadRequest,
 ): Promise<PresignedUploadResult> {
+  const expiresInSeconds =
+    request.expiresInSeconds ?? PRESIGNED_UPLOAD_EXPIRY_SECONDS;
+  if (
+    !Number.isInteger(expiresInSeconds) ||
+    expiresInSeconds < 1 ||
+    expiresInSeconds > PRESIGNED_UPLOAD_EXPIRY_SECONDS
+  )
+    throw new Error('INVALID_UPLOAD_EXPIRY');
   const command = new PutObjectCommand({
     Bucket: request.bucket,
     Key: request.key,
     ContentType: request.contentType,
+    ...(request.writeOnce ? { IfNoneMatch: '*' } : {}),
   });
   const uploadUrl = await getSignedUrl(s3, command, {
-    expiresIn: PRESIGNED_UPLOAD_EXPIRY_SECONDS,
+    expiresIn: expiresInSeconds,
     // S3 presigning excludes Content-Type unless explicitly made signable.
-    signableHeaders: new Set(['content-type']),
+    signableHeaders: new Set([
+      'content-type',
+      ...(request.writeOnce ? ['if-none-match'] : []),
+    ]),
   });
-  return { uploadUrl, expiresInSeconds: PRESIGNED_UPLOAD_EXPIRY_SECONDS };
+  return { uploadUrl, expiresInSeconds };
 }

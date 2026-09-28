@@ -25,8 +25,8 @@ resource "aws_iam_role_policy" "selfie" {
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.selfie.arn}:*" },
     { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:UpdateItem"], Resource = var.table_arn },
-    { Effect = "Allow", Action = ["s3:GetObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" },
-    { Effect = "Allow", Action = ["rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${local.prefix}-event-*" }
+    { Effect = "Allow", Action = ["s3:GetObject", "s3:DeleteObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" },
+    { Effect = "Allow", Action = ["rekognition:ListFaces", "rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${local.prefix}-event-*" }
   ] })
 }
 resource "aws_lambda_function" "selfie" {
@@ -51,4 +51,10 @@ resource "aws_lambda_permission" "s3" {
   principal      = "s3.amazonaws.com"
   source_arn     = var.uploads_bucket_arn
   source_account = data.aws_caller_identity.current.account_id
+}
+
+resource "aws_lambda_function_event_invoke_config" "selfie" {
+  function_name                = aws_lambda_function.selfie.function_name
+  maximum_event_age_in_seconds = 21600
+  maximum_retry_attempts       = 2
 }
