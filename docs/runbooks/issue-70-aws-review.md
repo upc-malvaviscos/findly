@@ -41,6 +41,12 @@ comparten la tabla del entorno; no requieren Scan, índice nuevo ni otro
 servicio. Esto describe los roles de ejecución propuestos por Terraform,
 no una ampliación aplicada al rol CI externo.
 
+La configuración de reintentos asíncronos de SelfieIndexer fija seis horas
+y dos reintentos de error. Terraform requiere GetFunctionEventInvokeConfig,
+PutFunctionEventInvokeConfig y DeleteFunctionEventInvokeConfig únicamente
+para la función del PR. Revisar esas acciones contra el rol externo vigente
+antes de activar provisión; no están concedidas por editar este documento.
+
 Las tres decisiones de modelo/contrato/aislamiento están aprobadas y registradas
 en ADR-013, ADR-014 y ADR-015. Antes de apply quedan la revisión del rol externo,
 el plan contra estado real y la compatibilidad de las colecciones legacy.
