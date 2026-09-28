@@ -107,3 +107,31 @@ module "web" {
   cost_center         = var.cost_center
   data_class          = "public"
 }
+
+module "delete_registration" {
+  source               = "../delete-registration"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/deleteRegistration.zip"
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
+  api_id               = module.api_gateway.api_id
+  api_execution_arn    = module.api_gateway.execution_arn
+}
+
+module "retention_purger" {
+  source               = "../retention-purger"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/retentionPurger.zip"
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
+}

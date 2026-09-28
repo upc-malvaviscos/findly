@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-rekognition';
 import {
   DynamoDBDocumentClient,
-  PutCommand,
+  TransactWriteCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -79,7 +79,7 @@ describe('photoMatcher', () => {
     expect(result.batchItemFailures).toEqual([]);
     expect(rekognitionMock.commandCalls(SearchFacesCommand)).toHaveLength(0);
     expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
   it('writes a Match for a face above the threshold found via GSI1', async () => {
@@ -100,16 +100,18 @@ describe('photoMatcher', () => {
         },
       ],
     });
-    dynamoMock.on(PutCommand).resolves({});
+    dynamoMock.on(TransactWriteCommand).resolves({});
 
     const result = await photoMatcher({
       Records: [sqsRecord('msg-1', 'photo-1')],
     });
 
     expect(result.batchItemFailures).toEqual([]);
-    const putCalls = dynamoMock.commandCalls(PutCommand);
+    const putCalls = dynamoMock.commandCalls(TransactWriteCommand);
     expect(putCalls).toHaveLength(1);
-    expect(putCalls[0]?.args[0].input.Item).toMatchObject({
+    expect(
+      putCalls[0]?.args[0].input.TransactItems?.[1]?.Put?.Item,
+    ).toMatchObject({
       PK: 'REG#reg-1',
       SK: 'MATCH#photo-1',
       eventId: 'demo-2026',
@@ -143,7 +145,7 @@ describe('photoMatcher', () => {
       Records: [sqsRecord('msg-1', 'photo-1')],
     });
     expect(result.batchItemFailures).toEqual([]);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
     expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(1);
   });
 
@@ -160,7 +162,7 @@ describe('photoMatcher', () => {
     });
 
     expect(result.batchItemFailures).toEqual([]);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
   it('ignores a matched face that has no registration in GSI1 (e.g. another photo)', async () => {
@@ -177,7 +179,7 @@ describe('photoMatcher', () => {
     });
 
     expect(result.batchItemFailures).toEqual([]);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
   it('ignores a self-match of the freshly indexed face against itself', async () => {
@@ -193,7 +195,7 @@ describe('photoMatcher', () => {
     });
 
     expect(result.batchItemFailures).toEqual([]);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(0);
   });
 
   it('writes a Match for every detected face in a group photo', async () => {
@@ -241,14 +243,14 @@ describe('photoMatcher', () => {
           },
         ],
       });
-    dynamoMock.on(PutCommand).resolves({});
+    dynamoMock.on(TransactWriteCommand).resolves({});
 
     const result = await photoMatcher({
       Records: [sqsRecord('msg-1', 'photo-1')],
     });
 
     expect(result.batchItemFailures).toEqual([]);
-    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(2);
+    expect(dynamoMock.commandCalls(TransactWriteCommand)).toHaveLength(2);
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);
     expect(deleteCalls[0]?.args[0].input.FaceIds).toEqual([
       'detected-face-1',
@@ -274,8 +276,14 @@ describe('photoMatcher', () => {
       ],
     });
     const conditionalError = new Error('conditional check failed');
-    conditionalError.name = 'ConditionalCheckFailedException';
-    dynamoMock.on(PutCommand).rejects(conditionalError);
+    conditionalError.name = 'TransactionCanceledException';
+    Object.assign(conditionalError, {
+      CancellationReasons: [
+        { Code: 'ConditionalCheckFailed' },
+        { Code: 'None' },
+      ],
+    });
+    dynamoMock.on(TransactWriteCommand).rejects(conditionalError);
 
     const result = await photoMatcher({
       Records: [sqsRecord('msg-1', 'photo-1')],

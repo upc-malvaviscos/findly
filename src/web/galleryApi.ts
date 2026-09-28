@@ -1,3 +1,4 @@
+import { executionMode } from './executionMode';
 import type { GalleryResponse } from './types';
 
 const demoGallery: GalleryResponse = {
@@ -39,6 +40,7 @@ export async function getGallery(token: string): Promise<GalleryResponse> {
       );
     return payload as GalleryResponse;
   }
+  if (executionMode !== 'mock') throw new Error('BACKEND_NOT_CONFIGURED');
   await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
   if (token === 'expired') throw new Error('GALLERY_EXPIRED');
   if (!token.startsWith('demo-gallery')) throw new Error('GALLERY_NOT_FOUND');
@@ -69,6 +71,7 @@ export async function deleteRegistration(
     }
     throw new Error(payload.code ?? 'ERASURE_NETWORK_ERROR');
   }
+  if (executionMode !== 'mock') throw new Error('BACKEND_NOT_CONFIGURED');
   await new Promise<void>((resolve) => window.setTimeout(resolve, 120));
   if (token === 'demo-gallery-fail-erasure')
     throw new Error('REGISTRATION_NOT_FOUND');

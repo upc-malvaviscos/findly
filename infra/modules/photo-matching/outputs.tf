@@ -17,3 +17,7 @@ output "function_name" {
   description = "Nombre de la Lambda PhotoMatcher."
   value       = aws_lambda_function.photo_matcher.function_name
 }
+
+output "queue_url" { value = aws_sqs_queue.photos.url }
+output "dlq_url" { value = aws_sqs_queue.photos_dlq.url }
+output "dlq_alarm_name" { value = aws_cloudwatch_metric_alarm.photos_dlq_has_messages.alarm_name }

@@ -6,7 +6,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0, < 6.0"
+      version = ">= 6.0, < 7.0"
     }
   }
 }
@@ -72,7 +72,7 @@ resource "aws_iam_role_policy" "delete_registration" {
         Sid      = "DeleteRegistrationFace"
         Effect   = "Allow"
         Action   = "rekognition:DeleteFaces"
-        Resource = "arn:aws:rekognition:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*"
+        Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*"
       },
     ]
   })
