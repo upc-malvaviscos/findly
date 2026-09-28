@@ -37,6 +37,9 @@ describe('createPresignedUploadUrl', () => {
       Key: 'events/evt-1/selfies/reg-1.jpg',
       ContentType: 'image/jpeg',
     });
-    expect(options).toEqual({ expiresIn: 300 });
+    expect(options).toEqual({
+      expiresIn: 300,
+      signableHeaders: new Set(['content-type']),
+    });
   });
 });

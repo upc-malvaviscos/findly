@@ -10,6 +10,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      thresholds: {
+        'src/lambdas/**/*.ts': { lines: 90 },
+        'src/shared/lib/**/*.ts': { lines: 90 },
+      },
     },
     projects: [
       {
