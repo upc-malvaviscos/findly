@@ -84,3 +84,19 @@ PHOTO#; se corrige a PHOTO: y el test exige el patrón admitido por AWS.
 Referencia: [IndexFaces](https://docs.aws.amazon.com/rekognition/latest/APIReference/API_IndexFaces.html).
 El teardown del run fue exitoso. La aceptación completa sigue pendiente de
 repetir el smoke con la corrección.
+
+## Preflight nativo del runner AWS
+
+El segundo intento de 36475733713 pasó inscripción FAILED/ENROLLED, matching
+S3, galería privada y borrado del FaceId indexado. Falló la ausencia de objeto
+después del rechazo CORS desde el origen prohibido. Teardown exitoso.
+
+La reproducción contra S3 real aisló el runner: con page.route activo del
+documento, Chromium envió PUT sin preflight y bloqueó sólo la respuesta. El
+objeto existía. Retirando esa ruta tras navegar, el origen prohibido fue
+rechazado y el objeto no existía. Ambos objetos de diagnóstico se limpiaron.
+La prueba local independiente confirmó OPTIONS sin routing, PUT con routing
+y OPTIONS al retirarlo. Los dos runners ejecutan ahora page.unroute antes
+de acceder a API/S3. Se conservan las aserciones de firma, CORS y ausencia;
+no se cambia CORS, IAM ni el contrato de subida. La aceptación completa
+del nuevo head aún requiere CI AWS.

@@ -102,6 +102,9 @@ try {
     }),
   );
   await page.goto(document);
+  // Active Chromium routing bypasses CORS preflight even for unmatched URLs.
+  // Restore native networking before the real API/S3 requests.
+  await page.unroute(document);
   const options = {
     page,
     apiEndpoint: api,

@@ -28,6 +28,9 @@ sin Floci. Entre `apply` y `destroy`, crea un usuario Cognito temporal y verific
 administración, firmas S3, inscripción pública, polling y galería con datos
 sintéticos. Los runners adicionales comprueban borrado, purga, redrive y
 observabilidad; su preparación no acredita criterios que todavía no pasan.
+El documento vacío de origen puede suministrarse mediante routing Playwright,
+pero se retira la interceptación antes de API/S3 para conservar el preflight
+nativo de Chromium. La interceptación activa no acredita CORS real.
 El job `e2e` mantiene un recorrido independiente contra Floci y conserva los
 binarios Playwright en `~/.cache/ms-playwright` con una clave exacta de sistema
 operativo y `package-lock.json`.
