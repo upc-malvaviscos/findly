@@ -49,3 +49,6 @@ output "alerts_topic_arn" {
 output "web_bucket_name" { value = module.findly.web_bucket_name }
 output "web_distribution_id" { value = module.findly.web_distribution_id }
 output "web_distribution_domain_name" { value = module.findly.web_distribution_domain_name }
+
+output "delete_registration_function_name" { value = module.findly.delete_registration_function_name }
+output "retention_purger_function_name" { value = module.findly.retention_purger_function_name }

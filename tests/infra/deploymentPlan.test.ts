@@ -31,14 +31,17 @@ describe('deployment plan gate', () => {
       ).toBe(1);
     },
   );
-  it('rejects fixed-cost provisioning', () => {
-    expect(
-      validate({
-        address: 'module.findly.rds',
-        mode: 'managed',
-        type: 'aws_db_instance',
-        change: { actions: ['create'] },
-      }).status,
-    ).toBe(1);
-  });
+  it.each(['aws_db_instance', 'aws_rds_cluster'])(
+    'rejects fixed-cost provisioning: %s',
+    (type) => {
+      expect(
+        validate({
+          address: 'module.findly.rds',
+          mode: 'managed',
+          type,
+          change: { actions: ['create'] },
+        }).status,
+      ).toBe(1);
+    },
+  );
 });

@@ -57,3 +57,9 @@ variable "data_class" {
   type        = string
   default     = "biometric"
 }
+
+variable "selfie_indexer_arn" {
+  description = "Optional SelfieIndexer destination; caller must depend on its S3 invoke permission."
+  type        = string
+  default     = null
+}

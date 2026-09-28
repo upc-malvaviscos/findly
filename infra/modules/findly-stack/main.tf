@@ -83,6 +83,8 @@ module "monitoring" {
 }
 
 module "photo_matching" {
+  selfie_indexer_arn = module.selfie_indexer.lambda_arn
+  depends_on        = [module.selfie_indexer]
   source               = "../photo-matching"
   table_name           = module.dynamodb.table_name
   table_arn            = module.dynamodb.table_arn

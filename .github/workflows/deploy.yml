@@ -80,7 +80,9 @@ jobs:
       - name: Plan and reject resource deletion
         run: |
           plan_file="$RUNNER_TEMP/findly-deployment.tfplan"
-          terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" plan -out="$plan_file"
+          terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" plan -out="$plan_file" \
+            -var="uploads_bucket_name=$TF_VAR_uploads_bucket_name" \
+            -var="frontend_domain_url=$TF_VAR_frontend_domain_url"
           terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" show -json "$plan_file" \
             | node scripts/check-deployment-plan.mjs
       - name: Apply the exact reviewed run plan
