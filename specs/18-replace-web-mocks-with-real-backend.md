@@ -43,7 +43,9 @@ Los errores seguirán el formato `{ code, message, requestId }`. El frontend no 
 3. Implementar la subida con `XMLHttpRequest` para conservar progreso, cancelación y manejo de errores HTTP.
 4. Mantener el polling limitado a 10 intentos cada 1,5 segundos y detenerlo en `ENROLLED` o `FAILED`.
 5. Tratar como errores recuperables los fallos de red, URLs expiradas, respuestas no JSON y estados desconocidos.
-6. No guardar nombres, emails, tokens ni imágenes en `localStorage`, logs del navegador o parámetros URL.
+6. No guardar nombres, emails, tokens ni imágenes en `localStorage` ni logs.
+   El enlace privado de galería usa el token opaco en la URL según spec 08;
+   no añadir otros datos personales a parámetros URL.
 7. Mantener el consentimiento explícito antes de llamar al endpoint de registro y mostrar la política de retención de 30 días definida para el MVP.
 
 ## Seguridad y operación
@@ -99,3 +101,13 @@ La inscripción devuelve `galleryToken` opaco y polling requiere
 enlace de galería al finalizar la inscripción. Esta implementación no añade
 entrega de correo. La verificación AWS efímera sigue siendo una evidencia
 independiente de los tests unitarios.
+
+## Entrega #70
+
+El cliente descubre eventos reales sin parámetro URL, mantiene el token de
+polling sólo en memoria y falla si falta configuración AWS. RegistrationErrors
+y PollingErrors se derivan de logs mediante filtros CloudWatch sin dimensiones
+personales. El cliente expone contadores en memoria de errores de registro,
+subida y polling (`getEnrollmentErrorCounts`), sin IDs, URLs ni payloads.
+No existe un endpoint de telemetría nuevo ni se acredita persistencia de esos
+contadores de cliente.
