@@ -14,8 +14,9 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 
 ### Entidades Principales
 
-- **Event**: `eventId`, `name`, `date`, `retentionDays`, `createdAt`, `status`.
+- **Event**: `eventId`, `name`, `date`, `retentionDays`, `createdAt`, `status`, `cleanupAfter` (interno, opcional).
 - **Registration**: `registrationId`, `eventId`, `email`, `consentTimestamp`, `selfieS3Key`, `faceId`, `tokenHash` (opcional para registros legacy), `status` (`UPLOAD_PENDING` | `PROCESSING` | `ENROLLED` | `FAILED`), `ttl`.
+- **RetentionLocator**: `eventId`, `registrationId`, `tokenHash`, `collectionId`, `selfieS3Key`, `faceIds`, `uploadExpiresAt`, `cleanupAfter`, `cleanupState`, `erasureRequestedAt`, `cleanupCompletedAt`; campos de recuperación opcionales según estado, sin TTL (ADR-013).
 - **Photo**: `photoId`, `eventId`, `s3Key`, `uploadedAt`, `ttl`.
 - **Match**: `matchId`, `eventId`, `registrationId`, `photoId`, `similarity`, `matchedAt`, `ttl`.
 - **GalleryToken**: `tokenHash` (SHA-256), `registrationId`, `eventId`, `expiresAt`, `ttl`.
@@ -31,6 +32,10 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 | **Photo**        | `EVENT#{eventId}`      | `PHOTO#{photoId}`      | `s3Key`, `uploadedAt`, `ttl`                           |
 | **Match**        | `REG#{registrationId}` | `MATCH#{photoId}`      | `eventId`, `similarity`, `matchedAt`, `ttl`            |
 | **GalleryToken** | `TOKEN#{tokenHash}`    | `METADATA`             | `registrationId`, `eventId`, `expiresAt`, `ttl`        |
+
+El locator usa `PK = EVENT#{eventId}` y `SK = RETENTION#{registrationId}`.
+Conserva referencias sensibles de recuperación hasta la purga explícita;
+DynamoDB TTL no puede eliminarlo antes de la limpieza externa.
 
 ### Índice Secundario Global (GSI1)
 
@@ -70,14 +75,14 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 > cliente no tenía forma de construir
 > `DELETE /registrations/{registrationId}` (sección 5) a partir de lo que
 > devuelve esta llamada — solo dispone del token opaco. `registrationId`
-> no es PII (es un identificador opaco generado, igual que en el resto del
-> contrato).
+> es un identificador opaco y pseudónimo que se trata como dato sensible;
+> conocerlo no permite consultar ni borrar sin el token autorizado.
 
 ### 4. Administración de eventos (JWT de Cognito obligatorio)
 
 - `GET /admin/events`: lista eventos administrables.
 - `POST /admin/events`: crea un evento con `{ name: string; date: string; retentionDays: number; }` y devuelve `201` con el `eventId`.
-- `POST /admin/events/{eventId}/photos/uploads`: recibe `{ files: Array<{ fileName: string; contentType: 'image/jpeg'; }> }` y devuelve una URL `PUT` prefirmada y `photoId` por archivo. Solo acepta JWT válido y eventos existentes.
+- `POST /admin/events/{eventId}/photos/uploads`: recibe `{ files: Array<{ fileName: string; contentType: 'image/jpeg'; }> }` y devuelve una URL `PUT` prefirmada y `photoId` por archivo. Solo acepta JWT válido y eventos abiertos y vigentes; devuelve `410 EVENT_EXPIRED` si han cerrado o caducado.
 
 > **Implementado (issue #5):** `src/shared/types/api.ts` y
 > `src/shared/lib/validations.ts` publican los DTOs y validadores de
@@ -94,7 +99,7 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 > **Implementado (issue #10):** `src/lambdas/deleteRegistration.ts`. Sin DTO
 > de petición (solo path param + cabecera); sin cuerpo de respuesta. La ruta
 > `GET /gallery` de issue #9 ya está conectada al HTTP API; la integración
-> gestionada de borrado sigue pendiente de una issue propietaria.
+> gestionada de borrado se incorpora en PR #71; su aceptación AWS sigue pendiente.
 
 ### Errores comunes de API
 
@@ -144,4 +149,4 @@ segundos acotada por la caducidad del evento. REG, TOKEN y locator RETENTION
 sin TTL se crean en una única transacción. El locator conserva IDs faciales
 conocidos; ListFaces paginado recupera la ventana IndexFaces → persistencia.
 Polling no devuelve estado de inscripciones marcadas para borrado.
-Véase ADR-014; los tests del SDK no sustituyen la verificación S3 403/412.
+Véanse ADR-013, ADR-014 y ADR-015; los tests del SDK no sustituyen la verificación S3 403/412.
