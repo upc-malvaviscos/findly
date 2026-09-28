@@ -21,9 +21,8 @@ Terraform, pruebas de aceptación y documentación de las decisiones aprobadas.
 
 ## Pendientes
 
-No se ha ejecutado apply, plan contra estado AWS, aceptación efímera ni
-publicación demo. La sesión AWS local está caducada. El alcance de permisos
-a revisar está en `docs/runbooks/issue-70-aws-review.md`; el runner reproducible
+Se han ejecutado plan, apply y teardown del entorno AWS efímero. Los permisos
+del rol externo fueron aprobados y aplicados; sus límites están en `docs/runbooks/issue-70-aws-review.md`; el runner reproducible
 está descrito en `docs/runbooks/issue-70-acceptance.md`.
 
 La persona responsable aprobó las tres decisiones de continuación:
@@ -32,8 +31,13 @@ ADR-013, ADR-014 y ADR-015 registran modelo, contrato, reconciliación y
 compatibilidad. Su integración y validación se registran a continuación;
 no se declara borrado AWS completo ni se cierran #10, #22 o #70 con mocks.
 
-La PR permanece draft para revisión de código y CI ordinaria. Pasarla a ready
-activaría provisión efímera y exige revisar antes los permisos y el plan.
+La PR está ready con auto-merge activado. Los gates ordinarios están verdes;
+la aceptación AWS completa permanece pendiente. El primer intento del run
+36475733713, head a7b5975, verificó FAILED/ENROLLED y falló en SearchFaces:
+AWS no encontró el FaceId que IndexFaces acababa de devolver. Teardown exitoso.
+Doce reproducciones aisladas con el mismo SDK y fixture ficticio pasaron; sus
+colecciones temporales se eliminaron. Se repite el run sin cambiar el código.
+No se atribuye el fallo a consistencia eventual ni concurrencia sin evidencia.
 
 Las colecciones nuevas incluyen entorno y el runner exige ese namespace.
 Las colecciones legacy se conservan; su inventario, migración y retirada
