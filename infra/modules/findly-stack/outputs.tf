@@ -49,3 +49,5 @@ output "retention_purger_function_name" { value = module.retention_purger.functi
 
 output "public_function_names" { value = module.public_enrollment.lambda_function_names }
 output "selfie_indexer_function_name" { value = module.selfie_indexer.lambda_function_name }
+
+output "collection_namespace" { value = "${var.project}-${var.environment}" }

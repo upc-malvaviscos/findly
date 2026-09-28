@@ -1,3 +1,5 @@
+output "collection_namespace" { value = module.findly.collection_namespace }
+
 output "api_endpoint" {
   value = module.findly.api_endpoint
 }
