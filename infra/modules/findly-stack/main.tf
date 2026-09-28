@@ -83,8 +83,8 @@ module "monitoring" {
 }
 
 module "photo_matching" {
-  selfie_indexer_arn = module.selfie_indexer.lambda_arn
-  depends_on        = [module.selfie_indexer]
+  selfie_indexer_arn   = module.selfie_indexer.lambda_arn
+  depends_on           = [module.selfie_indexer]
   source               = "../photo-matching"
   table_name           = module.dynamodb.table_name
   table_arn            = module.dynamodb.table_arn
@@ -132,6 +132,34 @@ module "retention_purger" {
   uploads_bucket_name  = module.uploads_bucket.bucket_name
   uploads_bucket_arn   = module.uploads_bucket.bucket_arn
   lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/retentionPurger.zip"
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
+}
+
+module "public_enrollment" {
+  source                          = "../public-enrollment"
+  api_id                          = module.api_gateway.api_id
+  api_execution_arn               = module.api_gateway.execution_arn
+  table_name                      = module.dynamodb.table_name
+  table_arn                       = module.dynamodb.table_arn
+  uploads_bucket_name             = module.uploads_bucket.bucket_name
+  uploads_bucket_arn              = module.uploads_bucket.bucket_arn
+  public_events_artifact_path     = "${path.module}/../../../artifacts/lambdas/publicEvents.zip"
+  public_enrollment_artifact_path = "${path.module}/../../../artifacts/lambdas/publicEnrollment.zip"
+  project                         = var.project
+  environment                     = var.environment
+  cost_center                     = var.cost_center
+  data_class                      = var.data_class
+}
+module "selfie_indexer" {
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  source               = "../selfie-indexer"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/selfieIndexer.zip"
   project              = var.project
   environment          = var.environment
   cost_center          = var.cost_center

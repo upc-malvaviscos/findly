@@ -52,3 +52,6 @@ output "web_distribution_domain_name" { value = module.findly.web_distribution_d
 
 output "delete_registration_function_name" { value = module.findly.delete_registration_function_name }
 output "retention_purger_function_name" { value = module.findly.retention_purger_function_name }
+
+output "public_function_names" { value = module.findly.public_function_names }
+output "selfie_indexer_function_name" { value = module.findly.selfie_indexer_function_name }

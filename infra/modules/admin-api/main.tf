@@ -50,7 +50,7 @@ resource "aws_lambda_function" "function" {
   function_name    = "${var.project}-${var.environment}-admin-${each.key}"
   role             = aws_iam_role.function[each.key].arn
   handler          = each.value.handler
-  runtime          = "nodejs22.x"
+  runtime          = "nodejs24.x"
   memory_size      = 256
   timeout          = 3
   filename         = var.lambda_artifact_path

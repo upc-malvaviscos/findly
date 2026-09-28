@@ -82,7 +82,7 @@ resource "aws_lambda_function" "delete_registration" {
   function_name    = local.function_name
   role             = aws_iam_role.delete_registration.arn
   handler          = "deleteRegistration.deleteRegistration"
-  runtime          = "nodejs22.x"
+  runtime          = "nodejs24.x"
   memory_size      = 256
   timeout          = 30
   filename         = var.lambda_artifact_path

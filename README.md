@@ -46,7 +46,7 @@ flowchart LR
 | -------------------------- | ------------------------------------------------------------------------------ |
 | Frontend y distribución    | React con Vite, TypeScript, Amazon S3 para la web y Amazon CloudFront.         |
 | Seguridad e identidad      | Amazon Cognito para autenticar a los organizadores.                            |
-| API y procesamiento        | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 22.                 |
+| API y procesamiento        | Amazon API Gateway HTTP y funciones AWS Lambda con Node.js 24.                 |
 | Datos, imágenes y matching | Amazon DynamoDB on-demand, buckets privados de Amazon S3 y Amazon Rekognition. |
 | Automatización y retención | Amazon EventBridge Scheduler y Lambda de retención.                            |
 | Observabilidad y FinOps    | Amazon CloudWatch, Amazon SNS y AWS Budgets.                                   |

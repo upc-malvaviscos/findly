@@ -182,7 +182,7 @@ resource "aws_lambda_function" "photo_matcher" {
   function_name    = local.function_name
   role             = aws_iam_role.photo_matcher.arn
   handler          = "photoMatcher.photoMatcher"
-  runtime          = "nodejs22.x" # runtime AWS Lambda gestionado; el tooling local usa Node 24 (ver README)
+  runtime          = "nodejs24.x"
   memory_size      = 512
   timeout          = local.lambda_timeout_seconds
   filename         = var.lambda_artifact_path

@@ -19,6 +19,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       AWS_REGION: eu-west-1
       TF_IN_AUTOMATION: 'true'
@@ -115,6 +116,8 @@ jobs:
             [.ServerSideEncryptionConfiguration.Rules[]?.ApplyServerSideEncryptionByDefault.SSEAlgorithm]
             | index("AES256") != null
           ' <<< "$bucket_encryption" > /dev/null
+      - name: Install Chromium for deployed browser verification
+        run: npm exec -- playwright install --with-deps chromium
       - name: Run the deployed AWS organizer happy path
         run: |
           user_name="ci-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}"
@@ -148,6 +151,19 @@ jobs:
           EPHEMERAL_DYNAMODB_TABLE_NAME="$(terraform -chdir=infra/ephemeral output -raw dynamodb_table_name)" \
           EPHEMERAL_UPLOADS_BUCKET_NAME="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)" \
           node scripts/deployed-ephemeral-happy-path.mjs
+          export EPHEMERAL_API_ENDPOINT="$(terraform -chdir=infra/ephemeral output -raw api_endpoint)"
+          export EPHEMERAL_ID_TOKEN="$id_token"
+          export EPHEMERAL_DYNAMODB_TABLE_NAME="$(terraform -chdir=infra/ephemeral output -raw dynamodb_table_name)"
+          export EPHEMERAL_UPLOADS_BUCKET_NAME="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)"
+          export EPHEMERAL_FRONTEND_ORIGIN="$(terraform -chdir=infra/ephemeral output -raw frontend_origin)"
+          export EPHEMERAL_RESOURCE_PREFIX="findly-pr-${{ github.event.pull_request.number }}"
+          export EPHEMERAL_RETENTION_FUNCTION_NAME="$(terraform -chdir=infra/ephemeral output -raw retention_purger_function_name)"
+          export EPHEMERAL_PHOTOS_QUEUE_URL="$(terraform -chdir=infra/ephemeral output -raw photos_queue_url)"
+          export EPHEMERAL_PHOTOS_DLQ_URL="$(terraform -chdir=infra/ephemeral output -raw photos_dlq_url)"
+          export EPHEMERAL_ALERT_QUEUE_URL="$(terraform -chdir=infra/ephemeral output -raw alert_probe_queue_url)"
+          export PHOTOS_DLQ_ALARM_NAME="$(terraform -chdir=infra/ephemeral output -raw photos_dlq_alarm_name)"
+          export EPHEMERAL_LAMBDA_FUNCTION_NAMES="$(terraform -chdir=infra/ephemeral output -json lambda_function_names)"
+          node scripts/deployed-issue-70-acceptance.mjs
       - name: Destroy the PR environment
         if: ${{ always() && steps.aws.outcome == 'success' }}
         env:

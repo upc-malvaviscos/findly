@@ -15,6 +15,8 @@ comparar acciones; esta lista describe necesidades, no autorizaciones globales.
 
 | Uso                          | Acciones necesarias                                                                                                                                                                                 | Recursos                                                                                             |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Colecciones sintéticas       | rekognition:ListFaces, DeleteCollection                                                                                                                                                             | sólo colecciones de eventos sintéticos creados por el run; comparar tags Project/Environment         |
+| Métricas de error            | logs:PutMetricFilter, DeleteMetricFilter, DescribeMetricFilters                                                                                                                                     | grupos /aws/lambda/findly-pr-_-public-_                                                              |
 | Cola y DLQ                   | sqs:CreateQueue, GetQueueAttributes, SetQueueAttributes, DeleteQueue, TagQueue, UntagQueue, ListQueueTags, GetQueueUrl                                                                              | ARN de colas findly-pr-* en cuenta y eu-west-1                                                       |
 | Pruebas redrive/alerta       | sqs:SendMessage, ReceiveMessage, DeleteMessage, ChangeMessageVisibility                                                                                                                             | cola/DLQ/suscriptor del PR probado                                                                   |
 | Topic y suscriptor de prueba | sns:CreateTopic, GetTopicAttributes, SetTopicAttributes, DeleteTopic, TagResource, UntagResource, ListTagsForResource, Subscribe, GetSubscriptionAttributes, SetSubscriptionAttributes, Unsubscribe | topic findly-pr-*-alerts y suscripciones de ese topic                                                |
@@ -54,3 +56,12 @@ La aceptación efímera no acredita una SPA demo publicada ni el cron real. El
 smoke invoca RetentionPurger manualmente. SNS→SQS prueba entrega automática de
 la alarma; no correo confirmado ni el disparo de Budgets. Nunca generar gasto
 para forzar un umbral. #13/#18/#61 siguen abiertas hasta su evidencia propia.
+
+## Upgrade aprobado de proveedor
+
+La persona responsable aprobó AWS provider 6.x para Lambda Node 24. Los cinco
+lockfiles seleccionan 6.66.0. Todos los módulos Lambda se alinean con el
+target Node 24 del empaquetado. No se migra ninguna tabla ni índice: hash_key
+y range_key mantienen el esquema existente. validate advierte deprecación;
+el esquema local del proveedor todavía no expone key_schema. Se conserva la
+configuración y se exige plan real sin destrucciones antes del apply.

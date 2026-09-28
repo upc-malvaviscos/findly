@@ -72,7 +72,7 @@ resource "aws_lambda_function" "gallery_reader" {
   function_name    = local.function_name
   role             = aws_iam_role.gallery_reader.arn
   handler          = "gallery.gallery"
-  runtime          = "nodejs22.x"
+  runtime          = "nodejs24.x"
   memory_size      = 256
   timeout          = 5
   filename         = var.lambda_artifact_path

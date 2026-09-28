@@ -72,3 +72,16 @@ resource "aws_lambda_permission" "public" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${var.api_execution_arn}/*/${replace(split(" ", each.value.route)[0], " ", "")}/${replace(replace(trimprefix(split(" ", each.value.route)[1], "/"), "{eventId}", "*"), "{registrationId}", "*")}"
 }
+
+resource "aws_cloudwatch_log_metric_filter" "public_errors" {
+  for_each       = toset(["register", "status"])
+  name           = "${local.prefix}-${each.key}-errors"
+  log_group_name = aws_cloudwatch_log_group.public[each.key].name
+  pattern        = "{ ($.statusCode >= 400) || ($.level = \"ERROR\") }"
+  metric_transformation {
+    name          = each.key == "register" ? "RegistrationErrors" : "PollingErrors"
+    namespace     = "Findly/${var.environment}"
+    value         = "1"
+    default_value = "0"
+  }
+}

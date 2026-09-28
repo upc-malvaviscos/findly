@@ -46,3 +46,6 @@ output "web_distribution_domain_name" { value = try(module.web[0].distribution_d
 
 output "delete_registration_function_name" { value = module.delete_registration.lambda_function_name }
 output "retention_purger_function_name" { value = module.retention_purger.function_name }
+
+output "public_function_names" { value = module.public_enrollment.lambda_function_names }
+output "selfie_indexer_function_name" { value = module.selfie_indexer.lambda_function_name }

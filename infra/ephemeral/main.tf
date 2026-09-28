@@ -167,8 +167,8 @@ resource "aws_sns_topic_subscription" "alert_probe" {
 }
 
 module "photo_matching" {
-  selfie_indexer_arn = module.selfie_indexer.lambda_arn
-  depends_on        = [module.selfie_indexer]
+  selfie_indexer_arn   = module.selfie_indexer.lambda_arn
+  depends_on           = [module.selfie_indexer]
   source               = "../modules/photo-matching"
   table_name           = module.dynamodb.table_name
   table_arn            = module.dynamodb.table_arn
@@ -176,6 +176,34 @@ module "photo_matching" {
   uploads_bucket_arn   = module.uploads_bucket.bucket_arn
   lambda_artifact_path = "../../artifacts/lambdas/photoMatcher.zip"
   dlq_alarm_actions    = [module.monitoring.alerts_topic_arn]
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+}
+
+module "public_enrollment" {
+  source                          = "../modules/public-enrollment"
+  api_id                          = module.api_gateway.api_id
+  api_execution_arn               = module.api_gateway.execution_arn
+  table_name                      = module.dynamodb.table_name
+  table_arn                       = module.dynamodb.table_arn
+  uploads_bucket_name             = module.uploads_bucket.bucket_name
+  uploads_bucket_arn              = module.uploads_bucket.bucket_arn
+  public_events_artifact_path     = "../../artifacts/lambdas/publicEvents.zip"
+  public_enrollment_artifact_path = "../../artifacts/lambdas/publicEnrollment.zip"
+  project                         = "findly"
+  environment                     = local.environment
+  cost_center                     = "findly-ci"
+  data_class                      = "synthetic"
+}
+module "selfie_indexer" {
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  source               = "../modules/selfie-indexer"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/selfieIndexer.zip"
   project              = "findly"
   environment          = local.environment
   cost_center          = "findly-ci"
