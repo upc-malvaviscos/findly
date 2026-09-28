@@ -142,12 +142,20 @@ async function eraseRegistration(
 
   if (registrationRecord?.faceId) {
     try {
-      await rekognition.send(
+      const deleted = await rekognition.send(
         new DeleteFacesCommand({
           CollectionId: eventCollectionId(eventId),
           FaceIds: [registrationRecord.faceId],
         }),
       );
+      if (
+        deleted.UnsuccessfulFaceDeletions?.some(
+          (face) =>
+            !face.Reasons?.length ||
+            face.Reasons.some((reason) => reason !== 'FACE_NOT_FOUND'),
+        )
+      )
+        throw new Error('FaceDeletionFailed');
     } catch (deleteFaceError) {
       if (!isMissingResourceError(deleteFaceError)) throw deleteFaceError;
     }

@@ -182,6 +182,23 @@ describe('deleteRegistration lambda', () => {
     expect(result.statusCode).toBe(204);
   });
 
+  it('retains records when Rekognition reports an unsuccessful face deletion', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({ Item: { faceId: 'face-1' } });
+    rekognitionMock.on(DeleteFacesCommand).resolves({
+      UnsuccessfulFaceDeletions: [
+        { FaceId: 'face-1', Reasons: ['ASSOCIATED_TO_AN_EXISTING_USER'] },
+      ],
+    });
+    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
+      'FaceDeletionFailed',
+    );
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
+    expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
+  });
+
   it('propagates an unexpected Rekognition error instead of silently succeeding', async () => {
     dynamoMock
       .on(GetCommand)
