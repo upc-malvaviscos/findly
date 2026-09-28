@@ -50,7 +50,7 @@ Permitir la transferencia segura de imágenes directamente desde el navegador a 
       _(Verificado con test unitario en `createPresignedUploadUrl`.)_
 - [x] El bucket S3 esta configurado para permitir unicamente `PUT` desde el
       origen exacto del frontend, con cabeceras firmadas restringidas a
-      `Content-Type`.
+      `Content-Type` y `If-None-Match` para selfies de una sola escritura.
       _(Implementado en `infra/modules/uploads-bucket` y validado con
       `terraform validate`; la verificacion en vivo del rechazo de firma/CORS
       requiere un bucket desplegado, pendiente de la issue #11.)_
@@ -71,3 +71,10 @@ S3; la Lambda no recibe la imagen.
 los filtros S3 de selfies y fotos. El presigner firma explícitamente
 `content-type`; el test con SDK real inspecciona SignedHeaders. La prueba de
 firma manipulada y CORS en AWS sigue pendiente hasta ejecutar su smoke.
+
+La decisión aprobada de selfies inmutables (ADR-014) firma además
+`If-None-Match: *` y exige esa cabecera en el cliente. El primer PUT crea el
+objeto; una segunda escritura devuelve 412. Las fotos de organizador conservan
+su contrato anterior. El smoke público comprueba omisión de cabecera firmada,
+carga inicial y rechazo de sobrescritura en el origen real; está preparado,
+no ejecutado en AWS.

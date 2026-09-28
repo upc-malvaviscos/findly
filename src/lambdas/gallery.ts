@@ -105,6 +105,7 @@ async function serveGallery(
         TableName: tableName,
         Key: galleryTokenKey(tokenHash),
         ProjectionExpression: 'registrationId, eventId, expiresAt',
+        ConsistentRead: true,
       }),
     )
   ).Item as
