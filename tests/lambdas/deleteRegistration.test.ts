@@ -104,6 +104,50 @@ describe('deleteRegistration lambda', () => {
     expect(deletedKeys).toContainEqual({ PK: 'EVENT#evt-1', SK: 'REG#reg-1' });
   });
 
+  it('deletes every matches page before revoking a mixed-case token header', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({ Item: {} });
+    const cursor = { PK: 'REG#reg-1', SK: 'MATCH#photo-1' };
+    dynamoMock
+      .on(QueryCommand)
+      .resolvesOnce({
+        Items: [{ photoId: 'photo-1' }],
+        LastEvaluatedKey: cursor,
+      })
+      .resolvesOnce({ Items: [{ photoId: 'photo-2' }] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    const result = await deleteRegistration({
+      pathParameters: { registrationId: 'reg-1' },
+      headers: { 'X-Gallery-Token': 'token' },
+    });
+    expect(result.statusCode).toBe(204);
+    expect(
+      dynamoMock.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey,
+    ).toEqual(cursor);
+    expect(
+      dynamoMock
+        .commandCalls(DeleteCommand)
+        .map((call) => call.args[0].input.Key),
+    ).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#photo-2' });
+  });
+
+  it('keeps the registration and token available for retry if a match delete fails', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({ Item: {} });
+    dynamoMock.on(QueryCommand).resolves({ Items: [{ photoId: 'photo-1' }] });
+    dynamoMock.on(DeleteCommand).rejects(new Error('temporary outage'));
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
+      'temporary outage',
+    );
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(1);
+  });
+
   it('skips the Rekognition call when the registration has no faceId', async () => {
     dynamoMock
       .on(GetCommand)

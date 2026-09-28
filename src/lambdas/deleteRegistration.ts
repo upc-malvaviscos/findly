@@ -98,7 +98,9 @@ async function eraseRegistration(
     error(statusCode, code, message, request.correlationId);
 
   const registrationId = event.pathParameters?.registrationId;
-  const token = event.headers?.['x-gallery-token'];
+  const token = Object.entries(event.headers ?? {}).find(
+    ([name]) => name.toLowerCase() === 'x-gallery-token',
+  )?.[1];
   if (!registrationId || !token)
     return fail(
       400,
@@ -162,8 +164,10 @@ async function eraseRegistration(
     if (!isMissingResourceError(deleteSelfieError)) throw deleteSelfieError;
   }
 
-  const matches = (
-    await dynamo.send(
+  let matchesDeleted = 0;
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+  do {
+    const page = await dynamo.send(
       new QueryCommand({
         TableName: tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
@@ -172,24 +176,29 @@ async function eraseRegistration(
           ':sk': MATCH_SK_PREFIX,
         },
         ProjectionExpression: 'photoId',
+        ConsistentRead: true,
+        ExclusiveStartKey: exclusiveStartKey,
       }),
-    )
-  ).Items as Partial<Pick<MatchEntity, 'photoId'>>[] | undefined;
-
-  const photoIds = (matches ?? [])
-    .map((match) => match.photoId)
-    .filter((photoId): photoId is string => Boolean(photoId));
-
-  await Promise.all(
-    photoIds.map((photoId) =>
-      dynamo.send(
-        new DeleteCommand({
-          TableName: tableName,
-          Key: matchKey(registrationId, photoId),
-        }),
+    );
+    const matches = page.Items as
+      Partial<Pick<MatchEntity, 'photoId'>>[] | undefined;
+    const photoIds = (matches ?? [])
+      .map((match) => match.photoId)
+      .filter((photoId): photoId is string => Boolean(photoId));
+    await Promise.all(
+      photoIds.map((photoId) =>
+        dynamo.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: matchKey(registrationId, photoId),
+          }),
+        ),
       ),
-    ),
-  );
+    );
+    matchesDeleted += photoIds.length;
+    exclusiveStartKey = page.LastEvaluatedKey as
+      Record<string, unknown> | undefined;
+  } while (exclusiveStartKey);
 
   await dynamo.send(
     new DeleteCommand({
@@ -211,7 +220,7 @@ async function eraseRegistration(
   // request summary line and to the requestId the client received.
   request.info('registration_erased', {
     eventId,
-    matchesDeleted: photoIds.length,
+    matchesDeleted,
     faceDeleted: Boolean(registrationRecord?.faceId),
   });
 

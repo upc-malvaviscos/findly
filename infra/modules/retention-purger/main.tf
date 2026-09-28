@@ -1,4 +1,5 @@
 terraform {
+  required_version = ">= 1.10"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -15,7 +16,7 @@ locals {
     CostCenter  = var.cost_center
     DataClass   = var.data_class
   }
-  function_name = "findly-retention-purger"
+  function_name = "${var.project}-${var.environment}-retention-purger"
   # La spec 09 no fija memoria/timeout para esta Lambda (a diferencia de
   # SelfieIndexer y PhotoMatcher, que si los especifican). Valores propios
   # razonables para un cron por lotes sin presion de latencia de usuario.
@@ -61,9 +62,15 @@ resource "aws_iam_role_policy" "retention_purger" {
         Resource = "${aws_cloudwatch_log_group.retention_purger.arn}:*"
       },
       {
-        Sid      = "ScanEvents"
+        Sid      = "QueryEvents"
         Effect   = "Allow"
-        Action   = "dynamodb:Scan"
+        Action   = "dynamodb:Query"
+        Resource = [var.table_arn, "${var.table_arn}/index/GSI2"]
+      },
+      {
+        Sid      = "DeleteExpiredEventRecords"
+        Effect   = "Allow"
+        Action   = "dynamodb:DeleteItem"
         Resource = var.table_arn
       },
       {
@@ -108,7 +115,8 @@ resource "aws_lambda_function" "retention_purger" {
     }
   }
 
-  tags = local.tags
+  depends_on = [aws_cloudwatch_log_group.retention_purger]
+  tags       = local.tags
 }
 
 resource "aws_iam_role" "scheduler" {
