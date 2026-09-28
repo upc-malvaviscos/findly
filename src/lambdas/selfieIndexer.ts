@@ -70,24 +70,29 @@ export async function selfieIndexer(
     )
       continue;
     const claim = randomUUID();
-    await db.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: primaryKey,
-        UpdateExpression:
-          'SET #status = :processing, processingLeaseUntil = :lease, processingClaim = :claim',
-        ConditionExpression:
-          'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND (#status = :pending OR (#status = :processing AND processingLeaseUntil < :now))',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: {
-          ':processing': 'PROCESSING',
-          ':pending': 'UPLOAD_PENDING',
-          ':lease': Date.now() + 30000,
-          ':now': Date.now(),
-          ':claim': claim,
-        },
-      }),
-    );
+    try {
+      await db.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: primaryKey,
+          UpdateExpression:
+            'SET #status = :processing, processingLeaseUntil = :lease, processingClaim = :claim',
+          ConditionExpression:
+            'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND (#status = :pending OR (#status = :processing AND processingLeaseUntil < :now))',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':processing': 'PROCESSING',
+            ':pending': 'UPLOAD_PENDING',
+            ':lease': Date.now() + 30000,
+            ':now': Date.now(),
+            ':claim': claim,
+          },
+        }),
+      );
+    } catch (failure) {
+      if (errorNameOf(failure) === 'ConditionalCheckFailedException') continue;
+      throw failure;
+    }
     let faceId: string | undefined;
     try {
       try {
@@ -174,13 +179,38 @@ export async function selfieIndexer(
 
       // A registration erased during indexing must not leave a biometric orphan.
       if (faceId && errorNameOf(error) === 'ConditionalCheckFailedException') {
+        const latest = (
+          await db.send(
+            new GetCommand({
+              TableName: tableName,
+              Key: primaryKey,
+              ConsistentRead: true,
+            }),
+          )
+        ).Item as RegistrationEntity | undefined;
+        if (
+          latest &&
+          !('erasureRequestedAt' in latest) &&
+          ((latest.status === 'ENROLLED' && latest.faceId === faceId) ||
+            latest.status === 'PROCESSING')
+        )
+          continue;
         try {
-          await rekognition.send(
+          const deletion = await rekognition.send(
             new DeleteFacesCommand({
               CollectionId: eventCollectionId(eventId!),
               FaceIds: [faceId],
             }),
           );
+          if (
+            deletion.UnsuccessfulFaceDeletions?.some(
+              (failure) =>
+                !failure.Reasons?.every(
+                  (reason) => reason === 'FACE_NOT_FOUND',
+                ),
+            )
+          )
+            throw new Error('FACE_CLEANUP_INCOMPLETE');
         } catch (failure) {
           if (errorNameOf(failure) !== 'ResourceNotFoundException')
             throw failure;

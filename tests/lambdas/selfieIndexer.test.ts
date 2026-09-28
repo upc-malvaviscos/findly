@@ -150,11 +150,9 @@ describe('selfie indexer', () => {
     });
     expect(db.calls()).toHaveLength(0);
   });
-  it('retries contention without indexing twice', async () => {
+  it('ignores duplicate contention without indexing twice', async () => {
     db.on(UpdateCommand).rejects({ name: 'ConditionalCheckFailedException' });
-    await expect(selfieIndexer(event)).rejects.toMatchObject({
-      name: 'ConditionalCheckFailedException',
-    });
+    await selfieIndexer(event);
     expect(faces.calls()).toHaveLength(0);
   });
   it('recovers PROCESSING after an expired lease using the same external image identity', async () => {
@@ -178,6 +176,16 @@ describe('selfie indexer', () => {
     expect(db.commandCalls(UpdateCommand)).toHaveLength(1);
   });
   it('cleans up an indexed face when concurrent erasure invalidates persistence', async () => {
+    db.on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          status: 'UPLOAD_PENDING',
+          consentTimestamp: 'yes',
+          selfieS3Key: key,
+          ttl: Math.floor(Date.now() / 1000) + 600,
+        },
+      })
+      .resolves({});
     db.on(UpdateCommand)
       .resolvesOnce({})
       .rejects({ name: 'ConditionalCheckFailedException' });
@@ -186,5 +194,51 @@ describe('selfie indexer', () => {
     expect(
       faces.commandCalls(DeleteFacesCommand)[0]?.args[0].input.FaceIds,
     ).toEqual(['synthetic-face']);
+  });
+  it('preserves the deduplicated face committed by the winning worker', async () => {
+    db.on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          status: 'UPLOAD_PENDING',
+          consentTimestamp: 'yes',
+          selfieS3Key: key,
+          ttl: Math.floor(Date.now() / 1000) + 600,
+        },
+      })
+      .resolves({ Item: { status: 'ENROLLED', faceId: 'synthetic-face' } });
+    db.on(UpdateCommand)
+      .resolvesOnce({})
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    await selfieIndexer(event);
+    expect(faces.commandCalls(DeleteFacesCommand)).toHaveLength(0);
+    expect(db.commandCalls(GetCommand)[1]?.args[0].input.ConsistentRead).toBe(
+      true,
+    );
+  });
+  it('fails closed when Rekognition reports an individual cleanup failure with HTTP 200', async () => {
+    db.on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          status: 'UPLOAD_PENDING',
+          consentTimestamp: 'yes',
+          selfieS3Key: key,
+          ttl: Math.floor(Date.now() / 1000) + 600,
+        },
+      })
+      .resolves({});
+    db.on(UpdateCommand)
+      .resolvesOnce({})
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    faces.on(DeleteFacesCommand).resolves({
+      UnsuccessfulFaceDeletions: [
+        {
+          FaceId: 'synthetic-face',
+          Reasons: ['ASSOCIATED_TO_AN_EXISTING_USER'],
+        },
+      ],
+    });
+    await expect(selfieIndexer(event)).rejects.toThrow(
+      'FACE_CLEANUP_INCOMPLETE',
+    );
   });
 });
