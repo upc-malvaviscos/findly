@@ -61,3 +61,10 @@ resuelve `findly-pr-70-event-evt-synthetic` sin llamadas AWS. Terraform validate
 de las cinco raíces pasa con provider 6.66; mantiene avisos de deprecación de
 hash_key/range_key de DynamoDB, ajenos al cambio. No se ejecutó apply ni
 se modificaron políticas persistentes de la cuenta.
+
+## Configuración pública del locator
+
+PublicEnrollment también consume FINDLY_COLLECTION_NAMESPACE al persistir
+collectionId en RETENTION, aunque no llama directamente a Rekognition. Su
+módulo configura el mismo prefijo que los procesadores y la limpieza; la
+regresión valida entorno Lambda AWS y el collectionId guardado.

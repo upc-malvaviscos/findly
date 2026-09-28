@@ -27,6 +27,17 @@ describe('Rekognition namespace infrastructure boundary', () => {
     expect(module).not.toContain('collection/findly-event-*');
   });
 
+  it('provides the collection namespace to the public registration locator', () => {
+    const module = readFileSync(
+      'infra/modules/public-enrollment/main.tf',
+      'utf8',
+    );
+    expect(module).toMatch(
+      /prefix\s*=\s*"\$\{var.project\}-\$\{var.environment\}"/,
+    );
+    expect(module).toMatch(/FINDLY_COLLECTION_NAMESPACE\s*=\s*local.prefix/);
+  });
+
   it('exports the PR collection namespace for safe smoke cleanup', () => {
     const outputs = readFileSync('infra/ephemeral/outputs.tf', 'utf8');
     expect(outputs).toContain(

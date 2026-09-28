@@ -43,3 +43,21 @@ globales para aparentar compatibilidad.
 CI detectó SC2155 mediante ShellCheck, ausente del entorno local. Los workflows
 separan asignación de outputs y export para no ocultar fallos Terraform.
 La provisión efímera aplica exactamente el archivo de plan inspeccionado.
+
+## Corrección CI AWS: 2026-09-28
+
+El intento 3 de 36464575720 pasó provisión y el recorrido desplegado de
+organizador/galería sembrada. Inscripción pública falló porque el módulo
+public-enrollment omitía FINDLY_COLLECTION_NAMESPACE; se añade local.prefix
+y una regresión de configuración y transacción con entorno Lambda AWS.
+La validación local pasa 294 tests en 38 archivos. Este resultado no acredita
+aún inscripción, matching, purga, redrive o alarma desplegados.
+
+El teardown se bloqueó al consultar un mapping después de eliminarlo: AWS
+autoriza esa llamada con Resource `*`. La lectura regional adicional permanece
+pendiente de aprobación; recuperación usa el backend y plan PR #71 revisados.
+
+Recuperación del intento 3 completada: 12 recursos restantes destruidos,
+0 creados/cambiados; terraform state list devuelve vacío. No se han borrado
+backend ni políticas del rol CI. El check continúa fallido hasta repetir
+con la corrección y el permiso de lectura adicional aprobado.

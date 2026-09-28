@@ -46,7 +46,7 @@ resource "aws_lambda_function" "public" {
   filename         = each.value.artifact
   source_code_hash = filebase64sha256(each.value.artifact)
   environment {
-    variables = { FINDLY_TABLE_NAME = var.table_name, FINDLY_PHOTO_BUCKET = var.uploads_bucket_name }
+    variables = { FINDLY_TABLE_NAME = var.table_name, FINDLY_PHOTO_BUCKET = var.uploads_bucket_name, FINDLY_COLLECTION_NAMESPACE = local.prefix }
   }
   depends_on = [aws_cloudwatch_log_group.public]
   tags       = local.tags

@@ -23,6 +23,7 @@ const request = {
   body: JSON.stringify({ consentBiometrics: true, consentTerms: true }),
 };
 beforeEach(() => {
+  vi.unstubAllEnvs();
   db.reset();
   db.on(GetCommand).resolves({
     Item: {
@@ -47,6 +48,8 @@ describe('public enrollment', () => {
     expect(db.calls()).toHaveLength(0);
   });
   it('issues an opaque capability and atomically persists only its hash', async () => {
+    vi.stubEnv('FINDLY_COLLECTION_NAMESPACE', 'findly-pr-71');
+    vi.stubEnv('AWS_LAMBDA_FUNCTION_NAME', 'findly-pr-71-public-register');
     const result = await createPublicRegistration(request);
     expect(result.statusCode).toBe(201);
     const payload = JSON.parse(result.body) as {
@@ -71,6 +74,7 @@ describe('public enrollment', () => {
       SK: `RETENTION#${payload.registrationId}`,
       tokenHash: hash,
       cleanupState: 'ACTIVE',
+      collectionId: 'findly-pr-71-event-demo',
     });
     expect(transaction?.TransactItems?.[3]?.Put?.Item).not.toHaveProperty(
       'ttl',
