@@ -1,20 +1,24 @@
 import {
   DeleteCollectionCommand,
+  DeleteFacesCommand,
+  ListFacesCommand,
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
 import {
   DeleteObjectsCommand,
+  DeleteObjectCommand,
   ListObjectsV2Command,
   S3Client,
 } from '@aws-sdk/client-s3';
 import {
   DeleteCommand,
+  GetCommand,
   DynamoDBDocumentClient,
   QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { retentionPurger } from '../../src/lambdas/retentionPurger';
 import { captureLogs } from './lib/logCapture';
 
@@ -28,6 +32,7 @@ afterEach(() => {
   dynamoMock.reset();
   rekognitionMock.reset();
   s3Mock.reset();
+  vi.unstubAllEnvs();
 });
 
 const oldEnoughDate = new Date(
@@ -36,6 +41,9 @@ const oldEnoughDate = new Date(
 beforeEach(() => {
   dynamoMock.on(QueryCommand).resolves({ Items: [] });
   dynamoMock.on(DeleteCommand).resolves({});
+  rekognitionMock.on(ListFacesCommand).resolves({ Faces: [] });
+  rekognitionMock.on(DeleteFacesCommand).resolves({});
+  s3Mock.on(DeleteObjectCommand).resolves({});
 });
 
 const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
@@ -242,6 +250,194 @@ describe('retentionPurger lambda', () => {
         .commandCalls(DeleteCommand)
         .map((call) => call.args[0].input.Key),
     ).not.toContainEqual({ PK: 'EVENT#evt-expired', SK: 'METADATA' });
+  });
+
+  it('purges locator-linked MATCH and TOKEN even when REG expired first', async () => {
+    const locator = {
+      PK: 'EVENT#evt-expired',
+      SK: 'RETENTION#reg-1',
+      eventId: 'evt-expired',
+      registrationId: 'reg-1',
+      tokenHash: 'hash-1',
+      selfieS3Key: 'events/evt-expired/selfies/reg-1.selfie.jpg',
+      cleanupAfter: 1,
+    };
+    dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
+      Items: [
+        {
+          eventId: 'evt-expired',
+          createdAt: oldEnoughDate,
+          retentionDays: 30,
+        },
+      ],
+    });
+    dynamoMock
+      .on(QueryCommand, {
+        ExpressionAttributeValues: { ':pk': 'EVENT#evt-expired' },
+      })
+      .resolves({ Items: [locator] });
+    dynamoMock
+      .on(QueryCommand, { ExpressionAttributeValues: { ':pk': 'REG#reg-1' } })
+      .resolves({ Items: [{ PK: 'REG#reg-1', SK: 'MATCH#1' }] });
+    rekognitionMock.on(DeleteCollectionCommand).resolves({});
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+    expect((await retentionPurger()).expiredEvents).toBe(1);
+    const keys = dynamoMock
+      .commandCalls(DeleteCommand)
+      .map((call) => call.args[0].input.Key);
+    expect(keys).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#1' });
+    expect(keys).toContainEqual({ PK: 'TOKEN#hash-1', SK: 'METADATA' });
+    expect(keys.at(-1)).toEqual({ PK: 'EVENT#evt-expired', SK: 'METADATA' });
+  });
+
+  it('keeps locator and event retry marker until the upload/async barrier closes', async () => {
+    const locator = {
+      PK: 'EVENT#evt-expired',
+      SK: 'RETENTION#reg-1',
+      eventId: 'evt-expired',
+      registrationId: 'reg-1',
+      selfieS3Key: 'events/evt-expired/selfies/reg-1.selfie.jpg',
+      cleanupAfter: Math.floor(Date.now() / 1000) + 1000,
+    };
+    dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
+      Items: [
+        {
+          eventId: 'evt-expired',
+          createdAt: oldEnoughDate,
+          retentionDays: 30,
+        },
+      ],
+    });
+    dynamoMock
+      .on(QueryCommand, {
+        ExpressionAttributeValues: { ':pk': 'EVENT#evt-expired' },
+      })
+      .resolves({ Items: [locator] });
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+    expect((await retentionPurger()).expiredEvents).toBe(0);
+    expect(
+      dynamoMock
+        .commandCalls(DeleteCommand)
+        .map((call) => call.args[0].input.Key),
+    ).not.toContainEqual({ PK: locator.PK, SK: locator.SK });
+    expect(rekognitionMock.commandCalls(DeleteCollectionCommand)).toHaveLength(
+      0,
+    );
+  });
+
+  it('reconciles late faces and selfies for erased registrations on active events', async () => {
+    const locator = {
+      PK: 'EVENT#evt-active',
+      SK: 'RETENTION#reg-1',
+      eventId: 'evt-active',
+      registrationId: 'reg-1',
+      tokenHash: 'hash-active',
+      selfieS3Key: 'events/evt-active/selfies/reg-1.selfie.jpg',
+      erasureRequestedAt: recentDate,
+      cleanupState: 'CLEANED',
+    };
+    dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
+      Items: [
+        { eventId: 'evt-active', createdAt: recentDate, retentionDays: 30 },
+      ],
+    });
+    dynamoMock
+      .on(QueryCommand, {
+        ExpressionAttributeValues: {
+          ':pk': 'EVENT#evt-active',
+          ':locators': 'RETENTION#',
+        },
+      })
+      .resolves({ Items: [locator] });
+    dynamoMock
+      .on(QueryCommand, { ExpressionAttributeValues: { ':pk': 'REG#reg-1' } })
+      .resolves({ Items: [{ PK: 'REG#reg-1', SK: 'MATCH#pending' }] });
+    rekognitionMock.on(ListFacesCommand).resolves({
+      Faces: [
+        { FaceId: 'late-face', ExternalImageId: 'reg-1' },
+        { FaceId: 'unrelated', ExternalImageId: 'reg-other' },
+      ],
+    });
+    expect((await retentionPurger()).expiredEvents).toBe(0);
+    expect(
+      rekognitionMock.commandCalls(DeleteFacesCommand)[0]?.args[0].input
+        .FaceIds,
+    ).toEqual(['late-face']);
+    const deletedKeys = dynamoMock
+      .commandCalls(DeleteCommand)
+      .map((call) => call.args[0].input.Key);
+    expect(deletedKeys).toContainEqual({
+      PK: 'REG#reg-1',
+      SK: 'MATCH#pending',
+    });
+    expect(deletedKeys).toContainEqual({
+      PK: 'TOKEN#hash-active',
+      SK: 'METADATA',
+    });
+    expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(2);
+    expect(
+      dynamoMock
+        .commandCalls(DeleteCommand)
+        .map((call) => call.args[0].input.Key),
+    ).not.toContainEqual({ PK: locator.PK, SK: locator.SK });
+  });
+
+  it('keeps metadata and collection for an expired event with outstanding photo PUTs and no registrations', async () => {
+    dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
+      Items: [
+        {
+          eventId: 'evt-just-expired',
+          createdAt: new Date(Date.now() - 86400000 - 1000).toISOString(),
+          retentionDays: 1,
+        },
+      ],
+    });
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+    expect((await retentionPurger()).expiredEvents).toBe(0);
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
+    expect(rekognitionMock.commandCalls(DeleteCollectionCommand)).toHaveLength(
+      0,
+    );
+    expect(
+      dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input
+        .ExpressionAttributeValues?.[':after'],
+    ).toBeGreaterThan(Math.floor(Date.now() / 1000));
+  });
+
+  it('refuses to purge legacy facial data whose collection origin is unknown', async () => {
+    vi.stubEnv('FINDLY_COLLECTION_NAMESPACE', 'findly-pr-71');
+    dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
+      Items: [
+        {
+          eventId: 'evt-legacy',
+          createdAt: oldEnoughDate,
+          retentionDays: 30,
+        },
+      ],
+    });
+    dynamoMock
+      .on(QueryCommand, {
+        ExpressionAttributeValues: { ':pk': 'EVENT#evt-legacy' },
+      })
+      .resolves({
+        Items: [
+          {
+            PK: 'EVENT#evt-legacy',
+            SK: 'REG#reg-1',
+            registrationId: 'reg-1',
+            faceId: 'legacy-face',
+          },
+        ],
+      });
+    dynamoMock.on(GetCommand).resolves({});
+    await expect(retentionPurger()).rejects.toThrow(
+      'LegacyFaceCollectionMigrationRequired',
+    );
+    expect(s3Mock.commandCalls(ListObjectsV2Command)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
+    expect(rekognitionMock.commandCalls(DeleteCollectionCommand)).toHaveLength(
+      0,
+    );
   });
 
   it('pages through S3 objects across more than one ListObjectsV2 page', async () => {

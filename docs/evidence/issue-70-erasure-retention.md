@@ -84,3 +84,22 @@ DeleteFaces, el reintento ya no dispone del FaceId. La eliminación de la
 colección al vencer el evento proporciona limpieza eventual, pero no acredita
 borrado inmediato. Tampoco se ha probado una carga firmada que llegue después
 del barrido S3 de un evento vencido. Estos límites impiden cerrar #10.
+
+## Ampliación durable aprobada
+
+ADR-013 añade RETENTION sin TTL para descubrir TOKEN/MATCH/FaceIds cuando
+REG ya desapareció. ListFaces paginado filtra exactamente registrationId,
+sin incluir caras de fotografías ni otros asistentes. DELETE conserva el
+localizador; el cron reconcilia eventos activos borrados y purga eventos
+vencidos después de una barrera URL/asíncrona. La colección se borra al final.
+FaceIds y claves de inscripción son sensibles: no se imprimen.
+
+Los permisos Lambda añaden ListFaces en su colección aislada, GetItem para
+validar localizadores y UpdateItem para referencias y marcadores. No se
+modifica IAM persistente ni se ejecuta AWS desde esta entrega.
+
+Validación de esta ampliación: 41 pruebas enfocadas (borrado, retención y
+localizador), suite unitaria completa con gate de cobertura, typecheck,
+ESLint enfocado, Markdownlint, Terraform fmt y TFLint de ambos módulos.
+AWS y cron no ejecutados. El rol RetentionPurger necesita además GetItem
+para validar el origen de localizadores cuando REG legacy conserva FaceId.
