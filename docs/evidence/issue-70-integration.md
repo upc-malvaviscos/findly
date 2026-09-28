@@ -12,7 +12,8 @@ Terraform, pruebas de aceptación y documentación de las decisiones aprobadas.
 - Líneas: handlers Lambda 97,36 %, helpers Lambda 100 %, shared/lib 100 %.
   El gate se aplica por separado a Lambdas y shared/lib; global 80,44 %.
 - `npm run test:e2e`: 12 pruebas pasan en Chromium, Firefox y WebKit.
-- La suite Floci previa a incorporar las dependencias de main: 21 pasan.
+- `WEB_PORT=4175 LOCAL_API_PORT=8790 FLOCI_PORT=4568 npm run test:e2e:local`:
+  21 pruebas pasan; teardown de contenedores, volúmenes y red completado.
 - Cinco roots Terraform válidos con AWS 6.66.0; avisos de deprecación
   hash_key/range_key conservados sin cambiar el esquema DynamoDB.
 - Build web y nueve ZIP Lambda Node 24; audit de producción sin vulnerabilidades.
