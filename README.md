@@ -24,17 +24,17 @@ flowchart LR
   W --> G[API Gateway HTTP]
   G --> API[Lambda API]
   API <--> D[(DynamoDB on-demand)]
-  API -->|URLs prefirmadas| S1[S3 selfies privado]
-  API -->|URLs prefirmadas| S2[S3 fotos privado]
-  S1 --> E[Lambda inscripción]
-  E --> R[Rekognition]
-  S2 --> M[Lambda matching]
+  API -->|PUT selfie condicional y PUT foto| S[S3 cargas privado]
+  S -->|.selfie.jpg| E[Lambda inscripción]
+  E --> R[Rekognition por entorno y evento]
+  S -->|.photo.jpg| Q[SQS fotos y DLQ]
+  Q --> M[Lambda matching]
   M --> R
   E --> D
   M --> D
   EB[EventBridge] --> X[Lambda retención]
-  X --> S1
-  X --> S2
+  X --> S
+  X --> D
   X --> R
   CW[CloudWatch + AWS Budgets] -. observabilidad y coste .-> API
   CW -->|alarma DLQ y 80 % del presupuesto| SNS[SNS alertas]
@@ -134,3 +134,12 @@ frontend simulado, Floci y evidencia AWS. Las issues #6, #8, #10, #13 y #22
 permanecen abiertas por criterios desplegados pendientes. `npm run verify`
 valida gates locales; Playwright se ejecuta con `npm run test:e2e` y
 `npm run test:e2e:local`. Un merge o una suite mock verde no acredita demo AWS.
+
+La continuación aprobada de #70 añade referencias de limpieza sin TTL
+([ADR-013](docs/adr/ADR-013-durable-registration-cleanup.md)), selfies de una
+sola escritura ([ADR-014](docs/adr/ADR-014-immutable-selfie-uploads.md)) y
+colecciones separadas por entorno
+([ADR-015](docs/adr/ADR-015-environment-scoped-rekognition-collections.md)).
+Los identificadores de rostro de limpieza siguen siendo datos sensibles.
+Los ADRs describen compatibilidad, reintentos y límites; la validación AWS y
+la migración de colecciones antiguas requieren evidencia propia.

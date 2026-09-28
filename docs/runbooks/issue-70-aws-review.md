@@ -34,6 +34,18 @@ verifica cada nuevo ARN/acción requerido, sin comodines de acción globales.
 Las políticas de ejecución Lambda nuevas están en sus módulos y usan ARNs
 de tabla/bucket del entorno y colecciones de evento, no credenciales nuevas.
 
+La continuación aprobada añade ListFaces a los roles de limpieza/indexación
+para reconciliar rostros creados antes de persistir su referencia. Se limita
+a colecciones `${project}-${environment}-event-*`. Los localizadores RETENTION
+comparten la tabla del entorno; no requieren Scan, índice nuevo ni otro
+servicio. Esto describe los roles de ejecución propuestos por Terraform,
+no una ampliación aplicada al rol CI externo.
+
+Las tres decisiones de modelo/contrato/aislamiento están aprobadas y registradas
+en ADR-013, ADR-014 y ADR-015. Antes de apply quedan la revisión del rol externo,
+el plan contra estado real y la compatibilidad de las colecciones legacy.
+No añadir permisos de borrado global `findly-event-*` para ocultar esa migración.
+
 ## Despliegue persistente
 
 `deploy.yml` conserva la estructura de la rama previa de #15, pero usa roles
