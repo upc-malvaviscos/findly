@@ -10,6 +10,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
   galleryTokenKey,
@@ -115,6 +116,7 @@ async function eraseRegistration(
         TableName: tableName,
         Key: galleryTokenKey(tokenHash),
         ProjectionExpression: 'registrationId, eventId',
+        ConsistentRead: true,
       }),
     )
   ).Item as
@@ -130,15 +132,39 @@ async function eraseRegistration(
   const { eventId } = tokenRecord;
   request.annotate({ eventId });
 
-  const registrationRecord = (
+  let registrationRecord = (
     await dynamo.send(
       new GetCommand({
         TableName: tableName,
         Key: registrationKey(eventId, registrationId),
         ProjectionExpression: 'faceId',
+        ConsistentRead: true,
       }),
     )
   ).Item as Partial<Pick<RegistrationEntity, 'faceId'>> | undefined;
+
+  try {
+    const marked = await dynamo.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: registrationKey(eventId, registrationId),
+        UpdateExpression:
+          'SET erasureRequestedAt = if_not_exists(erasureRequestedAt, :now)',
+        ExpressionAttributeValues: { ':now': new Date().toISOString() },
+        ConditionExpression: 'attribute_exists(PK)',
+        ReturnValues: 'ALL_NEW',
+      }),
+    );
+    // Take the face from the atomic write response: enrollment may have
+    // completed between the initial read and the erasure marker.
+    if (marked.Attributes) registrationRecord = marked.Attributes;
+  } catch (markError) {
+    if (
+      (markError as { name?: string }).name !==
+      'ConditionalCheckFailedException'
+    )
+      throw markError;
+  }
 
   if (registrationRecord?.faceId) {
     try {

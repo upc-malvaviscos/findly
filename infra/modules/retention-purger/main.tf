@@ -70,7 +70,7 @@ resource "aws_iam_role_policy" "retention_purger" {
       {
         Sid      = "DeleteExpiredEventRecords"
         Effect   = "Allow"
-        Action   = "dynamodb:DeleteItem"
+        Action   = ["dynamodb:DeleteItem", "dynamodb:UpdateItem"]
         Resource = var.table_arn
       },
       {

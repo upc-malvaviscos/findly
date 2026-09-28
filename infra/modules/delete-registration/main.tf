@@ -59,7 +59,7 @@ resource "aws_iam_role_policy" "delete_registration" {
       {
         Sid      = "EraseRegistrationRecords"
         Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem"]
+        Action   = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:UpdateItem"]
         Resource = var.table_arn
       },
       {

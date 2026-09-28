@@ -8,6 +8,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -17,6 +18,8 @@ import { captureLogs } from './lib/logCapture';
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const rekognitionMock = mockClient(RekognitionClient);
 const s3Mock = mockClient(S3Client);
+
+beforeEach(() => dynamoMock.on(UpdateCommand).resolves({}));
 
 afterEach(() => {
   dynamoMock.reset();
@@ -146,6 +149,53 @@ describe('deleteRegistration lambda', () => {
       'temporary outage',
     );
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(1);
+  });
+
+  it('uses the atomic erasure marker response when enrollment completed after the read', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({ Item: {} });
+    dynamoMock
+      .on(UpdateCommand)
+      .resolves({ Attributes: { faceId: 'concurrent-face' } });
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    rekognitionMock.on(DeleteFacesCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(204);
+    expect(
+      rekognitionMock.commandCalls(DeleteFacesCommand)[0]?.args[0].input
+        .FaceIds,
+    ).toEqual(['concurrent-face']);
+    expect(
+      dynamoMock
+        .commandCalls(GetCommand)
+        .every((call) => call.args[0].input.ConsistentRead),
+    ).toBe(true);
+    expect(
+      dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input
+        .ConditionExpression,
+    ).toBe('attribute_exists(PK)');
+  });
+
+  it('does not recreate a registration that disappeared before the erasure marker', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
+      .resolvesOnce({});
+    const missing = new Error('missing registration');
+    missing.name = 'ConditionalCheckFailedException';
+    dynamoMock.on(UpdateCommand).rejects(missing);
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(204);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
   });
 
   it('skips the Rekognition call when the registration has no faceId', async () => {
