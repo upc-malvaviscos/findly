@@ -48,7 +48,7 @@ resource "aws_s3_bucket_cors_configuration" "uploads" {
   cors_rule {
     allowed_methods = ["PUT"]
     allowed_origins = [var.frontend_domain_url]
-    allowed_headers = ["Content-Type"]
+    allowed_headers = ["Content-Type", "If-None-Match"]
     max_age_seconds = 300
   }
 }

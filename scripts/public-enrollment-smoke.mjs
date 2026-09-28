@@ -82,11 +82,26 @@ export async function runPublicEnrollmentSmoke({
           canvas.toBlob(resolve, 'image/jpeg'),
         );
       }
-      const response = await fetch(uploadUrl, {
+      const missingCondition = await fetch(uploadUrl, {
         method: 'PUT',
         headers: { 'content-type': 'image/jpeg' },
         body: blob,
       });
+      if (missingCondition.status !== 403)
+        throw new Error('SELFIE_SIGNED_CONDITION_NOT_ENFORCED');
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg', 'if-none-match': '*' },
+        body: blob,
+      });
+      if (response.status !== 200) return response.status;
+      const overwrite = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg', 'if-none-match': '*' },
+        body: blob,
+      });
+      if (overwrite.status !== 412)
+        throw new Error('SELFIE_OVERWRITE_NOT_REJECTED');
       return response.status;
     },
     { uploadUrl, syntheticJpeg },

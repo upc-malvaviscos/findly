@@ -33,6 +33,9 @@ describe('gallery lambda', () => {
     });
     expect(result.statusCode).toBe(404);
     expect(result.body).not.toContain('secret-token');
+    expect(dynamoMock.commandCalls(GetCommand)[0]?.args[0].input).toMatchObject(
+      { ConsistentRead: true },
+    );
   });
 
   it('returns expired for a known expired token', async () => {
