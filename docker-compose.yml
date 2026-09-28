@@ -19,6 +19,7 @@ services:
       FINDLY_TABLE_NAME: findly-local
       FINDLY_PHOTO_BUCKET: findly-local-photos
       FINDLY_SELFIE_BUCKET: findly-local-photos
+      FINDLY_LOCAL_NO_BIOMETRICS: '1'
       CORS_ORIGIN: '*'
       FLOCI_PUBLIC_URL: http://localhost:${FLOCI_PORT:-4566}
     ports:
