@@ -33,6 +33,8 @@ export async function createPresignedUploadUrl(
   });
   const uploadUrl = await getSignedUrl(s3, command, {
     expiresIn: PRESIGNED_UPLOAD_EXPIRY_SECONDS,
+    // S3 presigning excludes Content-Type unless explicitly made signable.
+    signableHeaders: new Set(['content-type']),
   });
   return { uploadUrl, expiresInSeconds: PRESIGNED_UPLOAD_EXPIRY_SECONDS };
 }
