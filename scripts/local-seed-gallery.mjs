@@ -67,7 +67,7 @@ await s3.send(
     CORSConfiguration: {
       CORSRules: [
         {
-          AllowedHeaders: ['content-type'],
+          AllowedHeaders: ['content-type', 'if-none-match'],
           AllowedMethods: ['PUT'],
           AllowedOrigins: [`http://127.0.0.1:${webPort}`],
           MaxAgeSeconds: 300,
