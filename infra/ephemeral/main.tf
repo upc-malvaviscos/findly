@@ -162,11 +162,13 @@ resource "aws_sns_topic_subscription" "alert_probe" {
   topic_arn            = module.monitoring.alerts_topic_arn
   protocol             = "sqs"
   endpoint             = aws_sqs_queue.alert_probe.arn
-  raw_message_delivery = true
+  raw_message_delivery = false
   depends_on           = [aws_sqs_queue_policy.alert_probe]
 }
 
 module "photo_matching" {
+  selfie_indexer_arn = module.selfie_indexer.lambda_arn
+  depends_on        = [module.selfie_indexer]
   source               = "../modules/photo-matching"
   table_name           = module.dynamodb.table_name
   table_arn            = module.dynamodb.table_arn

@@ -7,6 +7,7 @@ const prohibited = new Set([
   'aws_instance',
   'aws_db_instance',
   'aws_db_cluster',
+  'aws_rds_cluster',
   'aws_rds_cluster_instance',
   'aws_lb',
   'aws_eks_cluster',

@@ -61,7 +61,7 @@ resource "aws_sqs_queue_policy" "photos" {
 
 resource "aws_cloudwatch_metric_alarm" "photos_dlq_has_messages" {
   alarm_name          = "${local.dlq_name}-has-messages"
-  alarm_description   = "Mensajes en la DLQ de fotos tras 3 reintentos fallidos de PhotoMatcher."
+  alarm_description   = "Mensajes en la DLQ de fotos tras 3 recepciones fallidas de PhotoMatcher."
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateNumberOfMessagesVisible"
   dimensions          = { QueueName = aws_sqs_queue.photos_dlq.name }
@@ -75,18 +75,8 @@ resource "aws_cloudwatch_metric_alarm" "photos_dlq_has_messages" {
   tags                = local.tags
 }
 
-# NOTA para la issue #7 (SelfieIndexer): este es el unico
-# aws_s3_bucket_notification del bucket de subidas (selfies y fotos de
-# evento comparten un unico bucket, decision tomada en la issue #6). Es un
-# recurso singleton por bucket en Terraform/S3: una segunda declaracion
-# independiente para el mismo bucket sobrescribiria esta configuracion en
-# lugar de sumarse a ella. Cuando se implemente la issue #7, anade un
-# bloque `lambda_function {}` adicional a ESTE recurso (en vez de crear uno
-# nuevo) para su propio trigger de selfies. Ademas, dado que S3 solo filtra
-# por prefix/suffix (no por segmento intermedio de la clave), ambos
-# consumidores recibiran eventos de selfies Y de fotos; cada Lambda debe
-# ignorar silenciosamente las claves que no le correspondan (PhotoMatcher
-# ya lo hace via parseEventPhotoObjectKey).
+# S3 notification is a singleton. ADR-012 uses disjoint suffixes because
+# overlapping events/*.jpg rules for Lambda and SQS are rejected by S3.
 resource "aws_s3_bucket_notification" "uploads" {
   bucket = var.uploads_bucket_id
 
@@ -94,7 +84,17 @@ resource "aws_s3_bucket_notification" "uploads" {
     queue_arn     = aws_sqs_queue.photos.arn
     events        = ["s3:ObjectCreated:Put"]
     filter_prefix = "events/"
-    filter_suffix = ".jpg"
+    filter_suffix = ".photo.jpg"
+  }
+
+  dynamic "lambda_function" {
+    for_each = var.selfie_indexer_arn == null ? [] : [var.selfie_indexer_arn]
+    content {
+      lambda_function_arn = lambda_function.value
+      events              = ["s3:ObjectCreated:Put"]
+      filter_prefix       = "events/"
+      filter_suffix       = ".selfie.jpg"
+    }
   }
 
   depends_on = [aws_sqs_queue_policy.photos]
