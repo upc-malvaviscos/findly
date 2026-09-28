@@ -31,3 +31,33 @@ archivos TypeScript, Markdownlint y Terraform validate de ambos módulos pasan.
 Terraform fmt aplicado. Ninguna validación ha ejecutado apply AWS.
 
 Un fallo individual de DeleteFaces conserva el registro y token para reintento.
+
+## Smoke AWS reproducible
+
+`scripts/deployed-ephemeral-erasure.mjs` requiere outputs del stack efímero:
+`EPHEMERAL_API_ENDPOINT`, `EPHEMERAL_TABLE_NAME` (acepta también
+`EPHEMERAL_DYNAMODB_TABLE_NAME`), `EPHEMERAL_UPLOADS_BUCKET_NAME` y
+`EPHEMERAL_RETENTION_FUNCTION_NAME`. Sólo usa credenciales temporales del
+proceso; no imprime tokens, URLs firmadas ni datos de filas.
+
+Siembra datos sintéticos, comprueba token incorrecto, galería 200 → DELETE
+204 → galería 404 y ausencia de REG/MATCH/TOKEN/selfie. Repetir DELETE retorna
+404, acorde al contrato de token revocado. Invoca el purgador manualmente y
+comprueba ausencia de datos vencidos y conservación de los no vencidos.
+El GSI se espera con un límite de 30 segundos; todo dato creado se limpia
+al finalizar, también cuando falla una comprobación.
+
+Esta suite **no** demuestra borrado de FaceId real ni ejecución de Scheduler:
+los JPEG mínimos no representan personas, no producen evidencia biométrica y
+no se inventa un FaceId. La prueba de biometría requiere una imagen sintética
+aprobada indexable; el cron necesita evidencia de invocación programada.
+
+Permisos del runner, limitados al stack de PR: `dynamodb:PutItem`, `GetItem`,
+`DeleteItem` sobre su tabla; `dynamodb:Query` sobre GSI2; `s3:PutObject`,
+`GetObject`, `DeleteObject` sobre `events/*` y `s3:ListBucket` para poder
+distinguir HeadObject inexistente (404) de falta de permiso (403), con
+condición de prefijo `events/*`; `lambda:InvokeFunction` exclusivamente
+sobre RetentionPurger del PR. No se concede ninguno desde este script.
+El rol de la Lambda conserva sus permisos propios para borrar colección,
+objetos y registros. Este script está preparado y validado estáticamente;
+su ejecución AWS y el IAM del runner son pendientes hasta integración.
