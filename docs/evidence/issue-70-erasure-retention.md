@@ -54,9 +54,8 @@ aprobada indexable; el cron necesita evidencia de invocación programada.
 
 Permisos del runner, limitados al stack de PR: `dynamodb:PutItem`, `GetItem`,
 `DeleteItem` sobre su tabla; `dynamodb:Query` sobre GSI2; `s3:PutObject`,
-`GetObject`, `DeleteObject` sobre `events/*` y `s3:ListBucket` para poder
-distinguir HeadObject inexistente (404) de falta de permiso (403), con
-condición de prefijo `events/*`; `lambda:InvokeFunction` exclusivamente
+`GetObject`, `DeleteObject` sobre `events/*` y `s3:ListBucket` para comprobar
+ausencia mediante ListObjectsV2, con condición de prefijo `events/*`; `lambda:InvokeFunction` exclusivamente
 sobre RetentionPurger del PR. No se concede ninguno desde este script.
 El rol de la Lambda conserva sus permisos propios para borrar colección,
 objetos y registros. Este script está preparado y validado estáticamente;

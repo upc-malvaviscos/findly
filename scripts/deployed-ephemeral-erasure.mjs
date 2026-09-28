@@ -11,6 +11,7 @@ import {
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -131,13 +132,13 @@ async function seed(expired) {
   };
 }
 async function absentObject(key) {
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
-  } catch (error) {
-    if (error?.$metadata?.httpStatusCode === 404) return;
-    throw error;
-  }
-  throw new Error('An erased synthetic object still exists.');
+  const result = await s3.send(
+    new ListObjectsV2Command({ Bucket: bucket, Prefix: key, MaxKeys: 1 }),
+  );
+  assert.ok(
+    !result.Contents?.some((object) => object.Key === key),
+    'An erased synthetic object still exists.',
+  );
 }
 async function status(path, expected, init) {
   const response = await fetch(`${api}${path}`, init);
