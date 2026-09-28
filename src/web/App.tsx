@@ -1,24 +1,67 @@
 import React, { useEffect, useState } from 'react';
-import { getEvent } from './api';
+import { getEvent, getEvents } from './api';
 import { AdminEvents } from './components/admin/AdminEvents';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { SelfieCaptureForm } from './components/SelfieCaptureForm';
 import { AuthProvider } from './context/AuthProvider';
 import type { AuthGateway } from './context/AuthProvider';
 import { useAuth } from './context/auth';
-import { DEMO_EVENT } from './fixtures';
+import type { Event } from './types';
 import { GalleryPage } from './components/gallery/GalleryPage';
 import './styles.css';
 
 function PublicEnrollment() {
-  const [event, setEvent] = useState(DEMO_EVENT);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
+    let active = true;
     const eventId = new URLSearchParams(window.location.search).get('event');
-    if (!eventId) return;
-    void getEvent(eventId).then((foundEvent) => {
-      if (foundEvent) setEvent(foundEvent);
-    });
+    const load = async () => {
+      try {
+        if (eventId) {
+          const found = await getEvent(eventId);
+          if (active) {
+            setEvent(found);
+            setEvents(found ? [found] : []);
+          }
+        } else {
+          const found = await getEvents();
+          if (active) {
+            setEvents(found);
+            setEvent(found[0] ?? null);
+          }
+        }
+      } catch {
+        if (active) setLoadError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+    };
   }, []);
+  if (loading)
+    return (
+      <main className="page-shell" aria-busy="true">
+        Cargando eventos…
+      </main>
+    );
+  if (loadError)
+    return (
+      <main className="page-shell" role="alert">
+        No hemos podido cargar los eventos. Inténtalo de nuevo.
+      </main>
+    );
+  if (!event)
+    return (
+      <main className="page-shell">
+        No hay eventos disponibles para inscribirse.
+      </main>
+    );
   return (
     <main className="page-shell">
       <header className="page-header">
@@ -52,7 +95,28 @@ function PublicEnrollment() {
           className="enrollment-card"
           aria-label="Formulario de inscripción"
         >
-          <SelfieCaptureForm eventId={event.eventId} />
+          {events.length > 1 ? (
+            <label>
+              Evento
+              <select
+                value={event.eventId}
+                onChange={(change) =>
+                  setEvent(
+                    events.find(
+                      (item) => item.eventId === change.target.value,
+                    ) ?? null,
+                  )
+                }
+              >
+                {events.map((item) => (
+                  <option key={item.eventId} value={item.eventId}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <SelfieCaptureForm key={event.eventId} eventId={event.eventId} />
         </section>
       </div>
     </main>

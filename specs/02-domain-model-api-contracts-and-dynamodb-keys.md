@@ -15,7 +15,7 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 ### Entidades Principales
 
 - **Event**: `eventId`, `name`, `date`, `retentionDays`, `createdAt`, `status`.
-- **Registration**: `registrationId`, `eventId`, `email`, `consentTimestamp`, `selfieS3Key`, `faceId`, `status` (`UPLOAD_PENDING` | `PROCESSING` | `ENROLLED` | `FAILED`), `ttl`.
+- **Registration**: `registrationId`, `eventId`, `email`, `consentTimestamp`, `selfieS3Key`, `faceId`, `tokenHash` (opcional para registros legacy), `status` (`UPLOAD_PENDING` | `PROCESSING` | `ENROLLED` | `FAILED`), `ttl`.
 - **Photo**: `photoId`, `eventId`, `s3Key`, `uploadedAt`, `ttl`.
 - **Match**: `matchId`, `eventId`, `registrationId`, `photoId`, `similarity`, `matchedAt`, `ttl`.
 - **GalleryToken**: `tokenHash` (SHA-256), `registrationId`, `eventId`, `expiresAt`, `ttl`.
@@ -48,7 +48,7 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 ### 1. Registro Público (`POST /events/{eventId}/registrations`)
 
 - **Request Body**: `{ email?: string; consentBiometrics: true; consentTerms: true; }`
-- **Response (201 Created)**: `{ registrationId: string; uploadUrl: string; expiresInSeconds: number; }`
+- **Response (201 Created)**: `{ registrationId: string; galleryToken: string; uploadUrl: string; expiresInSeconds: number; }`
 
 ### 0. Descubrimiento de eventos públicos (`GET /events`)
 
@@ -56,6 +56,8 @@ Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando
 - El selector de evento usa esta respuesta cuando no recibe `?event={eventId}`.
 
 ### 2. Estado de Registro (`GET /registrations/{registrationId}/status`)
+
+- Requiere `X-Gallery-Token`; el registro TOKEN resuelve eventId sin Scan ni nuevo índice (ADR-011).
 
 - **Response (200 OK)**: `{ registrationId: string; status: 'UPLOAD_PENDING' | 'PROCESSING' | 'ENROLLED' | 'FAILED'; failureReason?: string; }`
 
@@ -126,3 +128,11 @@ Todas las respuestas de error usan `{ code: string; message: string; requestId: 
       La entrega de tipos no acredita todos los endpoints públicos de #22.)_
 - [x] Los esquemas Zod validan correctamente los datos en cliente y servidor.
 - [x] Ningún token en claro ni dato biométrico vectorial se persiste sin cifrar o anonimizar.
+
+## Contrato público actualizado (issue #70)
+
+La inscripción devuelve `galleryToken` opaco y polling requiere
+`X-Gallery-Token`; véase ADR-011. Sólo el hash se persiste y la SPA entrega el
+enlace de galería al finalizar la inscripción. Esta implementación no añade
+entrega de correo. La verificación AWS efímera sigue siendo una evidencia
+independiente de los tests unitarios.

@@ -59,6 +59,7 @@ describe('real API adapter', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         registrationId: 'reg-1',
+        galleryToken: 'synthetic-token',
         uploadUrl: 'https://s3.example.com/put',
         expiresInSeconds: 300,
       }),
@@ -102,18 +103,34 @@ describe('real API adapter', () => {
 
   it('maps network failures and non-JSON bodies to stable codes', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('boom')));
-    await expect(getRegistrationStatus('reg-1')).rejects.toThrow(
-      'NETWORK_ERROR',
-    );
+    await expect(
+      getRegistrationStatus('reg-1', 'synthetic-token'),
+    ).rejects.toThrow('NETWORK_ERROR');
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(new Response('<html>', { status: 200 })),
     );
-    await expect(getRegistrationStatus('reg-1')).rejects.toThrow(
-      'INVALID_RESPONSE',
-    );
+    await expect(
+      getRegistrationStatus('reg-1', 'synthetic-token'),
+    ).rejects.toThrow('INVALID_RESPONSE');
   });
 
+  it('sends the gallery capability in a header when polling', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ registrationId: 'reg-1', status: 'ENROLLED' }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    await getRegistrationStatus('reg-1', 'synthetic-token');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      'https://api.example.com/registrations/reg-1/status',
+    );
+    const headers = new Headers(
+      (fetchMock.mock.calls[0]?.[1] as RequestInit).headers,
+    );
+    expect(headers.get('X-Gallery-Token')).toBe('synthetic-token');
+  });
   it('rejects unknown registration statuses', async () => {
     vi.stubGlobal(
       'fetch',
@@ -123,8 +140,8 @@ describe('real API adapter', () => {
           jsonResponse({ registrationId: 'reg-1', status: 'WAT' }),
         ),
     );
-    await expect(getRegistrationStatus('reg-1')).rejects.toThrow(
-      'UNKNOWN_STATUS',
-    );
+    await expect(
+      getRegistrationStatus('reg-1', 'synthetic-token'),
+    ).rejects.toThrow('UNKNOWN_STATUS');
   });
 });

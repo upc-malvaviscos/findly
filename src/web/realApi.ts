@@ -39,6 +39,28 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
+export async function getEvents(): Promise<Event[]> {
+  const payload = await request<unknown>('/events');
+  if (!isRecord(payload) || !Array.isArray(payload.events))
+    throw new Error('INVALID_RESPONSE');
+  return payload.events.map((item: unknown) => {
+    if (
+      !isRecord(item) ||
+      typeof item.eventId !== 'string' ||
+      typeof item.name !== 'string' ||
+      typeof item.date !== 'string'
+    )
+      throw new Error('INVALID_RESPONSE');
+    return {
+      eventId: item.eventId,
+      name: item.name,
+      date: item.date,
+      location: '',
+      description: '',
+    };
+  });
+}
+
 export async function getEvent(eventId: string): Promise<Event | null> {
   let payload: unknown;
   try {
@@ -79,12 +101,14 @@ export async function createRegistration(
   if (
     !isRecord(payload) ||
     typeof payload.registrationId !== 'string' ||
+    typeof payload.galleryToken !== 'string' ||
     typeof payload.uploadUrl !== 'string' ||
     typeof payload.expiresInSeconds !== 'number'
   )
     throw new Error('INVALID_RESPONSE');
   return {
     registrationId: payload.registrationId,
+    galleryToken: payload.galleryToken,
     uploadUrl: payload.uploadUrl,
     expiresInSeconds: payload.expiresInSeconds,
   };
@@ -92,9 +116,11 @@ export async function createRegistration(
 
 export async function getRegistrationStatus(
   registrationId: string,
+  galleryToken: string,
 ): Promise<RegistrationStatusResponse> {
   const payload = await request<unknown>(
     `/registrations/${encodeURIComponent(registrationId)}/status`,
+    { headers: { 'X-Gallery-Token': galleryToken } },
   );
   if (
     !isRecord(payload) ||

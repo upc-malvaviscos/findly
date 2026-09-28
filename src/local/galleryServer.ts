@@ -1,4 +1,9 @@
 import { createServer } from 'node:http';
+import { listPublicEvents, getPublicEvent } from '../lambdas/publicEvents';
+import {
+  createPublicRegistration,
+  getPublicRegistrationStatus,
+} from '../lambdas/publicEnrollment';
 import { gallery } from '../lambdas/gallery';
 import {
   createAdminEvent,
@@ -16,7 +21,8 @@ const server = createServer(async (request, response) => {
     response
       .writeHead(204, {
         'access-control-allow-origin': process.env.CORS_ORIGIN ?? '*',
-        'access-control-allow-headers': 'content-type, authorization',
+        'access-control-allow-headers':
+          'content-type, authorization, x-gallery-token',
         'access-control-allow-methods': 'GET, POST, OPTIONS',
       })
       .end();
@@ -29,6 +35,58 @@ const server = createServer(async (request, response) => {
       },
     });
     response.writeHead(result.statusCode, result.headers).end(result.body);
+    return;
+  }
+  const publicEventMatch = url.pathname.match(/^\/events\/([^/]+)$/);
+  const registrationMatch = url.pathname.match(
+    /^\/events\/([^/]+)\/registrations$/,
+  );
+  const statusMatch = url.pathname.match(/^\/registrations\/([^/]+)\/status$/);
+  if (
+    (request.method === 'GET' &&
+      (url.pathname === '/events' || publicEventMatch || statusMatch)) ||
+    (request.method === 'POST' && registrationMatch)
+  ) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const body = Buffer.concat(chunks).toString();
+    const result = statusMatch
+      ? await getPublicRegistrationStatus({
+          pathParameters: {
+            registrationId: decodeURIComponent(statusMatch[1]),
+          },
+          headers: {
+            'x-gallery-token':
+              typeof request.headers['x-gallery-token'] === 'string'
+                ? request.headers['x-gallery-token']
+                : undefined,
+          },
+        })
+      : registrationMatch
+        ? await createPublicRegistration({
+            body,
+            pathParameters: {
+              eventId: decodeURIComponent(registrationMatch[1]),
+            },
+          })
+        : publicEventMatch
+          ? await getPublicEvent({
+              pathParameters: {
+                eventId: decodeURIComponent(publicEventMatch[1]),
+              },
+            })
+          : await listPublicEvents();
+    const publicUrl = process.env.FLOCI_PUBLIC_URL;
+    response
+      .writeHead(result.statusCode, {
+        ...result.headers,
+        'access-control-allow-origin': process.env.CORS_ORIGIN ?? '*',
+      })
+      .end(
+        publicUrl
+          ? result.body.replaceAll('http://floci:4566', publicUrl)
+          : result.body,
+      );
     return;
   }
   if (!request.headers.authorization?.startsWith('Bearer ')) {
