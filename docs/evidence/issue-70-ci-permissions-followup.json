@@ -1,0 +1,83 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Pr71AlertSubscriptionLifecycle",
+      "Effect": "Allow",
+      "Action": [
+        "sns:GetSubscriptionAttributes",
+        "sns:SetSubscriptionAttributes",
+        "sns:Unsubscribe"
+      ],
+      "Resource": "arn:aws:sns:eu-west-1:567158658992:findly-pr-71-alerts"
+    },
+    {
+      "Sid": "Pr71DlqAlarm",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:TagResource",
+        "cloudwatch:UntagResource",
+        "cloudwatch:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:cloudwatch:eu-west-1:567158658992:alarm:findly-pr-71-photos-dlq-has-messages"
+    },
+    {
+      "Sid": "Pr71BucketNotifications",
+      "Effect": "Allow",
+      "Action": ["s3:PutBucketNotification"],
+      "Resource": "arn:aws:s3:::findly-pr-71-567158658992-eu-west-1"
+    },
+    {
+      "Sid": "Pr71CreatePhotoQueueMapping",
+      "Effect": "Allow",
+      "Action": ["lambda:CreateEventSourceMapping"],
+      "Resource": "*",
+      "Condition": {
+        "ArnEquals": {
+          "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-71-photo-matcher"
+        },
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-west-1",
+          "aws:RequestTag/Project": "findly",
+          "aws:RequestTag/Ephemeral": "true",
+          "aws:RequestTag/PullRequest": "71"
+        }
+      }
+    },
+    {
+      "Sid": "Pr71PhotoQueueMappingLifecycle",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetEventSourceMapping",
+        "lambda:UpdateEventSourceMapping",
+        "lambda:DeleteEventSourceMapping"
+      ],
+      "Resource": "arn:aws:lambda:eu-west-1:567158658992:event-source-mapping:*",
+      "Condition": {
+        "ArnEquals": {
+          "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-71-photo-matcher"
+        }
+      }
+    },
+    {
+      "Sid": "Pr71PhotoQueueMappingTags",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:ListTags",
+        "lambda:TagResource",
+        "lambda:UntagResource"
+      ],
+      "Resource": "arn:aws:lambda:eu-west-1:567158658992:event-source-mapping:*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "findly",
+          "aws:ResourceTag/Ephemeral": "true",
+          "aws:ResourceTag/PullRequest": "71"
+        }
+      }
+    }
+  ]
+}

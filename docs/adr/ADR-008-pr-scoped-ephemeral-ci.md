@@ -50,3 +50,13 @@ fallo de provisioning o pruebas puede dejar recursos sólo si AWS o GitHub
 impiden el paso final; el runbook incluye la recuperación PR-específica. El
 operador rota o revoca acceso cambiando la policy o trust del rol, no secretos
 distribuidos. No se concede acceso OIDC a forks.
+
+## Revisión operativa de permisos en PR #71
+
+La ampliación aprobada del rol externo se aplica como política adicional
+limitada a PR #71 y se versiona como JSON de evidencia; no modifica el trust
+OIDC ni sustituye las políticas existentes. Una aprobación concreta no concede
+ampliaciones futuras: las denegaciones adicionales se revisan por separado.
+El fallo de lectura SNS durante teardown se recupera con el mismo backend y
+plan de destrucción inspeccionado, conservando el estado y su lock.
+Véase `docs/runbooks/issue-70-aws-review.md` para el estado real y los alcances.

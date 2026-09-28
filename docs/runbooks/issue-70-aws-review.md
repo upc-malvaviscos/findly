@@ -2,10 +2,19 @@
 
 ## Estado
 
-Código preparado; no se ha aplicado AWS ni ampliado ningún rol. La sesión local
-caducó. Un PR draft conserva la revisión del diff y ejecuta CI ordinaria; el
-workflow efímero sólo hace apply cuando el PR deja de ser draft. Esa transición
-se realizará después de revisar este alcance con la persona responsable.
+La PR #71 está ready y ha activado provisión AWS. La ejecución 36464575720
+falló por permisos del rol externo. La persona responsable aprobó la política
+`findly-pr-71-approved-provisioning`, aplicada sin modificar las políticas
+previas; su JSON reproducible está en `docs/evidence/issue-70-ci-permissions-proposal.json`.
+La repetición encontró denegaciones adicionales y el teardown quedó bloqueado
+por lectura de suscripción SNS. Se inició recuperación desde el mismo estado
+remoto de PR #71. La aceptación desplegada sigue pendiente.
+
+`docs/evidence/issue-70-ci-permissions-followup.json` es una propuesta adicional
+pendiente de aprobación, no una política aplicada. La creación del enlace
+SQS/Lambda exige Resource `*` porque AWS no permite limitar esa acción por
+ARN de mapping; se restringe por FunctionArn, región y etiquetas de PR.
+Referencia: [autorización Lambda](https://docs.aws.amazon.com/service-authorization/latest/reference/list_lambda.html).
 
 ## Rol efímero
 
