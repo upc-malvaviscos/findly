@@ -26,7 +26,7 @@ resource "aws_iam_role_policy" "selfie" {
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.selfie.arn}:*" },
     { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:UpdateItem"], Resource = var.table_arn },
     { Effect = "Allow", Action = ["s3:GetObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" },
-    { Effect = "Allow", Action = ["rekognition:CreateCollection", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*" }
+    { Effect = "Allow", Action = ["rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/findly-event-*" }
   ] })
 }
 resource "aws_lambda_function" "selfie" {
