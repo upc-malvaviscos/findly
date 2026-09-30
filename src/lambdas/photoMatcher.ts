@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { setTimeout } from 'node:timers/promises';
 import {
   DeleteFacesCommand,
   IndexFacesCommand,
@@ -29,8 +30,19 @@ import type { MatchEntity } from '../shared/types/entities';
 
 const FACE_MATCH_THRESHOLD = 95.0;
 const SEARCH_MAX_FACES = 50;
+const FACE_VISIBILITY_RETRY_DELAYS_MS = [200, 500, 1000, 2000];
 type MatchStep =
   'index_faces' | 'search_faces' | 'write_match' | 'delete_faces';
+
+function isNewlyIndexedFaceNotVisible(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { name?: string; message?: string };
+  return (
+    candidate.name === 'InvalidParameterException' &&
+    candidate.message?.toLowerCase() ===
+      'faceid was not found in the collection.'
+  );
+}
 
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
 const endpoint = process.env.AWS_ENDPOINT_URL;
@@ -224,17 +236,34 @@ async function matchPhoto(
     .map((record) => record.Face?.FaceId)
     .filter((faceId): faceId is string => Boolean(faceId));
 
-  try {
-    for (const detectedFaceId of detectedFaceIds) {
-      const searched = await recordStep('search_faces', () =>
-        rekognition.send(
+  async function searchNewlyIndexedFace(faceId: string) {
+    // AWS has returned "faceId was not found" for the ID from the preceding
+    // IndexFaces call. Retry only that exact transient response.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await rekognition.send(
           new SearchFacesCommand({
             CollectionId: collectionId,
-            FaceId: detectedFaceId,
+            FaceId: faceId,
             FaceMatchThreshold: FACE_MATCH_THRESHOLD,
             MaxFaces: SEARCH_MAX_FACES,
           }),
-        ),
+        );
+      } catch (error) {
+        if (
+          !isNewlyIndexedFaceNotVisible(error) ||
+          attempt === FACE_VISIBILITY_RETRY_DELAYS_MS.length
+        )
+          throw error;
+        await setTimeout(FACE_VISIBILITY_RETRY_DELAYS_MS[attempt]);
+      }
+    }
+  }
+
+  try {
+    for (const detectedFaceId of detectedFaceIds) {
+      const searched = await recordStep('search_faces', () =>
+        searchNewlyIndexedFace(detectedFaceId),
       );
       for (const faceMatch of searched.FaceMatches ?? []) {
         const matchedFaceId = faceMatch.Face?.FaceId;

@@ -31,6 +31,16 @@ clase del error para precisar el diagnóstico en la siguiente ejecución; no
 registra imágenes, FaceIds ni mensajes libres. La PR sigue pendiente del smoke
 completo y de un nuevo `destroy` correcto.
 
+La siguiente ejecución aisló el fallo en `search_faces`. CloudTrail confirmó
+que `IndexFaces` devolvió un FaceId y que `SearchFaces` recibió ese mismo ID
+inmediatamente después, pero AWS respondió `faceId was not found in the
+collection.`; una ejecución anterior mostró la misma respuesta. El matcher
+reintenta sólo esa respuesta exacta con esperas de 200, 500, 1000 y 2000 ms.
+Agotados los reintentos, conserva el fallo y la redelivery de SQS. Otras
+respuestas de parámetros inválidos no se reintentan. La suite local pasó con
+297 pruebas, incluidos los casos de recuperación, agotamiento y error distinto.
+Queda pendiente repetir la aceptación desplegada para confirmar la corrección.
+
 ## Sincronización
 
 La rama se actualiza sobre `main` conservando el diff neto de la PR: las

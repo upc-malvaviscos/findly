@@ -266,6 +266,60 @@ describe('photoMatcher', () => {
     ]);
   });
 
+  it('retries a newly indexed face until Rekognition can search it', async () => {
+    rekognitionMock.on(IndexFacesCommand).resolves({
+      FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
+    });
+    const notVisible = new Error('faceId was not found in the collection.');
+    notVisible.name = 'InvalidParameterException';
+    rekognitionMock
+      .on(SearchFacesCommand)
+      .rejectsOnce(notVisible)
+      .resolves({ FaceMatches: [] });
+
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
+
+    expect(result.batchItemFailures).toEqual([]);
+    expect(rekognitionMock.commandCalls(SearchFacesCommand)).toHaveLength(2);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(1);
+  });
+
+  it('does not retry other invalid Rekognition parameters', async () => {
+    rekognitionMock.on(IndexFacesCommand).resolves({
+      FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
+    });
+    const invalid = new Error('invalid threshold');
+    invalid.name = 'InvalidParameterException';
+    rekognitionMock.on(SearchFacesCommand).rejects(invalid);
+
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
+
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg-1' }]);
+    expect(rekognitionMock.commandCalls(SearchFacesCommand)).toHaveLength(1);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(1);
+  });
+
+  it('stops retrying an unavailable face and reports the SQS item', async () => {
+    rekognitionMock.on(IndexFacesCommand).resolves({
+      FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
+    });
+    const notVisible = new Error('faceId was not found in the collection.');
+    notVisible.name = 'InvalidParameterException';
+    rekognitionMock.on(SearchFacesCommand).rejects(notVisible);
+
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
+
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg-1' }]);
+    expect(rekognitionMock.commandCalls(SearchFacesCommand)).toHaveLength(5);
+    expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(1);
+  });
+
   it('swallows a duplicate Match write from SQS redelivery without failing', async () => {
     rekognitionMock.on(IndexFacesCommand).resolves({
       FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
