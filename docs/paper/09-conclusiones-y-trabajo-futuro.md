@@ -56,6 +56,25 @@ pendiente en la propia evidencia que demuestra el resto del sistema
   de ejecutables de ese sistema operativo (capítulo 8); la CI real, en Ubuntu,
   no se ve afectada.
 
+## Lecciones de la metodología
+
+La lección metodológica más concreta de este proyecto (capítulo 2) es
+cuantificable: de las 19 issues que el equipo daba por cerradas antes de la
+fase 3, una auditoría independiente y explícita (`#70`) encontró que 5 no
+tenían evidencia desplegada real pese a checks de CI en verde, y forzó su
+reapertura. Dos de ellas (`#6`, `#8`) se recerraron el mismo día con una
+prueba en AWS real; las otras tres (`#10`, `#13`, `#18`) más `#22`, reabierta
+por el mismo motivo, siguen abiertas porque la auditoría fue igual de
+estricta consigo misma: no las cerró sólo por haber corregido el resto. El coste de esa
+disciplina es visible — issues que "ya estaban hechas" volvieron a ocupar
+trabajo activo —, pero sin ella este documento estaría citando código
+probado únicamente con mocks como si fuera una demostración en AWS, el error
+exacto que `AGENTS.md` prohíbe desde el primer día del proyecto (capítulo 2).
+La conclusión práctica para un equipo que reutilice este enfoque: una
+auditoría de cierre programada, no sólo checks de CI, es la que realmente
+hace cumplir la regla de "sin evidencia no hay cierre" sobre trabajo que ya
+se consideraba terminado.
+
 ## Trabajo futuro
 
 1. Verificar en AWS real el disparo del `EventBridge Scheduler`, la alerta de
