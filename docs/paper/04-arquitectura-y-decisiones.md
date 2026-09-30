@@ -316,7 +316,8 @@ sequenceDiagram
     end
 ```
 
-**Despliegue vía GitHub Actions y OIDC** (ADR-008, spec 14):
+**Despliegue vía GitHub Actions y OIDC** (ADR-008, spec 14; el capítulo 5
+detalla la puerta de aprobación y el guardián de destrucción del plan):
 
 ```mermaid
 sequenceDiagram
@@ -324,14 +325,17 @@ sequenceDiagram
     participant STS as AWS STS
     participant TF as Terraform
     participant AWS as API de AWS
+    participant S3W as S3 (web)
     participant CF as CloudFront
 
     GH->>STS: AssumeRoleWithWebIdentity (token OIDC del job)
     STS-->>GH: Credenciales temporales (sin claves de larga duración)
-    GH->>TF: terraform apply
+    GH->>TF: terraform plan
+    Note over GH: check-deployment-plan.mjs rechaza borrados/reemplazos y recursos de coste fijo
+    GH->>TF: terraform apply (sólo si input apply=true)
     TF->>AWS: Crea/actualiza recursos con esas credenciales
-    GH->>AWS: aws s3 sync dist/ (bucket web)
-    GH->>CF: Invalidación de caché por Comment=findly-{entorno}
+    GH->>S3W: sync assets (cache-control immutable) + index.html aparte (no-cache)
+    GH->>AWS: CloudFront create-invalidation por distribution_id (output de Terraform)
 ```
 
 ### Integración de la calidad local
