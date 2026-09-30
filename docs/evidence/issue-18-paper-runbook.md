@@ -103,6 +103,44 @@ No se ejecuta `npm run terraform:validate`, `npm run lint:terraform` ni
 `npm run test:e2e`: esta entrega no modifica Terraform, workflows ni ningún
 flujo de usuario.
 
+## Actualización posterior: alineación con la PR #72 (issue #7)
+
+Tras la entrega inicial, la PR #72 (`feature/issue-7-selfie-enrollment-rekognition`)
+se fusionó en `main` con los nueve checks en verde, incluido un
+`provision-test-destroy` real en AWS (23m29s). Se revisó su diff frente a la
+memoria ya escrita y se corrigieron cinco puntos que habían quedado
+desalineados, sin reabrir ninguna otra sección:
+
+- `02-contexto-objetivos-y-alcance.md`: la fila de la issue `#7` en la tabla de
+  trazabilidad y un párrafo nuevo explican que la PR está fusionada con
+  evidencia AWS real aunque la issue de GitHub siga abierta a falta del
+  comentario de cierre formal.
+- `04-arquitectura-y-decisiones.md`: la PR introdujo en `main` un segundo
+  `ADR-010` y un segundo `ADR-011` (`ADR-010-selfie-enrollment-boundaries.md`,
+  `ADR-011-pending-erasure-recovery.md`), ambos marcados como documentos
+  históricos de una rama previa a su alineación. Se añadió una nota de
+  numeración y se aclararon las cuatro citas existentes a `ADR-011` para que
+  apunten sin ambigüedad al fichero vigente (`ADR-011-public-enrollment-capability.md`).
+  La colisión de numeración en sí queda sin resolver — no es un cambio de
+  contenido de esta memoria, sino una decisión pendiente de la persona
+  responsable sobre `docs/adr/`.
+- `04-arquitectura-y-decisiones.md`: el diagrama de secuencia de matching se
+  amplió con el reintento real que `photoMatcher.ts` aplica a `SearchFaces`
+  cuando Rekognition devuelve `FaceId was not found` justo después de
+  `IndexFaces` (hasta 4 intentos, 200-2000 ms) — verificado contra el código
+  actual, no descrito de memoria.
+- `05-implementacion-y-cicd.md`: la descripción del job `e2e` de `ci.yml` ya
+  incluye el nuevo paso `npm run test:floci:integration`.
+- `08-validacion-y-resultados.md`: la sección de pruebas E2E documenta el
+  nuevo nivel de 14 pruebas de integración aisladas de `selfieIndexer` contra
+  Floci, distinto de los dos tramos Playwright ya descritos.
+
+Los seis diagramas Mermaid de `04-arquitectura-y-decisiones.md`, incluido el
+modificado, se revalidaron renderizándolos con `@mermaid-js/mermaid-cli`.
+`npm run lint:markdown` pasa sobre los cuatro ficheros tocados. No se ha
+aplicado ningún cambio a `docs/adr/`, a la numeración de ADRs ni a la issue de
+GitHub `#7`: esta actualización es exclusivamente de la memoria.
+
 ## Pendiente
 
 - El cierre completo de #18 exige una SPA `demo` publicada y navegable, que

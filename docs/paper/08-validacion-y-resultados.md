@@ -51,6 +51,15 @@ La [integración de #70](../evidence/issue-70-integration.md) registra la
 pruebas contra Floci con teardown completo de contenedores, volúmenes y red.
 Ninguna de las dos activa Rekognition, Cognito ni IAM reales.
 
+Un tercer nivel, añadido por la PR #72 (issue #7), se ejecuta entre ambos en
+el job `e2e` de CI: `npm run test:floci:integration` (14 pruebas) invoca
+`selfieIndexer` con eventos S3 construidos en el propio test contra un
+contenedor Floci aislado y de un solo uso (proyecto aleatorio, puerto libre).
+Cubre persistencia, `GSI1`, duplicados, escrituras condicionales concurrentes,
+recuperación de bloqueo y borrado durante el procesamiento — sin pasar por
+Playwright ni por un navegador. Tampoco demuestra reconocimiento facial real,
+notificaciones S3→Lambda nativas ni IAM; Rekognition sigue simulado.
+
 ## Infraestructura como código
 
 Los cinco roots de Terraform (`bootstrap`, `environments/{sandbox,demo,production}`,
