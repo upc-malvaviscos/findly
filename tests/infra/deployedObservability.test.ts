@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const fixtureDirectory = mkdtempSync(
@@ -12,6 +12,20 @@ const alarm = 'findly-pr-70-photos-dlq-has-messages';
 const dlqName = 'findly-pr-70-photos-dlq';
 // This CLI fixture tests fail-closed parsing/privacy gates only. It is not AWS
 // evidence and never runs a real AWS command or emits real account identifiers.
+//
+// Windows-only limitation, verified, not fixed here: this fixture relies on a
+// POSIX shebang script named `aws` on PATH. On Windows, `execFileSync('aws',
+// …)` without `shell: true` (both here and in scripts/deployed-observability.mjs)
+// resolves bare commands via PATHEXT (.exe/.cmd/.bat/…) and never treats an
+// extension-less file as executable, so it finds the real system AWS CLI
+// instead of this fixture and fails on NoRegion. Adding an `aws.cmd` launcher
+// did not fix it either: Windows process spawn appears to resolve the
+// executable before the child's PATH override takes effect, even after
+// mutating this process's own `process.env.PATH` directly. Fixing this needs
+// either a `.cmd` variant plus whatever additional Windows spawn-resolution
+// step actually makes it take effect, or making the production script
+// shell-aware (it also runs for real in provision-test-destroy, so that is a
+// separate, reviewed change). CI runs on Ubuntu and is unaffected.
 writeFileSync(
   join(fixtureDirectory, 'aws'),
   `#!${process.execPath}
@@ -46,7 +60,7 @@ function probe(overrides: Record<string, string> = {}) {
       timeout: 10000,
       env: {
         ...process.env,
-        PATH: `${fixtureDirectory}:${process.env.PATH ?? ''}`,
+        PATH: `${fixtureDirectory}${delimiter}${process.env.PATH ?? ''}`,
         EPHEMERAL_RESOURCE_PREFIX: 'findly-pr-70',
         PHOTOS_DLQ_ALARM_NAME: alarm,
         EPHEMERAL_ALERT_QUEUE_URL:
