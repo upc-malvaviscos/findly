@@ -29,6 +29,8 @@ import type { MatchEntity } from '../shared/types/entities';
 
 const FACE_MATCH_THRESHOLD = 95.0;
 const SEARCH_MAX_FACES = 50;
+type MatchStep =
+  'index_faces' | 'search_faces' | 'write_match' | 'delete_faces';
 
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
 const endpoint = process.env.AWS_ENDPOINT_URL;
@@ -189,20 +191,34 @@ async function matchPhoto(
   eventId: string,
   photoId: string,
   key: string,
+  onFailure: (step: MatchStep) => void,
 ): Promise<void> {
   const collectionId = eventCollectionId(eventId);
-  const indexed = await rekognition.send(
-    new IndexFacesCommand({
-      CollectionId: collectionId,
-      Image: {
-        S3Object: {
-          Bucket: bucket,
-          Name: key,
+  async function recordStep<T>(
+    step: MatchStep,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      onFailure(step);
+      throw error;
+    }
+  }
+  const indexed = await recordStep('index_faces', () =>
+    rekognition.send(
+      new IndexFacesCommand({
+        CollectionId: collectionId,
+        Image: {
+          S3Object: {
+            Bucket: bucket,
+            Name: key,
+          },
         },
-      },
-      ExternalImageId: `PHOTO:${photoId}`,
-      QualityFilter: 'AUTO',
-    }),
+        ExternalImageId: `PHOTO:${photoId}`,
+        QualityFilter: 'AUTO',
+      }),
+    ),
   );
   const detectedFaceIds = (indexed.FaceRecords ?? [])
     .map((record) => record.Face?.FaceId)
@@ -210,13 +226,15 @@ async function matchPhoto(
 
   try {
     for (const detectedFaceId of detectedFaceIds) {
-      const searched = await rekognition.send(
-        new SearchFacesCommand({
-          CollectionId: collectionId,
-          FaceId: detectedFaceId,
-          FaceMatchThreshold: FACE_MATCH_THRESHOLD,
-          MaxFaces: SEARCH_MAX_FACES,
-        }),
+      const searched = await recordStep('search_faces', () =>
+        rekognition.send(
+          new SearchFacesCommand({
+            CollectionId: collectionId,
+            FaceId: detectedFaceId,
+            FaceMatchThreshold: FACE_MATCH_THRESHOLD,
+            MaxFaces: SEARCH_MAX_FACES,
+          }),
+        ),
       );
       for (const faceMatch of searched.FaceMatches ?? []) {
         const matchedFaceId = faceMatch.Face?.FaceId;
@@ -229,23 +247,27 @@ async function matchPhoto(
           eventId,
         );
         if (!registration) continue;
-        await writeMatch(
-          eventId,
-          registration.registrationId,
-          photoId,
-          similarity,
-          registration.ttl,
-          registration.faceId,
+        await recordStep('write_match', () =>
+          writeMatch(
+            eventId,
+            registration.registrationId,
+            photoId,
+            similarity,
+            registration.ttl,
+            registration.faceId,
+          ),
         );
       }
     }
   } finally {
     if (detectedFaceIds.length > 0)
-      await rekognition.send(
-        new DeleteFacesCommand({
-          CollectionId: collectionId,
-          FaceIds: detectedFaceIds,
-        }),
+      await recordStep('delete_faces', () =>
+        rekognition.send(
+          new DeleteFacesCommand({
+            CollectionId: collectionId,
+            FaceIds: detectedFaceIds,
+          }),
+        ),
       );
   }
 }
@@ -266,12 +288,15 @@ export async function photoMatcher(
       context?.awsRequestId,
     );
     let current: { eventId: string; photoId: string } | undefined;
+    let failedStep: MatchStep | undefined;
     try {
       const photoEvents = parseS3PhotoEvents(record.body);
       for (const { bucket, key, eventId, photoId } of photoEvents) {
         current = { eventId, photoId };
         const photoStartedAt = Date.now();
-        await matchPhoto(bucket, eventId, photoId, key);
+        await matchPhoto(bucket, eventId, photoId, key, (step) => {
+          failedStep = step;
+        });
         emitLog('INFO', 'photo_processed', correlationId, {
           eventId,
           photoId,
@@ -280,9 +305,11 @@ export async function photoMatcher(
       }
     } catch (caught) {
       // Without this line a failing message would only surface as a DLQ
-      // alarm with nothing to diagnose it. Only the error name is logged.
+      // alarm with nothing to diagnose it. Only the error name and safe step
+      // label are logged; request data and error messages stay out of logs.
       emitLog('ERROR', 'photo_matching_failed', correlationId, {
         ...current,
+        step: failedStep,
         errorName: errorNameOf(caught),
       });
       batchItemFailures.push({ itemIdentifier: record.messageId });
