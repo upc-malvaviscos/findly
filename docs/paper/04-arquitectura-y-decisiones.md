@@ -64,6 +64,16 @@ flowchart LR
 | Rekognition                         | Indexación y búsqueda facial, colecciones aisladas por entorno/evento.          | ADR-015           |
 | SNS + AWS Budgets                   | Alerta de la DLQ y del presupuesto mensual.                                     | issue #13         |
 
+> **Nota de numeración de ADRs:** la PR #72 (issue #7) introdujo en `main` un
+> segundo `ADR-010-selfie-enrollment-boundaries.md` y un segundo
+> `ADR-011-pending-erasure-recovery.md`, que coexisten con los ficheros
+> homónimos ya vigentes. Ambos proceden de la rama de esa issue antes de
+> alinearse con `main` y llevan su propio aviso de documento histórico; el de
+> borrado, además, queda marcado "aplazado, no implementado" (capítulo 9). Toda
+> referencia a **ADR-011** en este capítulo apunta al fichero vigente,
+> `ADR-011-public-enrollment-capability.md`. La colisión de numeración en sí
+> no se ha resuelto — es una decisión pendiente de la persona responsable.
+
 ### Catálogo de servicios e integraciones
 
 Findly combina 14 servicios de AWS con herramientas de terceros para CI/CD y
@@ -113,7 +123,8 @@ proceso propio que los orqueste.
 - **ADR-009**: estado remoto de Terraform por entorno, con bloqueo nativo de
   S3.
 - **ADR-011**: capacidad de inscripción pública (contrato aprobado que separa
-  `publicEvents`/`publicEnrollment`/`selfieIndexer`).
+  `publicEvents`/`publicEnrollment`/`selfieIndexer`; véase la nota de
+  numeración de ADRs más arriba sobre el fichero histórico homónimo).
 
 La continuación de la issue #70 añadió tres decisiones que también son de
 alto nivel porque cambian el modelo de fallo del sistema, no sólo un detalle
@@ -210,7 +221,8 @@ intervienen. Todos están verificados contra AWS real en el run de aceptación
 de PR #71 (capítulo 8), salvo el de purga, cuyo disparo real por
 `EventBridge Scheduler` sigue pendiente (capítulo 9).
 
-**Inscripción pública e indexación facial** (ADR-011, ADR-014):
+**Inscripción pública e indexación facial** (ADR-011 vigente, ADR-014 — no
+confundir con el ADR-011 histórico posterior, nota de numeración más arriba):
 
 ```mermaid
 sequenceDiagram
@@ -258,6 +270,9 @@ sequenceDiagram
     loop por cada rostro detectado
         PM->>R: IndexFaces (temporal)
         PM->>R: SearchFaces por FaceId
+        opt FaceId aún no visible (hasta 4 reintentos, 200-2000ms)
+            PM->>R: SearchFaces (reintento)
+        end
         PM->>D: Query GSI1 (FACE#{faceId})
         PM->>D: PutItem condicional (MATCH#, idempotente)
         PM->>R: DeleteFaces (limpieza del temporal)
@@ -267,6 +282,15 @@ sequenceDiagram
         Note over DLQ: Dispara la alarma CloudWatch → SNS
     end
 ```
+
+`SearchFaces` puede devolver `InvalidParameterException` con el mensaje
+"FaceId was not found in the collection" justo después de un `IndexFaces` que
+sí indexó ese rostro: una inconsistencia eventual real de Rekognition, no un
+error de la aplicación. `photoMatcher` reintenta exclusivamente esa respuesta
+concreta hasta 4 veces con espera creciente (200, 500, 1000, 2000 ms) antes de
+dejar que el error se propague al conteo de reintentos de SQS. El paso que
+falla (`index_faces`, `search_faces`, `write_match` o `delete_faces`) se
+registra en el log de error para diagnóstico, sin datos sensibles.
 
 **Galería privada y derecho al olvido** (ADR-005, ADR-013):
 

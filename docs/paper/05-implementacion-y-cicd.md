@@ -59,8 +59,11 @@ cobertura, build, sube `dist/` y el informe de cobertura como artefactos);
 `terraform` (`actionlint`, `terraform fmt -check`, `terraform validate`,
 `tflint`); `security-and-sync` (Markdown, `npm audit` de dependencias de
 producción, y `sync:check`, capítulo 2); `e2e` (Playwright contra el mock del
-navegador y contra Floci, con caché de binarios por sistema operativo y
-`package-lock.json`). GitHub también ejecuta CodeQL mediante su configuración
+navegador, un tramo intermedio de 14 pruebas de integración aisladas
+(`npm run test:floci:integration`) que llaman a `selfieIndexer` directamente
+contra un contenedor Floci propio sin pasar por el navegador, y Playwright de
+nuevo contra Floci; los tres comparten caché de binarios por sistema operativo
+y `package-lock.json`). GitHub también ejecuta CodeQL mediante su configuración
 de análisis de código por defecto a nivel de repositorio, no como un fichero
 de workflow versionado en este repositorio.
 

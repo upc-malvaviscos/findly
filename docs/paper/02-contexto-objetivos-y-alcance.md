@@ -127,7 +127,7 @@ exactamente cuál en cada caso).
 | 4   | Web estática e inscripción pública               | 03   | 03-sep | Cerrada 09-sep                    | 1     |
 | 5   | Administración y Cognito                         | 04   | 03-sep | Cerrada 18-sep                    | 1     |
 | 6   | Cargas prefirmadas y claves S3                   | 05   | 03-sep | Reabierta por #70, cerrada 28-sep | 1 → 3 |
-| 7   | Inscripción facial                               | 06   | 03-sep | Abierta                           | 1     |
+| 7   | Inscripción facial                               | 06   | 03-sep | PR #72 fusionada, issue abierta   | 1     |
 | 8   | Fotos de evento y matching                       | 07   | 03-sep | Reabierta por #70, cerrada 28-sep | 1 → 3 |
 | 9   | Galería privada                                  | 08   | 03-sep | Cerrada 17-sep                    | 1     |
 | 10  | Consentimiento y borrado                         | 09   | 03-sep | Reabierta por #70, abierta        | 1 → 3 |
@@ -150,6 +150,15 @@ exactamente cuál en cada caso).
 | 54  | Modo local contra AWS sandbox                    | 19   | 18-sep | Cerrada 18-sep                    | 2     |
 | 61  | Verificar bootstrap Terraform (sub-issue de #11) | 10   | 19-sep | Verificada en AWS 02-oct          | 2     |
 | 70  | Auditoría de cierres                             | —    | 28-sep | Abierta (coordina la fase 3)      | 3     |
+
+La `#7` no forma parte del lote reabierto por `#70`: llevaba abierta desde la
+fase 1 por sus propios criterios pendientes. La PR #72 la completó y se
+fusionó el 30-sep con los nueve checks en verde, incluido un
+`provision-test-destroy` real y exitoso en AWS (23m29s) — el mismo tipo de
+evidencia que exige `AGENTS.md` para cerrar una issue. La issue de GitHub
+seguía abierta en el momento de escribir esta memoria porque ese cierre
+formal, con comentario de síntesis, es una acción pendiente de la persona
+responsable, no una carencia de evidencia.
 
 ### La auditoría como puerta de calidad
 
