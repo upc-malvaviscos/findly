@@ -24,9 +24,23 @@ npm run harness:check:e2e
 npm run test:floci
 ```
 
-Playwright inicia y destruye Compose. Comprueba galería, estados de token,
+La suite adicional `npm run test:floci:integration` invoca
+SelfieIndexer con eventos S3 construidos en el test, usa DynamoDB y S3 de un
+contenedor Floci aislado y simula únicamente Rekognition. Comprueba persistencia,
+GSI1, duplicados, escrituras condicionales concurrentes, recuperación del bloqueo
+y borrado durante el procesamiento. No demuestra reconocimiento facial,
+notificaciones S3 a Lambda, IAM ni comportamiento AWS real.
+
+El comando `npm run test:floci` ejecuta Playwright e inicia y destruye Compose. Comprueba galería, estados de token,
 login local de organizador, eventos y subida. Para depurar manualmente, usa
 `npm run dev:floci`.
+
+La suite de integración aislada requiere Node.js 24, dependencias instaladas y
+Docker Compose; no requiere navegadores. Usa un proyecto aleatorio, puerto
+loopback libre y datos sintéticos, y elimina sus recursos al terminar incluso
+si una prueba falla. Puede ejecutarse junto a una sesión manual de Floci.
+El tramo Playwright de `test:floci` conserva su ciclo Compose habitual; no lo
+ejecutes sobre el mismo proyecto Compose de una sesión manual con datos a conservar.
 
 ## AWS sandbox
 

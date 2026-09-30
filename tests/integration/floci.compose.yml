@@ -1,0 +1,5 @@
+services:
+  floci:
+    image: floci/floci:latest
+    ports:
+      - '127.0.0.1::4566'

@@ -34,6 +34,19 @@ Los puertos `FLOCI_PORT`, `LOCAL_API_PORT` y `WEB_PORT` son configurables para
 worktrees. Este modo prueba Lambda contra servicios emulados, pero Cognito
 sigue siendo un adaptador local.
 
+Para comprobar el indexador sin detener esa sesión:
+
+```sh
+npm run test:floci:integration
+```
+
+Este comando crea y elimina un contenedor independiente, con proyecto aleatorio
+y puerto local libre. DynamoDB y S3 son emulados; Rekognition está simulado y
+el evento S3 se entrega al handler desde la prueba. No habilita la subida de
+selfies en el formulario ni configura notificaciones automáticas S3 a Lambda.
+Consulta la [estrategia de pruebas](testing-strategy.md) antes de ejecutar
+`test:floci`, que también incluye el ciclo Compose de Playwright.
+
 ## Local contra AWS sandbox
 
 ```sh
