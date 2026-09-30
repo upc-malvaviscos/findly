@@ -1,6 +1,6 @@
 # Documentación de Findly
 
-`paper/` contiene la memoria en Markdown; `adr/` registra decisiones; `evidence/` guardará capturas, salidas de validación y estimaciones de coste; `figures/` contiene activos fuente, no exportaciones binarias.
+`paper/` contiene la memoria en Markdown; `adr/` registra decisiones; `evidence/` guardará capturas, salidas de validación y estimaciones de coste; `figures/` contiene activos fuente, no exportaciones binarias; `runbooks/` contiene procedimientos ejecutables paso a paso, incluido el [runbook de demostración](runbooks/demo-runbook.md).
 
 La trazabilidad de los tres modos locales y sus issues cerradas está en
 [`evidence/issue-51-54-local-execution-modes.md`](evidence/issue-51-54-local-execution-modes.md).
