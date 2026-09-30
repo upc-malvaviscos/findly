@@ -60,6 +60,14 @@ const requiredTraceability = [
     ['36482560393', 'Scheduler', 'TTL'],
   ],
   [
+    'specs/17-paper-evidence-adr-and-demo-runbook.md',
+    ['#18', 'issue-18-paper-runbook.md', 'demo-runbook.md'],
+  ],
+  [
+    'docs/evidence/issue-18-paper-runbook.md',
+    ['#18', 'demo-runbook.md', 'No se ha aplicado nada nuevo en AWS'],
+  ],
+  [
     'AGENTS.md',
     ['implementación, las specs y las issues de GitHub', 'npm run sync:check'],
   ],
