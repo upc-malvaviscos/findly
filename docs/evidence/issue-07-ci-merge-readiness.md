@@ -19,11 +19,17 @@ denegadas al inicio. Conserva el trust OIDC existente y no añade credenciales.
 La excepción de lectura `lambda:GetEventSourceMapping` usa `Resource = "*"`
 limitado a `eu-west-1`, conforme al waiter de Terraform documentado para #71.
 
-El documento es una **propuesta**: no se aplica a AWS sin comparar primero las
-políticas vigentes del rol, revisar duplicados y recibir aprobación específica
-para PR #72. Después se repetirá el check requerido y se comprobará tanto el
-smoke desplegado como el `destroy`. Ningún resultado local o Floci sustituye esa
-evidencia.
+La propuesta se validó con IAM Access Analyzer, se comparó con las políticas
+vigentes del rol y se aplicó tras la aprobación específica para PR #72. La
+política `findly-pr-72-approved-merge-readiness` quedó adjunta al rol OIDC en
+la cuenta `567158658992`; el documento AWS coincide con este JSON. La repetición
+del check aprovisionó el entorno y ejecutó el primer recorrido desplegado. La
+aceptación adicional de la issue #70 falló en el matching de una foto sintética:
+Rekognition devolvió `InvalidParameterException`. El `destroy` eliminó los 103
+recursos. El matcher ahora registra sólo el nombre de la operación fallida y la
+clase del error para precisar el diagnóstico en la siguiente ejecución; no
+registra imágenes, FaceIds ni mensajes libres. La PR sigue pendiente del smoke
+completo y de un nuevo `destroy` correcto.
 
 ## Sincronización
 

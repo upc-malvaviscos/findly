@@ -281,7 +281,16 @@ try {
           !/^[A-Za-z0-9_]{1,80}$/.test(entry.errorName ?? '')
         )
           continue;
-        counts.set(entry.errorName, (counts.get(entry.errorName) ?? 0) + 1);
+        const step = [
+          'index_faces',
+          'search_faces',
+          'write_match',
+          'delete_faces',
+        ].includes(entry.step)
+          ? entry.step
+          : 'unknown';
+        const category = `${step}:${entry.errorName}`;
+        counts.set(category, (counts.get(category) ?? 0) + 1);
       }
       console.log('Acceptance error categories', handler, {
         invocationStarts,

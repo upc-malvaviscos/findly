@@ -384,7 +384,7 @@ describe('photoMatcher structured logging', () => {
     ]);
   });
 
-  it('logs a failing message by error name, with the messageId as correlation ID', async () => {
+  it('logs the failing step and error name with the messageId as correlation ID', async () => {
     const failure = new Error(
       'rekognition denied s3://findly-secret/events/demo-2026/photos/x.jpg',
     );
@@ -403,6 +403,7 @@ describe('photoMatcher structured logging', () => {
         correlationId: 'msg-fail',
         eventId: 'demo-2026',
         photoId: 'photo-fail',
+        step: 'index_faces',
         errorName: 'AccessDeniedException',
       }),
       expect.objectContaining({

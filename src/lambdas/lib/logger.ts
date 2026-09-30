@@ -14,6 +14,7 @@ export type LogFields = {
   statusCode?: number;
   durationMs?: number;
   errorName?: string;
+  step?: 'index_faces' | 'search_faces' | 'write_match' | 'delete_faces';
   expiredEvents?: number;
   purgedEvents?: number;
   matchesDeleted?: number;
@@ -43,6 +44,7 @@ const ALLOWED_FIELDS = [
   'statusCode',
   'durationMs',
   'errorName',
+  'step',
   'expiredEvents',
   'purgedEvents',
   'matchesDeleted',
