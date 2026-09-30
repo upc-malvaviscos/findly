@@ -82,9 +82,13 @@ presupuestar.
 
 ## E. Runbook de demostración
 
-El procedimiento paso a paso, con lo que es ejecutable hoy y lo que sigue
-bloqueado por #15/#61, está en
-[`docs/runbooks/demo-runbook.md`](../runbooks/demo-runbook.md).
+El procedimiento paso a paso por niveles, con lo que es ejecutable hoy y lo
+que sigue bloqueado, está en
+[`docs/runbooks/demo-runbook.md`](../runbooks/demo-runbook.md). La guía
+exhaustiva de despliegue en AWS real mediante Terraform — cada comando,
+desde el bootstrap del estado hasta el recorrido manual completo de la
+demo — está en
+[`docs/runbooks/aws-deployment-guide.md`](../runbooks/aws-deployment-guide.md).
 
 ## F. Evidencia adicional
 

@@ -13,6 +13,24 @@ El MVP usa únicamente imágenes sintéticas o autorizadas y consentimiento biom
 3. El organizador autenticado carga fotos del evento; una Lambda busca coincidencias.
 4. Findly crea una galería temporal con URLs S3 prefirmadas y permite retirar los datos.
 
+## Cómo ver la aplicación funcionando
+
+Tres formas de ejecutar Findly, de menos a más real, todas documentadas paso
+a paso con comandos exactos:
+
+| Modo                   | Qué necesitas         | Qué prueba                                                                           | Guía                                                                                                                                                     |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mock (en el navegador) | Sólo `npm ci`         | Sólo la interfaz; nada de backend real.                                              | `npm run dev:mocks` ([modos de ejecución](docs/execution-modes.md))                                                                                      |
+| Local con Floci        | Docker Compose        | Los mismos handlers Lambda contra DynamoDB/S3 emulados.                              | `npm run dev:floci` ([modos de ejecución](docs/execution-modes.md))                                                                                      |
+| AWS real (`sandbox`)   | Una cuenta AWS propia | El backend real: DynamoDB, S3, Rekognition, Cognito, API Gateway y Lambda de verdad. | [`docs/runbooks/aws-deployment-guide.md`](docs/runbooks/aws-deployment-guide.md) — guía completa, comando a comando, desde cero hasta una demo navegable |
+
+La guía de despliegue en AWS incluye el recorrido manual completo (crear un
+evento, inscribirte con una selfie, ver la galería, ejercer el derecho al
+olvido) y una tabla de solución de problemas. `docs/runbooks/demo-runbook.md`
+resume los cuatro niveles disponibles (local, AWS efímero de CI, AWS
+`sandbox` propio, `demo`/`production` publicado) y cuál está bloqueado hoy y
+por qué.
+
 ## Arquitectura
 
 ```mermaid

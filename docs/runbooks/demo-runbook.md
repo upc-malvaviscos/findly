@@ -1,9 +1,10 @@
 # Runbook de demostración
 
-Tres niveles, en orden de lo que es ejecutable hoy por cualquier persona ajena
-al equipo a lo que sigue bloqueado. Ninguno usa datos ni imágenes reales
-(AGENTS.md). Secuencia por nivel: Inscripción -> Carga masiva admin -> Galería
-privada -> Derecho al olvido -> Teardown.
+Cuatro niveles, en orden de lo que es ejecutable hoy por cualquier persona
+ajena al equipo a lo que sigue bloqueado para la cuenta compartida de este
+equipo en concreto. Ninguno usa datos ni imágenes reales de terceros sin
+autorización (AGENTS.md). Secuencia por nivel: Inscripción -> Carga masiva
+admin -> Galería privada -> Derecho al olvido -> Teardown.
 
 ## Nivel 1: local con Floci (ejecutable hoy, sin cuenta AWS)
 
@@ -58,20 +59,39 @@ permisos IAM descritos en [`issue-70-aws-review.md`](issue-70-aws-review.md);
 no es algo que una persona externa sin acceso al repositorio pueda ejecutar
 por sí misma.
 
-## Nivel 3: entorno `demo` persistente (bloqueado)
+## Nivel 3: AWS `sandbox` real desde tu propia cuenta
 
-**No ejecutable todavía.** Requiere, en este orden:
+**Bloqueado hoy sólo para la cuenta compartida del equipo** (un AWS Learner
+Lab educativo cuya política deniega `s3:CreateBucket` en `eu-west-1`;
+`docs/evidence/issue-11-terraform-remote-state.md`, issue #61). Con cualquier
+cuenta AWS sin esa restricción, este nivel es **ejecutable de principio a fin
+hoy mismo, sin GitHub Actions ni un dominio propio**: un único comando
+(`npm run dev:aws`) aplica Terraform contra AWS real, crea un organizador de
+Cognito temporal y sirve la SPA localmente ya conectada al backend real. La
+guía completa, con cada comando exacto y el recorrido manual de la demo
+(incluida la limitación de que Rekognition ya compara rostros reales, no
+placeholders sintéticos), está en
+[`aws-deployment-guide.md`](aws-deployment-guide.md).
 
-1. Aplicar `infra/bootstrap` en una cuenta AWS con permisos para
-   `s3:CreateBucket` en `eu-west-1` (bloqueado hoy en el AWS Learner Lab del
-   equipo; issue #61).
+## Nivel 4: entorno `demo`/`production` persistente publicado (bloqueado)
+
+**No ejecutable todavía para este equipo**, y con más requisitos que el nivel
+3 incluso con una cuenta sin restricciones: necesita un dominio propio con
+certificado ACM, además del mismo bootstrap del nivel 3. Requiere, en este
+orden:
+
+1. Aplicar `infra/bootstrap` en una cuenta AWS sin la restricción del nivel 3
+   (issue #61).
 2. Ejecutar el workflow de despliegue manual vía OIDC (spec 14) contra
-   `environments/demo` (issue #15).
+   `environments/demo`, con un dominio y certificado ACM propios configurados
+   como variables del _environment_ de GitHub (issue #15;
+   [`aws-deployment-guide.md`](aws-deployment-guide.md#7-alternativa-desplegar-demo-mediante-el-workflow-de-github-actions)
+   detalla las variables exactas).
 3. Sembrar un evento y fotos sintéticas equivalentes al nivel 1, pero contra el
    endpoint real.
 4. Repetir la secuencia Inscripción -> Carga masiva -> Galería -> Derecho al
-   olvido con un navegador real, igual que el nivel 2 pero contra un stack que
-   permanece arriba entre sesiones.
+   olvido con un navegador real, igual que el nivel 3 pero contra un stack que
+   permanece arriba entre sesiones y se sirve por HTTPS con dominio propio.
 5. Teardown explícito y acordado: `demo`/`production` mantienen
    `allow_bucket_destroy = false`; no usar `dev:aws-destroy` contra esos
    roots. La destrucción de `demo`, si se acuerda, es una acción manual
