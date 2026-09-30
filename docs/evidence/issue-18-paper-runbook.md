@@ -2,7 +2,10 @@
 
 Implementación de la spec 17 ([issue #18](https://github.com/upc-malvaviscos/findly/issues/18)):
 sincroniza `docs/paper/` con el estado real del sistema tras la aceptación AWS
-de la issue #70 (PR #71) y añade el runbook de demostración por niveles.
+de la issue #70 (PR #71), amplía la memoria a profundidad de TFM (a petición
+explícita de la persona responsable, que además fijó un objetivo orientativo
+de 25-30 páginas, no un límite estricto), y añade el runbook de demostración
+por niveles junto con una guía exhaustiva de despliegue en AWS real.
 
 **No se ha aplicado nada nuevo en AWS ni se ha publicado ninguna SPA.** Esta
 entrega es documentación: consolida evidencia ya existente y verifica los
@@ -10,35 +13,58 @@ comandos locales que cita.
 
 ## Alcance verificado
 
-- `docs/paper/04-arquitectura-y-decisiones.md`: reestructurado en dos niveles
-  explícitos, HLD (visión general, componentes, decisiones de arquitectura) y
-  LLD (contratos de API, modelo de claves DynamoDB, claves S3, colecciones
-  Rekognition, IAM por Lambda), dentro del mismo capítulo 4 y sin alterar la
-  numeración 00-11 exigida por spec 17/`docs/README.md`. Contenido verificado
-  contra `infra/modules/*`, `src/shared/lib/{dynamoKeys,s3Keys}.ts` y
-  `src/shared/types/api.ts` en `main`, no reescrito de memoria.
-- `docs/paper/03-requisitos-y-viabilidad.md`: requisitos funcionales/no
-  funcionales de spec 00, análisis del patrón de matching de Rekognition
-  (spec 07), y la alternativa de persistencia citando el análisis de la
-  issue #49 como decisión abierta, sin presentarla como aprobada.
-- `docs/paper/08-validacion-y-resultados.md`: consolida evidencia con enlaces
-  — resultados locales de esta entrega (typecheck, lint, build, 294 tests/38
-  archivos, 290 pasan), cobertura por ámbito, E2E, Terraform, y el run de
-  aceptación AWS real de PR #71 con lo que demuestra y lo que declara
-  explícitamente pendiente.
-- `docs/paper/09-conclusiones-y-trabajo-futuro.md`: objetivos logrados y ocho
-  limitaciones verificadas, cada una trazada a su issue o evidencia.
-- `docs/paper/10-referencias.md`: 15 referencias numeradas con URL y fecha de
-  consulta, sustituyendo el placeholder de dos referencias sin consultar.
-- `docs/paper/11-anexos.md`: variables no sensibles por entorno, comandos de
-  despliegue, nombres de outputs de Terraform (sin valores), matriz de coste
-  por tipo de recurso y enlaces a la evidencia adicional.
-- `docs/runbooks/demo-runbook.md` (nuevo): tres niveles explícitos — local con
-  Floci (ejecutable hoy, sin AWS), AWS efímero de pull request (real, pero
-  sólo reproducible desde una PR de este repositorio) y `demo` persistente
-  (bloqueado por #15/#61). No presenta el nivel 1 como equivalente a una
-  demostración AWS.
-- `docs/README.md`: referencia añadida a `runbooks/` y al runbook de demo.
+Memoria (`docs/paper/`), de ~5.400 a ~12.650 palabras (~28 páginas a la
+densidad estimada de este proyecto):
+
+- `01a-acronimos.md` (nuevo): glosario de todos los acrónimos realmente usados
+  en `docs/paper`, `specs` y `docs/adr`, agrupados por ámbito — exigido por el
+  formato "Connected Vehicle" de `docs/README.md`, no existía.
+- `02-contexto-objetivos-y-alcance.md`: renombrado para incluir metodología;
+  añade el ciclo research/plan/implement/sync de `AGENTS.md`, las 3 fases
+  reales del proyecto con diagrama de línea de tiempo Mermaid, una tabla de
+  trazabilidad de las 29 issues del repositorio (número, spec, fechas,
+  estado, fase) y un análisis de la auditoría #70 como puerta de calidad,
+  verificado contra fechas reales de GitHub (`#6`/`#8` reabiertas y
+  recerradas el mismo día, 2026-09-28).
+- `04-arquitectura-y-decisiones.md`: reestructurado en HLD/LLD; añade un
+  catálogo de 14 servicios AWS + herramientas de terceros con el mecanismo
+  exacto de comunicación de cada uno, y 5 diagramas de secuencia (inscripción,
+  matching, galería/borrado, purga, despliegue OIDC). Corrección encontrada y
+  aplicada: el capítulo citaba un `Scan` de `retentionPurger` que la fase 3
+  del proyecto ya sustituyó por `Query` sobre `GSI2` — verificado contra
+  `src/lambdas/retentionPurger.ts` en `main`, no repetido de memoria.
+- `05-implementacion-y-cicd.md`: de 166 a 1.401 palabras; el empaquetado de
+  Lambdas, las 5 raíces Terraform, y los 6 workflows de GitHub Actions
+  explicados uno a uno.
+- `06-seguridad-privacidad-y-gobierno.md`: de 123 a 1.367 palabras; consentimiento,
+  autenticación, tokens opacos, tabla IAM Lambda por Lambda, OIDC, borrado de
+  biometría y 3 limitaciones de privacidad explícitas. Hallazgo verificado:
+  `infra/modules/github-oidc/` no lo instancia ningún root — los roles reales
+  se gestionan a mano fuera de Terraform.
+- `03-requisitos-y-viabilidad.md`, `08-validacion-y-resultados.md`,
+  `09-conclusiones-y-trabajo-futuro.md`, `10-referencias.md`,
+  `11-anexos.md`: reforzados (matriz de trazabilidad spec↔issue↔evidencia de
+  16 filas en el 08, verificada contra los ficheros reales de
+  `docs/evidence/`; principios FinOps y sección de sostenibilidad honesta en
+  el 07; lección de metodología cuantificada en el 09; referencias de 15 a
+  24 entradas en el 10).
+
+Runbooks y README:
+
+- `docs/runbooks/aws-deployment-guide.md` (nuevo): guía comando a comando para
+  desplegar `sandbox` en AWS real y ejecutar una demo funcional completa,
+  verificada contra el código actual de `scripts/aws-sandbox.mjs` e
+  `infra/bootstrap/`, no descrita de memoria. Indica explícitamente que la
+  restricción de la cuenta compartida del equipo (issue #61) es de esa cuenta,
+  no del código, para que una cuenta AWS sin esa restricción pueda seguirla de
+  principio a fin.
+- `docs/runbooks/demo-runbook.md`: reestructurado de 3 a 4 niveles para
+  encajar el nuevo nivel de `sandbox` real por cuenta propia, distinto del
+  entorno efímero de PR (sólo CI) y del `demo` publicado (bloqueado, exige
+  dominio propio).
+- `README.md`: nueva sección "Cómo ver la aplicación funcionando" con los tres
+  modos de ejecución comparados y enlazados desde el principio del documento.
+- `docs/README.md`: referencia añadida a `runbooks/` y a ambos runbooks.
 - `specs/17-paper-evidence-adr-and-demo-runbook.md`: checklist marcado con la
   evidencia y el límite exacto de cada casilla; issue no cerrada.
 
