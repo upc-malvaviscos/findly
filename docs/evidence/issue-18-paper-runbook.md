@@ -10,6 +10,13 @@ comandos locales que cita.
 
 ## Alcance verificado
 
+- `docs/paper/04-arquitectura-y-decisiones.md`: reestructurado en dos niveles
+  explícitos, HLD (visión general, componentes, decisiones de arquitectura) y
+  LLD (contratos de API, modelo de claves DynamoDB, claves S3, colecciones
+  Rekognition, IAM por Lambda), dentro del mismo capítulo 4 y sin alterar la
+  numeración 00-11 exigida por spec 17/`docs/README.md`. Contenido verificado
+  contra `infra/modules/*`, `src/shared/lib/{dynamoKeys,s3Keys}.ts` y
+  `src/shared/types/api.ts` en `main`, no reescrito de memoria.
 - `docs/paper/03-requisitos-y-viabilidad.md`: requisitos funcionales/no
   funcionales de spec 00, análisis del patrón de matching de Rekognition
   (spec 07), y la alternativa de persistencia citando el análisis de la
