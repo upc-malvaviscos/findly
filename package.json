@@ -27,6 +27,7 @@
     "test:e2e": "playwright test",
     "test:e2e:local": "playwright test --config=playwright.local.config.ts",
     "test:floci": "npm exec -- playwright test --config=playwright.local.config.ts",
+    "test:floci:integration": "node scripts/test-floci-integration.mjs",
     "test:aws": "node scripts/test-aws-sandbox.mjs",
     "build": "npm run build:web && npm run build:lambdas && npm run package:lambdas && npm run verify:lambdas",
     "build:web": "vite build",

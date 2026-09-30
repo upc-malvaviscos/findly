@@ -84,6 +84,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npm exec -- playwright install
       - run: npm run test:e2e
+      - run: npm run test:floci:integration
       - run: npm run test:e2e:local
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}

@@ -72,3 +72,12 @@ AWS. El parser admite claves antiguas, pero las notificaciones nuevas usan
 los sufijos de ADR-012. Terraform limita la edad del evento asíncrono a 21600
 segundos y dos reintentos. Estas garantías tienen pruebas locales; la
 aceptación desplegada permanece pendiente.
+
+## Alineación de la rama issue #7
+
+La rama adopta sin cambios los handlers, contratos e infraestructura de main
+(e7da348). Añade integración aislada DynamoDB/S3 en Floci con Rekognition
+simulado para verificar inscripción pública, indexación y polling. Véase
+[la evidencia](../docs/evidence/issue-07-main-alignment.md).
+No acredita entrega automática de eventos ni reconocimiento AWS; el timeout
+del último smoke documentado en #70 sigue pendiente de diagnóstico.
