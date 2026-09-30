@@ -55,3 +55,29 @@ organización, título, URL y fecha de consulta.
 15. Amazon Web Services. _AWS Well-Architected Framework — Security Pillar_.
     <https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html>
     (consulta: pendiente).
+16. Amazon Web Services. _AWS Well-Architected Framework — Sustainability
+    Pillar_.
+    <https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/welcome.html>
+    (consulta: 2026-09-30).
+17. Amazon Web Services. _Amazon SQS Developer Guide — Amazon SQS
+    dead-letter queues_.
+    <https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html>
+    (consulta: 2026-09-30).
+18. Amazon Web Services. _AWS Lambda Developer Guide — Asynchronous
+    invocation_.
+    <https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html>
+    (consulta: 2026-09-30).
+19. HashiCorp. _Terraform — AWS Provider documentation_.
+    <https://registry.terraform.io/providers/hashicorp/aws/latest/docs>
+    (consulta: 2026-09-30).
+20. Microsoft. _Playwright — a framework for web testing and automation_.
+    <https://playwright.dev/> (consulta: 2026-09-30).
+21. Vitest team. _Vitest — a Vite-native testing framework_.
+    <https://vitest.dev/> (consulta: 2026-09-30).
+22. Evan You et al. _Vite — Next Generation Frontend Tooling_.
+    <https://vite.dev/> (consulta: 2026-09-30).
+23. Conventional Commits. _Conventional Commits v1.0.0 specification_.
+    <https://www.conventionalcommits.org/en/v1.0.0/> (consulta: 2026-09-30).
+24. Parlamento Europeo y Consejo de la Unión Europea. _Reglamento (UE)
+    2016/679 (Reglamento General de Protección de Datos)_.
+    <https://eur-lex.europa.eu/eli/reg/2016/679/oj> (consulta: 2026-09-30).

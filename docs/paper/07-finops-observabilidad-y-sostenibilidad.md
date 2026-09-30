@@ -37,6 +37,35 @@ cuenta con créditos de capa gratuita no mida un coste neto de cero. Este contro
 avisa, no frena: no corta recursos al superar el límite.
 
 Estado de validación: la configuración se verificó con un `terraform plan` sin
-conexión a AWS y con pruebas automatizadas. Todavía no se ha aplicado en una
-cuenta, por lo que la entrega real de la alerta y el desvío a la DLQ quedan por
-demostrar; se detallan en `docs/evidence/issue-13-observability-finops.md`.
+conexión a AWS y con pruebas automatizadas. La entrega real de la alerta de
+Budgets y de un correo confirmado sigue pendiente (capítulo 9); el desvío a la
+DLQ y la alarma sí están verificados en AWS real (capítulo 8). Detalle en
+`docs/evidence/issue-13-observability-finops.md`.
+
+### Principios FinOps aplicados, por spec de origen
+
+Cada principio de coste de Findly viene de una spec explícita del Well-Architected
+Framework, no de una convención genérica; el capítulo 4 detalla dónde vive cada
+uno en el código:
+
+| Principio                                            | Spec de origen | Mecanismo                                                                          |
+| ---------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
+| Cero coste fijo por hora                             | 00, 11         | Sin RDS, EC2, NAT ni VPC dedicada (ADR-002); sólo servicios facturados por uso.    |
+| Facturación por petición, no por capacidad reservada | 02             | DynamoDB `PAY_PER_REQUEST`; Lambda por invocación y duración.                      |
+| Purga automática de datos que ya no aportan valor    | 02, 09         | TTL de DynamoDB + `retentionPurger` programado, no acumulación indefinida.         |
+| Retención de logs acotada                            | 12             | 14 días en cada grupo de CloudWatch Logs; sin retención infinita por omisión.      |
+| Aislamiento de coste por entorno efímero             | 15 (ADR-008)   | Cada PR crea y destruye su propio stack; nada queda facturando entre ejecuciones.  |
+| Alerta antes de exceder el presupuesto, no después   | 12             | AWS Budgets al 80 % del gasto real (pendiente de confirmación en AWS, ver arriba). |
+
+### Sostenibilidad
+
+Findly no mide su huella de carbono — no hay una métrica ni una herramienta
+de este proyecto que lo haga, y este capítulo no afirma un ahorro
+cuantificado. La arquitectura serverless tiene, cualitativamente, una
+propiedad alineada con el pilar de sostenibilidad del Well-Architected
+Framework: al facturar y ejecutar por petición, no reserva capacidad de
+cómputo inactiva a la espera de tráfico — a diferencia de una instancia EC2 o
+RDS encendida 24/7 e infrautilizada la mayor parte del tiempo. La destrucción
+garantizada de cada entorno efímero de PR (capítulo 5) tiene el mismo efecto
+en la fase de desarrollo: no hay infraestructura de prueba corriendo sin uso
+entre una ejecución de CI y la siguiente.

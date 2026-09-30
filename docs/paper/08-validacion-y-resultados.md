@@ -113,7 +113,33 @@ La alarma DLQ y la entrega SNS → SQS sí están verificadas en AWS real (secci
 anterior); el aviso de Budgets y la confirmación de un correo de alerta no lo
 están. Esta issue permanece abierta por ese motivo.
 
-## Trazabilidad de cierres
+## Matriz de trazabilidad spec ↔ issue ↔ evidencia
+
+Cada fila enlaza una spec con la issue que la implementó y el fichero de
+evidencia reproducible que lo demuestra — la regla de `AGENTS.md` de que
+ninguna de las tres piezas se cierra sin sincronizar las otras dos, aplicada
+como tabla. Se omiten las specs sin evidencia dedicada propia (00, 01, 13, 16, 19) porque su verificación vive en la CI general (capítulo 5), no en un
+fichero de `docs/evidence/` individual.
+
+| Spec | Issue | Evidencia                                                                                             | Estado                                     |
+| ---- | ----- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                    |
+| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)              |
+| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                    |
+| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                 |
+| 06   | #7    | —                                                                                                     | Abierta                                    |
+| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                 |
+| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                    |
+| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Abierta (cron real pendiente)              |
+| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Abierta (sub-issue #61)                    |
+| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                    |
+| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Abierta (Budgets/correo reales pendientes) |
+| 14   | #15   | —                                                                                                     | Abierta                                    |
+| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                    |
+| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Abierta (esta memoria)                     |
+| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Abierta                                    |
+| —    | #49   | `issue-49-dynamodb-vs-rds-analysis.md`                                                                | Abierta (análisis, sin decisión)           |
+| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Abierta (coordina fase 3)                  |
 
 La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md)
 distingue, issue por issue, qué criterios están respaldados por evidencia
