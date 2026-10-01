@@ -45,8 +45,10 @@ Procesar asíncronamente las selfies subidas por los asistentes, indexando la in
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
-- [ ] Una selfie válida indexa y transiciona el estado a `ENROLLED`.
-- [ ] Una selfie borrosa o sin cara transiciona a `FAILED` sin fallar la Lambda.
+- [x] Una selfie sintética válida indexa en Rekognition AWS y transiciona a
+      `ENROLLED` (PR #72, run 36761432962).
+- [x] Una imagen sin cara transiciona a `FAILED` sin fallar el recorrido AWS
+      (PR #72, run 36761432962). La variante borrosa no se probó por separado.
 - [x] Las pruebas unitarias con `aws-sdk-client-mock` verifican estados,
       idempotencia y carreras de borrado. No acreditan AWS.
 
@@ -54,9 +56,9 @@ Procesar asíncronamente las selfies subidas por los asistentes, indexando la in
 
 Los handlers públicos y SelfieIndexer están implementados; el único recurso
 S3 notification del módulo photo-matching usa los sufijos de ADR-012. La
-colección se crea idempotentemente y con etiquetas por entorno. Se mantienen
-sin marcar los criterios de indexación desplegada hasta ejecutar el smoke
-efímero con el fixture adulto ficticio, y destruir sus colecciones dinámicas.
+colección se crea idempotentemente y con etiquetas por entorno. El smoke
+efímero de PR #72 ejercitó el fixture adulto ficticio en AWS, verificó
+`FAILED`/`ENROLLED` y destruyó los recursos del PR.
 
 ## Recuperación y aislamiento aprobados (issue #70)
 
@@ -70,8 +72,9 @@ ADR-014 exige PUT firmado con `If-None-Match: *`. ADR-015 exige el namespace
 por entorno para indexer, matcher y limpieza; no permite fallback legacy en
 AWS. El parser admite claves antiguas, pero las notificaciones nuevas usan
 los sufijos de ADR-012. Terraform limita la edad del evento asíncrono a 21600
-segundos y dos reintentos. Estas garantías tienen pruebas locales; la
-aceptación desplegada permanece pendiente.
+segundos y dos reintentos. Estas garantías tienen pruebas locales. La
+aceptación AWS de PR #72 acreditó el recorrido de inscripción, pero no
+ejercitó todas las carreras de borrado y recuperación por separado.
 
 ## Alineación de la rama issue #7
 
@@ -79,5 +82,8 @@ La rama adopta sin cambios los handlers, contratos e infraestructura de main
 (e7da348). Añade integración aislada DynamoDB/S3 en Floci con Rekognition
 simulado para verificar inscripción pública, indexación y polling. Véase
 [la evidencia](../docs/evidence/issue-07-main-alignment.md).
-No acredita entrega automática de eventos ni reconocimiento AWS; el timeout
-del último smoke documentado en #70 sigue pendiente de diagnóstico.
+Las pruebas Floci no acreditan entrega automática de eventos ni reconocimiento
+AWS; el smoke posterior de PR #72 sí observó ambos. El fallo de visibilidad
+transitoria de `SearchFaces` se diagnosticó con CloudTrail, corrigió con
+reintento acotado y validó en AWS. Véase
+[el cierre de evidencia](../docs/evidence/issue-07-ci-merge-readiness.md).
