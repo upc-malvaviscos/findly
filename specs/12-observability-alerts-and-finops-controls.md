@@ -54,18 +54,21 @@ Implementar trazabilidad integral, monitoreo estructurado en CloudWatch Logs med
 
 ## Estado de implementación
 
-Implementado en la issue #13; la validación y sus límites están en
+La PR #64 acreditó el plan offline y las pruebas automatizadas descritas en
 [`docs/evidence/issue-13-observability-finops.md`](../docs/evidence/issue-13-observability-finops.md).
-Nada se ha aplicado todavía en AWS: la verificación es un `terraform plan`
-offline y pruebas automatizadas, no un despliegue.
+Después, la PR #71 desplegó un stack efímero: el run AWS 36482560393 comprobó
+12 grupos de logs con retención de 14 días, JSON sin campos sensibles,
+DLQ → alarma CloudWatch → SNS → SQS. Ese stack se destruyó al terminar.
 
 Pendiente, sin cerrar la issue hasta resolverlo:
 
-- Comprobar en AWS que la alarma de la DLQ dispara y que el correo llega
-  (issue #46 cubre el desvío a la DLQ).
-- La Lambda `deleteRegistration` aún no tiene Terraform (la issue #47, que verifica
-  el derecho al olvido en AWS, lo necesitará), por lo que su grupo de logs no
-  existe; `retention-purger` no está instanciado en el stack.
+- Confirmar la suscripción de correo y comprobar su entrega. SNS → SQS en el
+  stack efímero acredita el canal de alarma, no la recepción de email.
+- Aplicar y comprobar AWS Budgets en la cuenta correspondiente. El stack
+  efímero usa `enable_budget=false`; el plan offline al 80 % no acredita apply
+  ni aviso del servicio Budgets. No se fuerza gasto para dispararlo.
+- Comprobar los mismos controles en el entorno persistente cuando se despliegue;
+  la aceptación del stack efímero no acredita demo ni producción.
 - Las métricas de negocio de la spec 00 y la spec 18 (tiempo de procesamiento de
   selfie, p95 de galería, tasas de error de registro/subida) quedan fuera de esta
   spec y requieren una issue de seguimiento.
@@ -90,23 +93,16 @@ Pendiente, sin cerrar la issue hasta resolverlo:
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
 - [x] Los Log Groups declarados fijan retención de 14 días (validación estática).
-- [ ] Todos los grupos desplegados, incluido DELETE, verifican retención y logs
-      JSON sin PII en AWS.
-      _(Los 4 bloques declarados —5 grupos en el `terraform plan` de cada root de
-      entorno— fijan
-      14 días y `tests/infra/observability.test.ts` lo exige en CI. Límite: el
-      grupo de `deleteRegistration` no existe hasta que tenga Terraform y el de
-      `retention-purger` no se despliega hasta instanciarlo en el stack.)_
-- [x] La alarma SQS DLQ está vinculada al tema SNS.
-      _(`GreaterThanOrEqualToThreshold` 1 sobre `ApproximateNumberOfMessagesVisible`;
-      el stack pasa `module.monitoring.alerts_topic_arn` en `dlq_alarm_actions`.
-      Verificado con `terraform plan` offline y prueba estática; sin apply en AWS.)_
+- [x] Los 12 grupos desplegados en AWS efímero, incluido DELETE, verifican
+      retención de 14 días y logs JSON sin campos sensibles (PR #71,
+      run 36482560393).
+- [x] La alarma SQS DLQ está vinculada al tema SNS. El run AWS 36482560393
+      observó ALARM y recepción real SNS → SQS tras el redrive a DLQ.
 - [x] Terraform declara el presupuesto al 80% (plan offline).
-- [ ] El presupuesto está aplicado y el canal/disparo real tiene evidencia AWS.
-      _(`GREATER_THAN` 80 % de gasto `ACTUAL` sobre 5 USD, publicando en el topic;
-      verificado con `terraform plan` offline y prueba estática. El aviso real
-      requiere una suscripción de correo confirmada y no se ha probado en AWS.)_
+- [ ] El presupuesto está aplicado y su canal/aviso real tienen evidencia AWS.
+      El plan offline configura `GREATER_THAN` 80 % del gasto `ACTUAL` sobre
+      5 USD, pero `enable_budget=false` en el stack efímero.
 
-La issue #13 permanece abierta: PR #64 valida configuración offline, no
-alarma/entrega SNS ni presupuesto aplicados. Un ALARM sin recepción no prueba
-entrega; publicar manualmente en SNS no prueba el umbral de AWS Budgets.
+La issue #13 permanece abierta por Budgets y correo. La recepción SNS → SQS de
+PR #71 acredita la alarma efímera; publicar manualmente en SNS no probaría el
+umbral de AWS Budgets.
