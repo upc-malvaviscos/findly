@@ -11,6 +11,27 @@ vacío. La desaparición de REG por TTL fue simulada; faltan ejecución real del
 Scheduler y observación del servicio TTL. Los apartados siguientes conservan
 las pruebas y límites de la fase de preparación anterior a ese run.
 
+## Probe programado preparado para la siguiente PR
+
+`scripts/deployed-scheduler-retention.mjs` se ejecuta después del smoke AWS
+existente, cuando ya no quedan fixtures que puedan interferir. Lee el schedule
+de Terraform y confirma su Lambda de destino, cron diario y ventana flexible
+desactivada. Lo deshabilita durante la siembra, crea dos eventos sintéticos
+(vencido y vigente) con objetos S3 y colecciones Rekognition aisladas por PR,
+espera su visibilidad en GSI2 y activa el mismo schedule a `rate(1 minute)`.
+Sin invocar manualmente la Lambda, espera como máximo cuatro minutos a que
+desaparezcan el evento vencido, su objeto y su colección; comprueba que el
+evento vigente y sus recursos continúan. Restaura el cron original y limpia
+los fixtures incluso ante un fallo. El `destroy` del workflow conserva su
+ejecución obligatoria.
+
+El probe exige también `DescribeTimeToLive`: estado `ENABLED` y atributo `ttl`.
+Esta lectura acredita configuración, no una eliminación ejecutada por el
+servicio TTL. AWS puede tardar días en borrar un ítem vencido; no existe aún
+una tabla Findly persistente donde observarlo. Esta sección describe una
+prueba preparada: no se marca Scheduler ni TTL como evidencia AWS hasta
+registrar un run desplegado exitoso y su teardown.
+
 El módulo `delete-registration` expone el contrato ya definido
 `DELETE /registrations/{registrationId}` y restringe IAM a lectura/borrado
 de tabla, borrado de selfies y `DeleteFaces` sobre colecciones Findly.

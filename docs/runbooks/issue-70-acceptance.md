@@ -53,6 +53,16 @@ Rekognition creadas por handlers no están en el estado Terraform y el smoke
 las elimina explícitamente. Un fallo de limpieza impide declarar aceptación.
 Comprobar además estado remoto vacío y ausencia de recursos etiquetados del PR.
 
+El paso AWS ejecuta después `deployed-scheduler-retention.mjs`. Este probe
+acelera solo durante la prueba el schedule del PR a un minuto, siembra eventos
+sintéticos vencido y vigente, espera una invocación programada que limpie
+DynamoDB/S3/Rekognition y restaura el cron diario. Requiere permisos del rol CI
+limitados a ese PR para consultar/actualizar su schedule, pasar su rol de
+Scheduler, leer TTL y crear/consultar/borrar sus colecciones sintéticas. La
+invocación manual anterior sigue documentada por separado. El probe comprueba
+la configuración de DynamoDB TTL, sin afirmar que el servicio haya borrado
+un ítem dentro de la ventana del CI.
+
 ## Demo y #61
 
 Antes de apply persistente, renovar sesión temporal AWS, revisar plan contra

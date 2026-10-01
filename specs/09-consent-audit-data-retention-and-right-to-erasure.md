@@ -69,6 +69,14 @@ las pruebas unitarias con mocks SDK no las certifican. La invocación manual del
 purgador en ese run tampoco acredita la ejecución programada del cron ni el
 servicio TTL real. Véase `docs/runbooks/issue-70-acceptance.md`.
 
+La siguiente aceptación efímera ejecuta
+`scripts/deployed-scheduler-retention.mjs` después del smoke existente. Acelera
+temporalmente el mismo schedule a un minuto, observa la eliminación automática
+de un evento sintético vencido y la conservación de otro vigente, y restaura el
+cron diario. `DescribeTimeToLive` verifica que la tabla usa `ttl` habilitado.
+La eliminación eventual de un ítem por el servicio TTL requiere observación
+separada en un entorno persistente; no se marca como acreditada por este probe.
+
 ## Localizador durable y productores concurrentes (ADR-013)
 
 Los registros nuevos mantienen RETENTION sin TTL, independiente de REG.
