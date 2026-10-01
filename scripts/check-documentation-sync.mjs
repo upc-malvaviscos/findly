@@ -33,7 +33,13 @@ const requiredTraceability = [
   ],
   [
     'specs/12-observability-alerts-and-finops-controls.md',
-    ['#13', 'issue-13-observability-finops.md', 'infra/modules/monitoring'],
+    [
+      '#13',
+      'issue-13-observability-finops.md',
+      'infra/modules/monitoring',
+      '36482560393',
+      'enable_budget=false',
+    ],
   ],
   [
     'docs/evidence/issue-13-observability-finops.md',
@@ -41,8 +47,17 @@ const requiredTraceability = [
       '#13',
       'aws_budgets_budget',
       'correlationId',
-      'Nada se ha aplicado en AWS',
+      '36482560393',
+      'enable_budget=false',
     ],
+  ],
+  [
+    'specs/09-consent-audit-data-retention-and-right-to-erasure.md',
+    ['issue-70-erasure-retention.md', '36482560393', 'Cron real'],
+  ],
+  [
+    'docs/evidence/issue-70-erasure-retention.md',
+    ['36482560393', 'Scheduler', 'TTL'],
   ],
   [
     'AGENTS.md',

@@ -4,9 +4,14 @@ Implementación de la spec 12 ([issue #13](https://github.com/upc-malvaviscos/fi
 logs estructurados con `correlationId` sin datos personales, alerta de la DLQ de
 fotos hacia SNS y un presupuesto de AWS Budgets que avisa al 80 %.
 
-**Nada se ha aplicado en AWS.** La evidencia es un `terraform plan` offline y
-pruebas automatizadas; el comportamiento real (alarma que dispara, correo que
-llega) sigue sin demostrar y se lista en [Pendiente](#pendiente).
+La PR #64 documentada en este archivo sólo ejecutó `terraform plan` offline y
+pruebas automatizadas. Después, la [PR #71](https://github.com/upc-malvaviscos/findly/pull/71)
+desplegó un stack efímero: el
+[run 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+comprobó 12 grupos de logs con retención de 14 días, JSON con `correlationId`
+sin campos sensibles, redrive real a DLQ, estado ALARM y recepción SNS → SQS.
+El stack se destruyó. Budgets no se creó allí (`enable_budget=false`), y no se
+confirmó correo ni se observó un aviso de AWS Budgets.
 
 ## Alcance verificado
 
@@ -36,7 +41,7 @@ llega) sigue sin demostrar y se lista en [Pendiente](#pendiente).
 - `tests/infra/observability.test.ts`: guarda estática en CI de los tres
   criterios de la spec.
 
-## Criterios de la spec 12
+## Criterios de la spec 12 en la fase offline de PR #64
 
 | Criterio                                | Prueba                                                                                                                                                            | Estado                                          |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
@@ -150,31 +155,16 @@ ejecutan en Windows y los hooks `pre-push` pueden pasar. El checkout de Windows
 tenía además finales de línea CRLF, que Prettier rechaza; se normalizaron a LF
 localmente con `core.autocrlf=input`, sin cambios en Git.
 
-## Pendiente
+## Pendiente tras PR #71
 
-- **Sin apply en AWS:** no se ha demostrado que la alarma dispare ni que el
-  correo llegue. La issue #46 cubre el desvío a la DLQ y debería incluir la
-  entrega de la alerta. La issue #13 no se cierra hasta entonces.
-- **Cobertura de logs incompleta:** `deleteRegistration` no tiene Terraform en
-  `origin/main` (la issue #47 pide verificar el derecho al olvido en AWS y lo
-  necesitará), así que su grupo de logs no existe; `retention-purger` está
-  declarado pero no instanciado en el stack, y la raíz efímera de PR no incluye
-  `photo-matching` ni `monitoring` a propósito (el presupuesto es de cuenta y el
-  rol OIDC efímero no tiene permisos de SNS ni Budgets).
-- **Efecto en el sandbox:** con `photo-matching` en el stack, subir una foto a
-  `events/{id}/photos/*.jpg` (por ejemplo, `npm run test:aws`) dispara
-  `PhotoMatcher`. Sin colección de Rekognition —la indexación de selfies, issue
-  #7, no está implementada— cabe esperar que el mensaje falle tres veces
-  (`maxReceiveCount = 3`) y termine en la DLQ, activando la alarma; avisaría por
-  correo sólo si hay un `alert_email` confirmado. No se ha comprobado en AWS.
-- **Permisos del despliegue:** la política del rol `findly-github-actions-{env}`
-  de la rama de la issue #15 (aún sin fusionar) no incluye acciones `sns:` ni
-  `budgets:`. Deberá ampliarse
-  (`sns:CreateTopic`, `sns:SetTopicAttributes`, `sns:Subscribe`,
-  `sns:TagResource`, `sns:DeleteTopic`, `budgets:ModifyBudget`,
-  `budgets:ViewBudget`, `budgets:TagResource`) cuando esa PR se integre con esta.
-  Una identidad de sandbox sin permisos de Budgets debe usar
-  `TF_VAR_enable_budget=false`.
+- **Correo:** la recepción SNS → SQS acredita la entrega de la alarma en AWS
+  efímero, pero no una suscripción email confirmada ni un mensaje recibido.
+- **Budgets:** el plan offline configura el 80 %; falta aplicar el presupuesto
+  de cuenta, comprobar su configuración y obtener evidencia de su canal. No se
+  genera gasto para forzar el umbral. La identidad que aplique el presupuesto
+  requiere permisos revisados para Budgets.
+- **Entorno persistente:** los 12 grupos y la alarma probados pertenecían al
+  stack efímero destruido. Demo y producción requieren evidencia propia.
 - **Presupuesto:** 5 USD es la cifra de demo de la spec 00; producción no tiene
   límite definido. Al ser de cuenta, sólo un entorno por cuenta debe crearlo. No
   hay filtro por etiqueta: exigiría activar la etiqueta en Billing y esperar

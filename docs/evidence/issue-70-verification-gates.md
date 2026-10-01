@@ -1,5 +1,10 @@
 # Issue 70: firma de cargas y gates de cobertura
 
+Este archivo conserva la preparación anterior al despliegue. Los probes de
+firma/CORS, redrive y observabilidad se ejecutaron después en el
+[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+de la PR #71, con destroy completo. Budgets y correo no se probaron allí.
+
 ## Implementación y comprobaciones locales
 
 El SDK de AWS excluye `Content-Type` de la firma S3 por defecto. Una ejecución
@@ -106,5 +111,6 @@ Cinco tests con un fixture de CLI, sin AWS, prueban las condiciones de aceptaci�
 y rechazo por retención, log sin JSON, campo sensible anidado y recurso fuera
 del PR. Sirven para verificar el probe; no acreditan el runtime AWS.
 
-Ninguno de estos smoke se ha ejecutado en AWS en esta entrega.
-Las issues #6, #8, #13, #45 y #46 conservan su verificación runtime pendiente.
+Al redactar esta fase de preparación, ninguno de estos smoke se había ejecutado
+en AWS. El resultado posterior se distingue al inicio de este documento; #13
+conserva pendientes Budgets y correo.

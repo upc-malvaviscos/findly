@@ -58,12 +58,16 @@ Evidencia: `docs/evidence/issue-70-erasure-retention.md`.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)
 
-- [ ] Borrado desplegado elimina selfie, FaceId y registros DynamoDB.
-- [ ] Galería 200 → DELETE 204 → galería 404 con el mismo token en AWS.
+- [x] Borrado desplegado elimina selfie, FaceId y registros DynamoDB con datos
+      sintéticos en el entorno efímero de la PR #71.
+- [x] Galería 200 → DELETE 204 → galería 404 con el mismo token en AWS efímero.
 - [x] Pruebas unitarias de paginación, retención y errores parciales.
 - [ ] Cron real ejecuta purga y prueba ausencia de datos en AWS.
 
-Las pruebas unitarias usan mocks SDK; no certifican las casillas AWS.
+Las dos primeras casillas se acreditan con el run AWS 36482560393 de la PR #71;
+las pruebas unitarias con mocks SDK no las certifican. La invocación manual del
+purgador en ese run tampoco acredita la ejecución programada del cron ni el
+servicio TTL real. Véase `docs/runbooks/issue-70-acceptance.md`.
 
 ## Localizador durable y productores concurrentes (ADR-013)
 

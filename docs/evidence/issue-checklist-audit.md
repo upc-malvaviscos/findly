@@ -73,3 +73,19 @@ suposición de AWS. `npm run verify` no ejecuta Playwright: los comandos E2E son
 El gate de cobertura pendiente se limita a líneas de `src/lambdas` y
 `src/shared/lib`; no equivale a cobertura global ni cobertura de ramas.
 No se cerrará #70 ni sus dependencias hasta completar sus criterios.
+
+## Actualización tras la PR #71
+
+La matriz anterior conserva el estado del 28 de septiembre en el commit
+auditado. La [PR #71](https://github.com/upc-malvaviscos/findly/pull/71)
+se fusionó después. Su
+[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+acreditó inscripción, firma/CORS, matching y redrive, galería y borrado de
+FaceId, purga invocada manualmente, 12 grupos de logs a 14 días y entrega
+DLQ → alarma → SNS → SQS. El destroy eliminó 103 recursos y el estado remoto
+PR71 quedó vacío. Las issues #6, #8 y #47 se cerraron con esa evidencia.
+
+Permanecen abiertos los criterios de Scheduler y TTL real de #10, Budgets y
+correo de #13, y SPA demo publicada de #22/#70. La invocación manual del
+purgador, la recepción SNS → SQS y el navegador contra el stack efímero no
+acreditan esos tres recorridos pendientes.

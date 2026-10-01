@@ -1,5 +1,16 @@
 # Issue 70: borrado y retención
 
+## Resultado AWS posterior: PR #71
+
+El [run 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+desplegó un stack efímero y comprobó con datos sintéticos galería 200 → DELETE
+204 → galería 404, ausencia de REG/MATCH/TOKEN/selfie y borrado del FaceId
+indexado. También invocó manualmente el purgador: eliminó datos vencidos sin REG
+y conservó eventos activos. Destruyó 103 recursos y el estado remoto PR71 quedó
+vacío. La desaparición de REG por TTL fue simulada; faltan ejecución real del
+Scheduler y observación del servicio TTL. Los apartados siguientes conservan
+las pruebas y límites de la fase de preparación anterior a ese run.
+
 El módulo `delete-registration` expone el contrato ya definido
 `DELETE /registrations/{registrationId}` y restringe IAM a lectura/borrado
 de tabla, borrado de selfies y `DeleteFaces` sobre colecciones Findly.
@@ -24,7 +35,7 @@ La purga también recorre registros de evento y coincidencias en DynamoDB,
 elimina tokens cuyo hash está referenciado y conserva metadatos hasta terminar.
 El ADR-010 registra la decisión aprobada. Los tokens legacy sin referencia
 inversa permanecen bajo TTL eventual. La política de TTL de productores debe
-alinearse con el evento; el cron desplegado y AWS siguen pendientes de prueba.
+alinearse con el evento; la ejecución programada del cron sigue pendiente de prueba.
 
 Validación local: 29 pruebas unitarias pasan; typecheck, ESLint de los cuatro
 archivos TypeScript, Markdownlint y Terraform validate de ambos módulos pasan.
@@ -47,7 +58,7 @@ comprueba ausencia de datos vencidos y conservación de los no vencidos.
 El GSI se espera con un límite de 30 segundos; todo dato creado se limpia
 al finalizar, también cuando falla una comprobación.
 
-Esta suite **no** demuestra borrado de FaceId real ni ejecución de Scheduler:
+Esta suite aislada **no** demuestra borrado de FaceId real ni ejecución de Scheduler:
 los JPEG mínimos no representan personas, no producen evidencia biométrica y
 no se inventa un FaceId. La prueba de biometría requiere una imagen sintética
 aprobada indexable; el cron necesita evidencia de invocación programada.
@@ -58,9 +69,10 @@ Permisos del runner, limitados al stack de PR: `dynamodb:PutItem`, `GetItem`,
 ausencia mediante ListObjectsV2, con condición de prefijo `events/*`; `lambda:InvokeFunction` exclusivamente
 sobre RetentionPurger del PR. No se concede ninguno desde este script.
 El rol de la Lambda conserva sus permisos propios para borrar colección,
-objetos y registros. Este script está preparado y validado estáticamente;
+objetos y registros. Este script se preparó y validó estáticamente antes de la
+aceptación integrada;
 el IAM del runner fue aprobado y aplicado durante la integración de PR #71.
-La aceptación AWS completa sigue pendiente; véase
+La aceptación AWS integrada posterior se documenta en
 `docs/runbooks/issue-70-aws-review.md` y `issue-70-integration.md`.
 
 El borrado marca `erasureRequestedAt` atómicamente antes de borrar recursos,
@@ -80,8 +92,8 @@ La persona responsable aprobó el localizador sin TTL, selfies condicionales y
 aislamiento por entorno. La ampliación siguiente cubre desaparición de REG y
 reconciliación de FaceIds no persistidos; ya no son decisiones pendientes.
 Los marcadores conservan identificadores sensibles, no datos anónimos.
-Los tests locales cubren fallos y subidas tardías, pero falta ejecutarlos en
-AWS y observar el cron. Esos criterios mantienen #10 abierta.
+Los tests locales cubren fallos y subidas tardías. El run integrado acreditó el
+borrado AWS; falta observar el cron. Ese criterio mantiene #10 abierta.
 
 ## Ampliación durable aprobada
 
@@ -101,6 +113,6 @@ PR #71 documentado en el runbook, y se ejecutó provisión/teardown AWS efímero
 Validación de esta ampliación: 41 pruebas enfocadas (borrado, retención y
 localizador), suite unitaria completa con gate de cobertura, typecheck,
 ESLint enfocado, Markdownlint, Terraform fmt y TFLint de ambos módulos.
-La aceptación AWS completa y el cron real permanecen pendientes. El rol
+La aceptación AWS integrada se ejecutó después; el cron real permanece pendiente. El rol
 RetentionPurger incluye además GetItem
 para validar el origen de localizadores cuando REG legacy conserva FaceId.

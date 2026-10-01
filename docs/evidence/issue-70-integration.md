@@ -1,5 +1,16 @@
 # #70: implementación integrada y validación local
 
+## Resultado final posterior
+
+La [PR #71](https://github.com/upc-malvaviscos/findly/pull/71) se fusionó el
+28 de septiembre de 2026. Su
+[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+completó inscripción, matching, firma/CORS, galería, borrado, purga manual,
+redrive y observabilidad en un stack efímero; destruyó 103 recursos y dejó
+vacío el estado remoto PR71. Las secciones de diagnóstico siguientes conservan
+la cronología de intentos anteriores y no describen el estado final. Siguen
+pendientes el cron real, Budgets/correo y la SPA demo publicada.
+
 Fecha: 2026-09-28. Base remota: main `3678a14`.
 
 Tres agentes trabajaron en worktrees separados para inscripción pública,
