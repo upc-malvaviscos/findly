@@ -107,7 +107,9 @@ export async function runPublicEnrollmentSmoke({
     { uploadUrl, syntheticJpeg },
   );
   if (uploaded !== 200) throw new Error('PUBLIC_SELFIE_UPLOAD_FAILED');
-  const deadline = Date.now() + 90000;
+  const startedAt = Date.now();
+  const deadline = startedAt + 90000;
+  let nextProgressAt = startedAt + 30000;
   while (Date.now() < deadline) {
     const result = await request(
       `/registrations/${encodeURIComponent(registrationId)}/status`,
@@ -122,6 +124,12 @@ export async function runPublicEnrollmentSmoke({
         terminalStatus: result.body.status,
         realBrowserUpload: true,
       };
+    }
+    if (Date.now() >= nextProgressAt) {
+      console.log(
+        `Public enrollment progress: waiting for a terminal status; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed (limit: 90s).`,
+      );
+      nextProgressAt = Date.now() + 30000;
     }
     await page.waitForTimeout(1500);
   }

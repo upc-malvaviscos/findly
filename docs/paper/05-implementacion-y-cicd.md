@@ -94,6 +94,13 @@ ejecuciones del mismo PR nunca se solapen:
 6. Destruye el entorno en un paso con `if: always()`, incluso si el paso
    anterior falló, siempre que la asunción del rol OIDC haya tenido éxito.
 
+El paso de aceptación desplegada anuncia cada suite sin imprimir credenciales,
+tokens, URLs prefirmadas ni identificadores biométricos. Los runners muestran
+hitos del recorrido y, cada 30 segundos durante las esperas largas, el estado
+agregado de CloudWatch/SNS y Scheduler. Estos mensajes indican progreso; el
+resultado del check sólo es verde cuando terminan todas las suites y el
+`destroy` posterior.
+
 ### `deploy.yml` — despliegue manual con doble puerta de aprobación
 
 `workflow_dispatch` con dos entradas: `environment` (`sandbox`/`demo`/`production`)
