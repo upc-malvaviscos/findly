@@ -185,12 +185,20 @@ async function waitForGsi(fixture) {
 }
 
 async function waitForScheduledPurge(fixture) {
-  const deadline = Date.now() + 4 * 60000;
+  const startedAt = Date.now();
+  const deadline = startedAt + 4 * 60000;
+  let nextProgressAt = startedAt;
   while (Date.now() < deadline) {
     if (!(await get(fixture.eventKey))) {
       assert.equal(await objectExists(fixture.objectKey), false);
       assert.equal(await collectionExists(fixture.collectionId), false);
       return;
+    }
+    if (Date.now() >= nextProgressAt) {
+      console.log(
+        `Scheduler progress: waiting for the expired synthetic event to be purged; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed (limit: 240s).`,
+      );
+      nextProgressAt = Date.now() + 30000;
     }
     await pause(5000);
   }
@@ -232,6 +240,9 @@ let scheduleChanged = false;
 let primaryError;
 const cleanupFailures = [];
 try {
+  console.log(
+    'Scheduler acceptance: verifying DynamoDB TTL and the deployed schedule.',
+  );
   const ttl = await dynamoClient.send(
     new DescribeTimeToLiveCommand({ TableName: tableName }),
   );
@@ -261,6 +272,9 @@ try {
     State: 'ENABLED',
   });
   assert.equal(scheduler('get-schedule').ScheduleExpression, 'rate(1 minute)');
+  console.log(
+    'Scheduler acceptance: one-minute schedule enabled for synthetic fixtures; waiting for the retention Lambda.',
+  );
   await waitForScheduledPurge(expired);
   assert(await get(active.eventKey), 'Active synthetic event was removed.');
   assert.equal(await objectExists(active.objectKey), true);
@@ -272,6 +286,9 @@ try {
   primaryError = error;
 } finally {
   if (scheduleChanged) {
+    console.log(
+      'Scheduler acceptance: restoring the original schedule and removing synthetic fixtures.',
+    );
     try {
       scheduler(
         'update-schedule',

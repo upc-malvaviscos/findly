@@ -129,7 +129,8 @@ function readApplicationLogs(logGroupName) {
   return records;
 }
 
-const deadline = Date.now() + 12 * 60 * 1000;
+const startedAt = Date.now();
+const deadline = startedAt + 12 * 60 * 1000;
 const pendingLogs = new Set(functions);
 for (const name of functions) {
   const group = `/aws/lambda/${name}`;
@@ -146,6 +147,7 @@ for (const name of functions) {
 }
 let alarmObserved = false;
 let deliveryObserved = false;
+let nextProgressAt = Date.now();
 while (Date.now() < deadline) {
   for (const name of pendingLogs) {
     if (readApplicationLogs(`/aws/lambda/${name}`).length > 0)
@@ -210,6 +212,12 @@ while (Date.now() < deadline) {
       message.ReceiptHandle,
     ]);
     deliveryObserved = true;
+  }
+  if (Date.now() >= nextProgressAt) {
+    console.log(
+      `Observability progress: ${pendingLogs.size} Lambda log groups pending; alarm observed=${alarmObserved}; SNS delivery observed=${deliveryObserved}; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed.`,
+    );
+    nextProgressAt = Date.now() + 30000;
   }
   if (alarmObserved && deliveryObserved && pendingLogs.size === 0) break;
   await setTimeout(1000);

@@ -92,6 +92,7 @@ const acceptanceStartedAt = Date.now();
 let primaryFailure;
 const cleanupFailures = [];
 try {
+  console.log('Public acceptance: checking no-face enrollment in Chromium.');
   const page = await browser.newPage();
   // Only the blank origin document is supplied locally. API, preflight, S3,
   // DynamoDB, indexing and matching use the deployed PR services.
@@ -121,6 +122,9 @@ try {
   );
   assert.equal(failed.status, 'FAILED');
   assert.equal(failed.faceId, undefined);
+  console.log(
+    'Public acceptance: no-face enrollment reached FAILED; checking synthetic face enrollment.',
+  );
   // Generated fictional adult fixture, never a photograph submitted by a person.
   const jpeg = readFileSync('e2e/fixtures/synthetic-adult-face.jpg');
   await runPublicEnrollmentSmoke({
@@ -137,6 +141,9 @@ try {
   assert.equal(typeof registration.faceId, 'string');
   assert.equal(registration.GSI1PK, `FACE#${registration.faceId}`);
   assert.equal(registration.GSI1SK, `REG#${enrolled.registrationId}`);
+  console.log(
+    'Public acceptance: enrollment reached ENROLLED; waiting for S3-triggered photo matching (up to 2 minutes).',
+  );
   const uploads = await admin(`/admin/events/${eventId}/photos/uploads`, {
     files: [{ fileName: 'synthetic-matching.jpg', contentType: 'image/jpeg' }],
   });
@@ -150,7 +157,9 @@ try {
     assert.equal(response.status, 200, 'Synthetic event photo PUT failed.');
   }
   await uploadPhoto();
-  const deadline = Date.now() + 120000;
+  const matchStartedAt = Date.now();
+  const deadline = matchStartedAt + 120000;
+  let nextMatchProgressAt = matchStartedAt + 30000;
   let match;
   while (Date.now() < deadline) {
     match = await item(
@@ -158,6 +167,12 @@ try {
       `MATCH#${upload.photoId}`,
     );
     if (match) break;
+    if (Date.now() >= nextMatchProgressAt) {
+      console.log(
+        `Public acceptance: still waiting for S3-triggered matching; ${Math.floor((Date.now() - matchStartedAt) / 1000)}s elapsed (limit: 120s).`,
+      );
+      nextMatchProgressAt = Date.now() + 30000;
+    }
     await setTimeout(1500);
   }
   assert(
@@ -175,6 +190,9 @@ try {
   assert.equal(gallery.photos.length, 1);
   assert.equal(gallery.photos[0].photoId, upload.photoId);
   assert.equal((await fetch(gallery.photos[0].url)).status, 200);
+  console.log(
+    'Public acceptance: matching and private gallery passed; checking duplicate delivery and erasure.',
+  );
   await uploadPhoto();
   // Duplicate delivery is exercised, while deterministic non-overwrite is also
   // tested in unit tests. This count alone does not prove consumer completion.
@@ -331,9 +349,19 @@ try {
 }
 if (primaryFailure) throw primaryFailure;
 assert.equal(cleanupFailures.length, 0, 'Synthetic acceptance cleanup failed.');
+console.log(
+  'Public acceptance: browser flow and synthetic cleanup passed; checking upload security.',
+);
 runScript('scripts/deployed-upload-security.mjs');
+console.log(
+  'Public acceptance: upload security passed; checking retention and erasure.',
+);
 runScript('scripts/deployed-ephemeral-erasure.mjs');
+console.log('Public acceptance: erasure passed; checking DLQ redrive.');
 runScript('scripts/deployed-dlq-redrive.mjs', {
   EPHEMERAL_KEEP_POISON_IN_DLQ: '1',
 });
+console.log(
+  'Public acceptance: DLQ redrive passed; waiting for real CloudWatch alarm, SNS delivery and Lambda log evidence (up to 12 minutes).',
+);
 runScript('scripts/deployed-observability.mjs');

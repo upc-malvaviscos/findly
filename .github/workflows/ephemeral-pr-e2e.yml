@@ -118,6 +118,7 @@ jobs:
         run: npm exec -- playwright install --with-deps chromium
       - name: Run the deployed AWS organizer happy path
         run: |
+          echo '::notice::Preparing a synthetic Cognito organizer for deployed AWS acceptance'
           user_name="ci-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}"
           password="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32)Aa1!"
           cleanup_user() {
@@ -144,11 +145,13 @@ jobs:
             --query 'AuthenticationResult.IdToken' \
             --output text)"
           test "$id_token" != "None"
+          echo '::notice::Organizer authenticated; checking event creation, upload and seeded gallery'
           EPHEMERAL_API_ENDPOINT="$(terraform -chdir=infra/ephemeral output -raw api_endpoint)" \
           EPHEMERAL_ID_TOKEN="$id_token" \
           EPHEMERAL_DYNAMODB_TABLE_NAME="$(terraform -chdir=infra/ephemeral output -raw dynamodb_table_name)" \
           EPHEMERAL_UPLOADS_BUCKET_NAME="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)" \
           node scripts/deployed-ephemeral-happy-path.mjs
+          echo '::notice::Organizer and seeded gallery passed; checking public enrollment, matching, erasure, redrive and observability'
           EPHEMERAL_API_ENDPOINT="$(terraform -chdir=infra/ephemeral output -raw api_endpoint)"
           export EPHEMERAL_API_ENDPOINT
           export EPHEMERAL_ID_TOKEN="$id_token"
@@ -174,7 +177,9 @@ jobs:
           EPHEMERAL_LAMBDA_FUNCTION_NAMES="$(terraform -chdir=infra/ephemeral output -json lambda_function_names)"
           export EPHEMERAL_LAMBDA_FUNCTION_NAMES
           node scripts/deployed-issue-70-acceptance.mjs
+          echo '::notice::Public acceptance passed; checking the real Scheduler invocation and TTL configuration'
           node scripts/deployed-scheduler-retention.mjs
+          echo '::notice::All deployed AWS acceptance suites passed; synthetic user cleanup follows'
       - name: Destroy the PR environment
         if: ${{ always() && steps.aws.outcome == 'success' }}
         env:
