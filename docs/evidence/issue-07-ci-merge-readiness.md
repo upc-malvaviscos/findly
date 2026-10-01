@@ -57,3 +57,22 @@ con el perfil habitual dio 14/14 correctas. `npm run harness:check`,
 `verify` incluyó 294 pruebas unitarias y auditoría de dependencias de
 producción sin vulnerabilidades. TFLint requirió ejecución fuera del sandbox
 local para iniciar su plugin; no se omitió del gate.
+
+## Resultado final y criterio de cierre
+
+La [PR #72](https://github.com/upc-malvaviscos/findly/pull/72) se fusionó el
+2026-09-30. Su [run AWS final](https://github.com/upc-malvaviscos/findly/actions/runs/36761432962)
+pasó `provision-test-destroy` en `c35b89c`: aprovisionó el stack efímero,
+ejecutó el recorrido desplegado y destruyó los 103 recursos. Los nueve checks
+de la PR terminaron correctamente.
+
+`deployed-issue-70-acceptance.mjs` observó la entrega automática S3 → Lambda
+de la selfie sin cara hasta `FAILED`, sin `FaceId`, y de la selfie sintética
+válida hasta `ENROLLED`, con `FaceId` y locator GSI1. El mismo recorrido
+comprobó matching y galería y borró el `FaceId` real al revocar la inscripción.
+La suite Floci de 14 casos cubre además idempotencia, concurrencia y
+recuperación con Rekognition simulado. La variante de selfie borrosa no se
+ensayó separadamente; el criterio de la issue usa «borrosa o sin cara».
+
+Esta evidencia permite marcar los tres criterios de #7. No acredita una demo
+persistente ni sustituye las verificaciones aún abiertas de #10, #13 y #70.
