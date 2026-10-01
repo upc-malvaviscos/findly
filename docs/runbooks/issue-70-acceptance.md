@@ -1,5 +1,16 @@
 # #70: aceptación y límites de entorno
 
+## Resultado de la ejecución (2026-09-28)
+
+La [PR #71](https://github.com/upc-malvaviscos/findly/pull/71) se fusionó
+después del
+[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393).
+Los probes efímeros acreditaron el recorrido integrado, la purga invocada
+manualmente, el redrive y SNS → SQS. El destroy eliminó 103 recursos y el
+estado remoto PR71 quedó vacío. Las instrucciones siguientes describen el
+procedimiento de la PR y sus límites; siguen pendientes la ejecución real del
+Scheduler, Budgets/correo y una SPA demo publicada.
+
 ## Local
 
 ```sh
@@ -17,8 +28,9 @@ hacia handlers reales sobre servicios emulados; no activa Rekognition gestionado
 
 ## AWS efímero
 
-Revisar primero [permisos y configuración](issue-70-aws-review.md). El PR draft
-no ejecuta apply. Tras autorización del stack y permisos mínimos, el workflow
+Revisar primero [permisos y configuración](issue-70-aws-review.md). Durante la
+preparación, la PR draft no ejecutaba apply. Tras autorización del stack y
+permisos mínimos, el workflow
 provision-test-destroy usa estado exclusivo, construye Lambdas antes de plan y
 ejecuta el smoke previo de admin/galería más deployed-issue-70-acceptance.mjs.
 

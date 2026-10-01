@@ -1,14 +1,24 @@
-# #70: permisos y aceptación AWS pendientes
+# #70: revisión de permisos y aceptación AWS
+
+## Resultado final de la PR #71 (2026-09-28)
+
+La PR #71 se fusionó tras el
+[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393).
+El stack efímero acreditó inscripción, matching, firma/CORS, galería,
+borrado, purga manual, redrive y alarma SNS → SQS. El destroy eliminó
+103 recursos y el estado remoto PR71 quedó vacío. La cronología de permisos
+y recuperación que sigue documenta los intentos previos a esa aceptación.
+El cron real, Budgets/correo y la SPA demo publicada siguen pendientes.
 
 ## Estado
 
-La PR #71 está ready y ha activado provisión AWS. La ejecución 36464575720
+En un intento anterior, la PR #71 estaba ready y activó provisión AWS. La ejecución 36464575720
 falló por permisos del rol externo. La persona responsable aprobó la política
 `findly-pr-71-approved-provisioning`, aplicada sin modificar las políticas
 previas; su JSON reproducible está en `docs/evidence/issue-70-ci-permissions-proposal.json`.
 La repetición encontró denegaciones adicionales y el teardown quedó bloqueado
 por lectura de suscripción SNS. Se inició recuperación desde el mismo estado
-remoto de PR #71. La aceptación desplegada sigue pendiente.
+remoto de PR #71. En ese momento, la aceptación desplegada seguía pendiente.
 
 La ampliación adicional `findly-pr-71-approved-followup` fue aprobada y aplicada;
 su documento es `docs/evidence/issue-70-ci-permissions-followup.json`.
