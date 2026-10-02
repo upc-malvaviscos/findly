@@ -60,6 +60,24 @@ proveedor"). `terraform validate` conserva avisos de deprecación sobre
 `hash_key`/`range_key` sin migrar el esquema de DynamoDB. `npm run security`
 audita dependencias de producción sin vulnerabilidades.
 
+El backend de estado remoto (ADR-009) se verificó en una cuenta AWS dedicada
+en `eu-west-1` el 2026-10-02 (issue #61, sub-issue de #11;
+[evidencia](../evidence/issue-11-terraform-remote-state.md)):
+
+- **Bootstrap.** `infra/bootstrap` creó el bucket de estado (6 recursos). Su
+  configuración, leída de AWS, confirma versionado, SSE-S3, los cuatro
+  bloqueos de acceso público, caducidad de versiones no actuales a 90 días y
+  la política TLS-only. Una petición firmada por HTTP recibe `AccessDenied`
+  por denegación explícita y por HTTPS funciona.
+- **Migración con `moved`.** Se creó un estado `sandbox` real desplegando la
+  raíz anterior a ADR-009 (38 recursos con los módulos en la raíz). El `plan`
+  de `environments/sandbox` actual contra ese estado mueve los 38 recursos
+  bajo `module.findly` sin destruir ni recrear ninguno (`0 to destroy`), y el
+  comprobador `check-deployment-plan.mjs` lo acepta. Ese `plan` no se aplicó y
+  los recursos de la prueba se destruyeron al terminar.
+
+No se ejecutaron planes reales de `demo` ni `production`.
+
 ## Aceptación desplegada en AWS real
 
 La evidencia con mayor peso de esta memoria es el run de aceptación efímera de

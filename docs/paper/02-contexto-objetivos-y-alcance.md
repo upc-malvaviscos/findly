@@ -131,7 +131,7 @@ exactamente cuál en cada caso).
 | 8   | Fotos de evento y matching                       | 07   | 03-sep | Reabierta por #70, cerrada 28-sep | 1 → 3 |
 | 9   | Galería privada                                  | 08   | 03-sep | Cerrada 17-sep                    | 1     |
 | 10  | Consentimiento y borrado                         | 09   | 03-sep | Reabierta por #70, abierta        | 1 → 3 |
-| 11  | Estado Terraform y entornos                      | 10   | 03-sep | Abierta (con sub-issue #61)       | 1     |
+| 11  | Estado Terraform y entornos                      | 10   | 03-sep | Abierta; verificada vía #61       | 1     |
 | 12  | Infraestructura serverless segura                | 11   | 03-sep | Cerrada 14-sep                    | 1     |
 | 13  | Observabilidad y FinOps                          | 12   | 03-sep | Reabierta por #70, abierta        | 1 → 3 |
 | 14  | CI y artefactos                                  | 13   | 03-sep | Cerrada 04-sep                    | 1     |
@@ -148,7 +148,7 @@ exactamente cuál en cada caso).
 | 52  | Modo local con mocks                             | 19   | 18-sep | Cerrada 18-sep                    | 2     |
 | 53  | Modo local con Floci                             | 19   | 18-sep | Cerrada 18-sep                    | 2     |
 | 54  | Modo local contra AWS sandbox                    | 19   | 18-sep | Cerrada 18-sep                    | 2     |
-| 61  | Verificar bootstrap Terraform (sub-issue de #11) | 10   | 19-sep | Abierta                           | 2     |
+| 61  | Verificar bootstrap Terraform (sub-issue de #11) | 10   | 19-sep | Verificada en AWS 02-oct          | 2     |
 | 70  | Auditoría de cierres                             | —    | 28-sep | Abierta (coordina la fase 3)      | 3     |
 
 ### La auditoría como puerta de calidad

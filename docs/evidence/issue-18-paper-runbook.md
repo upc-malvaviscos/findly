@@ -106,8 +106,10 @@ flujo de usuario.
 ## Pendiente
 
 - El cierre completo de #18 exige una SPA `demo` publicada y navegable, que
-  depende íntegramente de #15 (despliegue manual OIDC) y #61 (bootstrap del
-  estado Terraform). Ninguna de las dos está resuelta.
+  depende de #15 (despliegue manual OIDC), todavía sin resolver. El bootstrap
+  del estado Terraform (#61) ya se verificó en una cuenta AWS dedicada
+  (`docs/evidence/issue-11-terraform-remote-state.md`, PR #83), pero esa prueba
+  no dejó ningún entorno desplegado.
 - La cifra de cobertura global (81,34 % de líneas) se cita explícitamente como
   no sujeta a ningún umbral del 90 %; sólo `src/lambdas` y `src/shared/lib` lo
   están y ambos lo superan.
