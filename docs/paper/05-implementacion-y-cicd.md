@@ -97,7 +97,7 @@ ejecuciones del mismo PR nunca se solapen:
 El paso de aceptación desplegada anuncia cada suite sin imprimir credenciales,
 tokens, URLs prefirmadas ni identificadores biométricos. Los runners muestran
 hitos del recorrido y, cada 30 segundos durante las esperas largas, el estado
-agregado de CloudWatch/SNS y Scheduler. Estos mensajes indican progreso; el
+del redrive SQS y el estado agregado de CloudWatch/SNS y Scheduler. Estos mensajes indican progreso; el
 resultado del check sólo es verde cuando terminan todas las suites y el
 `destroy` posterior.
 
