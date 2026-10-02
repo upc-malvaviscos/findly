@@ -33,8 +33,11 @@ La simulación no demuestra por sí sola que todas las APIs autoricen el
 recorrido. La [ejecución AWS de la PR 84](https://github.com/upc-malvaviscos/findly/actions/runs/36988602320)
 aprovisionó el entorno con la política permanente, completó la aceptación
 desplegada y terminó correctamente. Terraform informó `Destroy complete!`
-con 103 recursos destruidos. Queda por confirmar mediante lectura directa que
-el estado remoto de `ephemeral/pr-84/terraform.tfstate` tenga cero instancias
-gestionadas; la autenticación local de AWS no estuvo disponible al cerrar esta
-evidencia. Las políticas antiguas por número de PR permanecerán hasta completar
-esa comprobación y retirarlas sin interrumpir ejecuciones activas.
+con 103 recursos destruidos. La lectura directa del estado remoto
+`ephemeral/pr-84/terraform.tfstate` confirmó **cero instancias gestionadas**.
+
+Tras comprobar también cero instancias en los estados de las PR 71 y 72, ya
+fusionadas, se retiraron sus políticas temporales del rol y se eliminaron las
+políticas administradas sin otras asociaciones. La política temporal de PR 81
+permanece mientras esa PR está abierta; se retirará cuando termine su ejecución
+y se confirme su estado vacío.
