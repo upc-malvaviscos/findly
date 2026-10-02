@@ -56,6 +56,23 @@ impiden el paso final; el runbook incluye la recuperación PR-específica. El
 operador rota o revoca acceso cambiando la policy o trust del rol, no secretos
 distribuidos. No se concede acceso OIDC a forks.
 
+## Evolución de permisos del rol
+
+El rol externo conserva una política base para Terraform y una política
+administrada permanente, versionada en
+[`infra/iam/ephemeral-pr-extensions.json`](../../infra/iam/ephemeral-pr-extensions.json),
+para las acciones añadidas al stack y a sus pruebas desplegadas. La política
+usa ARNs `findly-pr-*` de esta cuenta y región y exige etiquetas de PR cuando
+la acción sólo admite `Resource: "*"`. Cada acción nueva se revisa y se
+incorpora a esta política una vez; el workflow de PR no puede modificarla.
+
+El rol compartido puede operar recursos efímeros de otros números de PR dentro
+de ese prefijo. Se acepta ese alcance para evitar políticas manuales por PR;
+el trust sigue limitado a pull requests internos y los recursos `demo`,
+`production` y el bucket externo de estado quedan fuera de la ampliación.
+La aceptación de una PR nueva y el teardown verifican el cambio antes de retirar
+las políticas históricas ligadas a números concretos.
+
 ## Revisión operativa de permisos en PR #71
 
 La ampliación aprobada del rol externo se aplica como política adicional
