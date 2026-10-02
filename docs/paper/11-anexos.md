@@ -38,7 +38,7 @@ terraform -chdir=infra/environments/sandbox init -backend-config="bucket=<estado
 terraform -chdir=infra/environments/sandbox plan
 node scripts/terraform-lint.mjs
 
-# Sandbox AWS real (requiere bucket de estado ya aplicado; bloqueado por #61)
+# Sandbox AWS real (requiere bucket de estado aplicado con infra/bootstrap)
 FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run dev:aws
 FINDLY_TERRAFORM_STATE_BUCKET=<bucket> npm run dev:aws-destroy -- --confirm
 ```

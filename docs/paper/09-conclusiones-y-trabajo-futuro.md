@@ -29,11 +29,11 @@ pendiente en la propia evidencia que demuestra el resto del sistema
   de AWS Budgets y la confirmación de una suscripción de correo no se han
   probado, y el proyecto prohíbe forzar gasto para provocarlo (issue #13).
 - **Despliegue persistente sin verificar.** El workflow de despliegue manual
-  vía OIDC (spec 14) y el bootstrap del backend Terraform de estado remoto
-  (ADR-009) están implementados y validados estáticamente, pero el bucket de
-  estado no se ha aplicado con éxito en una cuenta AWS: el intento registrado
-  se ejecutó en un AWS Learner Lab que deniega `s3:CreateBucket` en
-  `eu-west-1` (issues #15, #61).
+  vía OIDC (spec 14) está implementado y validado estáticamente, pero no se ha
+  ejecutado contra un entorno persistente (issue #15). El bootstrap del
+  backend de estado (ADR-009) y la migración de sandbox con `moved` sí se
+  verificaron en una cuenta AWS dedicada en `eu-west-1` (issue #61), pero esa
+  prueba se destruyó al terminar y no dejó un entorno desplegado.
 - **Sin SPA de demostración publicada.** Sin el backend de estado (punto
   anterior), no existe un entorno `demo` desplegado de forma persistente que
   una persona externa pueda navegar sin credenciales de desarrollo (issue #18,
@@ -80,9 +80,9 @@ se consideraba terminado.
 1. Verificar en AWS real el disparo del `EventBridge Scheduler`, la alerta de
    AWS Budgets y la entrega de un correo de suscripción confirmado (issues
    #10, #13).
-2. Completar el bootstrap del backend de estado Terraform en una cuenta con
-   permisos suficientes y ejecutar el despliegue manual vía OIDC contra
-   `sandbox` o `demo` (issues #15, #61).
+2. Ejecutar el despliegue manual vía OIDC contra `sandbox` o `demo` sobre un
+   backend de estado aplicado con `infra/bootstrap` (issue #15; el bootstrap
+   ya se verificó en #61).
 3. Publicar una SPA de demostración persistente y ejecutar el
    [runbook de demostración](../runbooks/demo-runbook.md) de extremo a
    extremo contra ella, incluida su limpieza (issue #18).

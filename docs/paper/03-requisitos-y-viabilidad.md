@@ -90,13 +90,13 @@ recomendación como una decisión tomada.
 El entorno efímero de pull request (ADR-008) y el entorno local con Floci
 cubren el desarrollo y la integración continua sin coste fijo. El bootstrap de
 un backend Terraform persistente para `sandbox`/`demo`/`production` (ADR-009)
-está especificado y su código validado, pero su aplicación real en una cuenta
-AWS con permisos suficientes es un criterio pendiente y separado (issue #61):
-el intento registrado en `docs/evidence/issue-11-terraform-remote-state.md` se
-ejecutó en un AWS Learner Lab que deniega `s3:CreateBucket` en `eu-west-1` y
-bloquea `GetBucketObjectLockConfiguration` por política de cuenta, por lo que
-el bucket de estado no llegó a completarse con versionado, cifrado y bloqueo
-público. La viabilidad económica del MVP (coste $0 en capa gratuita/sandbox,
+falló primero en un AWS Learner Lab, que deniega `s3:CreateBucket` en
+`eu-west-1` y bloquea `GetBucketObjectLockConfiguration` por política de
+cuenta. Después se verificó en una cuenta AWS dedicada (issue #61): el bucket
+de estado se aplicó en `eu-west-1` con versionado, SSE-S3, bloqueo público y
+política TLS-only, y la migración de un estado sandbox previo con `moved` dio
+`0 to destroy` (`docs/evidence/issue-11-terraform-remote-state.md`). Los
+recursos de sandbox de esa prueba se destruyeron al terminar. La viabilidad económica del MVP (coste $0 en capa gratuita/sandbox,
 $5 en demo) está demostrada en el diseño y en un `terraform plan` sin conexión
 a AWS (`docs/evidence/issue-13-observability-finops.md`), no en una factura o
 un presupuesto real activado.
