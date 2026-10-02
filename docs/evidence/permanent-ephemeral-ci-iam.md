@@ -30,7 +30,11 @@ SNS `CreateTopic`, Logs `PutMetricFilter`, Scheduler `CreateSchedule` y Lambda
 `findly-demo-*` y una colección sin `Ephemeral=true`.
 
 La simulación no demuestra por sí sola que todas las APIs autoricen el
-recorrido. La evidencia desplegada y el estado de teardown se registrarán tras
-la primera PR ejecutada con la política permanente. Las políticas antiguas por
-número de PR permanecerán hasta completar esa migración sin interrumpir
-ejecuciones activas.
+recorrido. La [ejecución AWS de la PR 84](https://github.com/upc-malvaviscos/findly/actions/runs/36988602320)
+aprovisionó el entorno con la política permanente, completó la aceptación
+desplegada y terminó correctamente. Terraform informó `Destroy complete!`
+con 103 recursos destruidos. Queda por confirmar mediante lectura directa que
+el estado remoto de `ephemeral/pr-84/terraform.tfstate` tenga cero instancias
+gestionadas; la autenticación local de AWS no estuvo disponible al cerrar esta
+evidencia. Las políticas antiguas por número de PR permanecerán hasta completar
+esa comprobación y retirarlas sin interrumpir ejecuciones activas.
