@@ -87,7 +87,12 @@ const maximumWaitMs = Math.min(
   1800000,
   Math.max(60000, (Number(attributes.VisibilityTimeout) * 4 + 120) * 1000),
 );
-const deadline = Date.now() + maximumWaitMs;
+const startedAt = Date.now();
+const deadline = startedAt + maximumWaitMs;
+let nextProgressAt = startedAt + 30000;
+console.log(
+  `DLQ redrive: waiting for three failed source receives and delivery to the isolated DLQ (limit: ${Math.floor(maximumWaitMs / 1000)}s).`,
+);
 let received = false;
 while (Date.now() < deadline) {
   const result = sqs('receive-message', [
@@ -128,6 +133,12 @@ while (Date.now() < deadline) {
     received = true;
   }
   if (received) break;
+  if (Date.now() >= nextProgressAt) {
+    console.log(
+      `DLQ redrive progress: poison message has not reached the DLQ; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed.`,
+    );
+    nextProgressAt = Date.now() + 30000;
+  }
   await setTimeout(1000);
 }
 assert(
