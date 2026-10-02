@@ -17,7 +17,9 @@ restricción de esa cuenta educativa concreta. Con una cuenta AWS normal
 (personal, de empresa, o cualquier cuenta sin esa restricción) con permisos
 de administrador o un usuario con los permisos IAM equivalentes a los que
 Terraform va a necesitar, todo el procedimiento de esta guía funciona de
-principio a fin.
+principio a fin. El bootstrap del paso 3 y el `plan` de sandbox contra ese
+backend se verificaron así en una cuenta dedicada en `eu-west-1` (issue #61,
+misma evidencia).
 
 ## 0. Requisitos
 

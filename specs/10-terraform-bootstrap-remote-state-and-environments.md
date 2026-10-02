@@ -4,7 +4,7 @@ GitHub issue: #11. Evidencia: `docs/evidence/issue-11-terraform-remote-state.md`
 
 ## Objetivo
 
-Configurar la gestión del estado remoto de Terraform mediante Amazon S3 y Amazon DynamoDB, definendo la estructura del repositorio de infraestructura y garantizando el aislamiento completo entre los entornos de desarrollo (`sandbox`), demostración (`demo`) y producción (`production`).
+Configurar la gestión del estado remoto de Terraform mediante Amazon S3 con bloqueo por lockfile nativo ([ADR-009](../docs/adr/ADR-009-terraform-remote-state-and-environment-isolation.md)), definiendo la estructura del repositorio de infraestructura y garantizando el aislamiento completo entre los entornos de desarrollo (`sandbox`), demostración (`demo`) y producción (`production`).
 
 ## Alineación con AWS Well-Architected Framework
 
@@ -62,10 +62,13 @@ infra/
 - [x] El plan de `sandbox` no interfiere con `demo` o `production`.
 - [x] `terraform.tfvars` no contiene contraseñas o secretos en texto claro subidos al repositorio.
 
-> Pendiente (#61, subissue de #11): bootstrap completo en `eu-west-1` con permisos suficientes (el Learner Lab lo deniega) y `plan` de `moved` contra un estado sandbox existente con `0 to destroy`.
+- [x] Bootstrap del bucket de estado en `eu-west-1` con versionado, SSE-S3, bloqueo público y TLS-only, verificado en AWS (#61).
+- [x] `plan` de `environments/sandbox` contra un estado previo con módulos en la raíz: sólo movimientos (`moved`) y `0 to destroy` (#61).
 
 ## Límite de verificación
 
-La separación del plan y la sintaxis se verificaron offline. #61 conserva la
-verificación AWS del bootstrap y moved contra estado previo; no se acredita
-una migración real por planear un entorno vacío.
+La sintaxis y el aislamiento se validan offline. El bootstrap y la migración con
+`moved` se verificaron en una cuenta AWS dedicada en `eu-west-1` (#61): el
+estado previo se creó desplegando la raíz anterior a ADR-009 y se destruyó
+después. El `plan` resultante no se aplicó. No se ejecutaron planes reales de
+`demo` ni `production`. Evidencia: `docs/evidence/issue-11-terraform-remote-state.md`.

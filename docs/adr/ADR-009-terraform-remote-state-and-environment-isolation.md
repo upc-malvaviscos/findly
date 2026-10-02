@@ -34,6 +34,9 @@ un valor erróneo podía apuntar el estado de un entorno a otro.
 ## Consecuencias
 
 El estado sandbox existente usaba direcciones en la raíz; los bloques `moved`
-del root sandbox las reubican bajo `module.findly` sin recrear recursos. Esa
-ausencia de destroy/replace debe confirmarse con `terraform plan` real antes de
-aplicar (véase `docs/evidence/issue-11-terraform-remote-state.md`).
+del root sandbox las reubican bajo `module.findly` sin recrear recursos. Se
+confirmó en AWS (`eu-west-1`, issue #61) con un estado creado por la raíz
+anterior: los 38 recursos se movieron y el `plan` dio `0 to destroy`. El
+bootstrap se aplicó en la misma cuenta y se leyó su configuración de AWS
+(véase `docs/evidence/issue-11-terraform-remote-state.md`). Antes de aplicar
+un entorno con estado existente debe seguir revisándose su `plan`.
