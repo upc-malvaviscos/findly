@@ -123,6 +123,9 @@ navegadores se restauran de caché por SO y lockfile. La cuenta AWS y las
 variables GitHub requeridas se configuran siguiendo el
 [runbook externo](docs/runbooks/ephemeral-pr-ci-external-setup.md); no se usan
 claves AWS de larga duración ni `terraform apply` desde desarrollo local.
+Los permisos adicionales del rol se versionan en
+[`infra/iam/ephemeral-pr-extensions.json`](infra/iam/ephemeral-pr-extensions.json)
+y sirven a todos los recursos `findly-pr-*`, sin políticas nuevas por PR.
 
 ### Observabilidad y FinOps
 

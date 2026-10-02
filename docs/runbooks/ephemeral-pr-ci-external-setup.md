@@ -30,8 +30,50 @@ administra AWS.
    `aws:ResourceTag/Project=findly` y `aws:ResourceTag/Ephemeral=true`; el
    workflow crea un usuario por ejecución, no registra su contraseña y lo
    elimina antes del `destroy`.
+   Los permisos adicionales para el stack y las pruebas actuales se mantienen
+   como política administrada permanente `findly-ephemeral-pr-extensions`, cuyo
+   documento revisable es
+   [`infra/iam/ephemeral-pr-extensions.json`](../../infra/iam/ephemeral-pr-extensions.json).
+   Se aplica a todos los números de PR bajo `findly-pr-*`; no se crea una copia
+   por PR. La política limita cuenta, región, nombres y etiquetas. Las acciones
+   que AWS exige con `Resource: "*"` tienen condiciones de región, función o
+   etiquetas según la acción. Ningún permiso permite modificar la propia
+   política o el trust del rol desde una PR.
 5. Añade una alarma o consulta de costes filtrada por `Ephemeral=true` y una
    revisión operativa de recursos `Environment=pr-*` que sobrevivan a un run.
+
+### Evolución de permisos del rol efímero
+
+Cuando Terraform o los runners necesitan una acción nueva, modifica primero el
+documento permanente del paso 4. Revisa el diff, el ARN y las condiciones de
+la acción; valida el JSON con IAM Access Analyzer y simula las acciones que
+lo admitan antes de publicar una nueva versión de la política administrada.
+La persona operadora actualiza la versión por defecto y verifica su asociación
+al rol. Después, una PR nueva debe completar plan, apply, aceptación y destroy
+sin una política para su número concreto. El check de GitHub aporta la prueba
+desplegada; la simulación IAM por sí sola no sustituye esa ejecución.
+
+En la cuenta actual, la política ya existe. Para una ampliación revisada:
+
+```sh
+aws accessanalyzer validate-policy \
+  --policy-document file://infra/iam/ephemeral-pr-extensions.json \
+  --policy-type IDENTITY_POLICY --profile face-locator-operator
+aws iam create-policy-version \
+  --policy-arn arn:aws:iam::567158658992:policy/findly-ephemeral-pr-extensions \
+  --policy-document file://infra/iam/ephemeral-pr-extensions.json \
+  --set-as-default --profile face-locator-operator
+```
+
+Si se alcanza el límite de versiones, inspecciona y elimina una versión antigua
+que no sea la predeterminada antes de repetir el segundo comando. El documento
+contiene la cuenta y región de este proyecto: revisa ambos al migrar de cuenta.
+
+No concedas al rol de la propia CI permisos para crear versiones de políticas
+o asociarlas. Las políticas temporales antiguas sólo se retiran después de
+confirmar que no hay ejecuciones activas que dependan de ellas y que los
+estados efímeros correspondientes están vacíos. Nunca borres el bucket externo
+de estado ni sus versiones para limpiar una PR.
 
 ## GitHub
 

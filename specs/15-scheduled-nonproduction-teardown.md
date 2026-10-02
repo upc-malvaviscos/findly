@@ -36,7 +36,9 @@ El stack usa DynamoDB bajo demanda, S3 privado, API Gateway HTTP, Lambda y un
 User Pool de Cognito. No crea VPC, NAT, EC2, RDS ni recursos permanentes. Sus
 datos son sintéticos y se etiquetan `Ephemeral=true` y `PullRequest=<numero>`.
 La configuración de cuenta, rol y backend se hace fuera del repositorio según
-el runbook; desarrollo local no ejecuta `terraform apply`.
+el runbook; el documento de permisos adicionales del rol sí se versiona en
+`infra/iam/ephemeral-pr-extensions.json` y se aplica una sola vez para todos
+los números de PR. Desarrollo local no ejecuta `terraform apply`.
 
 ## Límite de verificación
 
