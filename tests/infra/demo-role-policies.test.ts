@@ -12,6 +12,32 @@ const config = {
 };
 
 describe('reviewable independent OIDC demo roles', () => {
+  it('limits initial API tagging to the approved region and demo request tags without ApiName', () => {
+    const result = demoRolePolicies(config);
+    const tagging = result.deploy.edge.Statement.find(
+      (s) =>
+        s.Resource ===
+        'arn:aws:apigateway:eu-west-1::/tags/arn%3Aaws%3Aapigateway%3Aeu-west-1%3A%3A%2Fv2%2Fapis%2F*',
+    );
+    expect(tagging?.Action).toEqual(['apigateway:POST']);
+    expect(tagging?.Condition).toEqual({
+      StringEquals: {
+        'aws:RequestTag/Project': 'findly',
+        'aws:RequestTag/Environment': 'demo',
+        'aws:RequestTag/ManagedBy': 'Terraform',
+        'aws:RequestTag/CostCenter': 'findly',
+        'aws:RequestedRegion': 'eu-west-1',
+      },
+    });
+    const creation = result.deploy.edge.Statement.find(
+      (s) => s.Resource === 'arn:aws:apigateway:eu-west-1::/apis',
+    );
+    expect(creation?.Condition?.StringEquals).toHaveProperty(
+      'apigateway:Request/ApiName',
+      'findly-demo-api',
+    );
+    expect(result.destroy.edge.Statement).not.toContainEqual(tagging);
+  });
   it('permits mandatory provider reads without widening Lambda mutation or Cognito ownership', () => {
     const result = demoRolePolicies(config);
     for (const role of [result.deploy, result.destroy]) {

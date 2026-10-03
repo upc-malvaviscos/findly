@@ -511,6 +511,18 @@ export function demoRolePolicies(config, bindings = {}) {
         'apigateway:Request/ApiName': 'findly-demo-api',
       },
     }),
+    // CreateApi authorizes its initial tags separately, without ApiName context.
+    // Approved option 2 permits demo-tagged APIs in this region at that step.
+    statement(
+      ['apigateway:POST'],
+      `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fv2%2Fapis%2F*`,
+      {
+        StringEquals: {
+          ...requestTags.StringEquals,
+          'aws:RequestedRegion': region,
+        },
+      },
+    ),
   ];
   const edgeDestroy = [
     statement(
