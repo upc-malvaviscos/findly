@@ -127,7 +127,7 @@ exactamente cuál en cada caso).
 | 4   | Web estática e inscripción pública               | 03   | 03-sep | Cerrada 09-sep                    | 1     |
 | 5   | Administración y Cognito                         | 04   | 03-sep | Cerrada 18-sep                    | 1     |
 | 6   | Cargas prefirmadas y claves S3                   | 05   | 03-sep | Reabierta por #70, cerrada 28-sep | 1 → 3 |
-| 7   | Inscripción facial                               | 06   | 03-sep | PR #72 fusionada, issue abierta   | 1     |
+| 7   | Inscripción facial                               | 06   | 03-sep | Cerrada 02-oct (PR #81)           | 1     |
 | 8   | Fotos de evento y matching                       | 07   | 03-sep | Reabierta por #70, cerrada 28-sep | 1 → 3 |
 | 9   | Galería privada                                  | 08   | 03-sep | Cerrada 17-sep                    | 1     |
 | 10  | Consentimiento y borrado                         | 09   | 03-sep | Reabierta por #70, abierta        | 1 → 3 |
@@ -155,10 +155,22 @@ La `#7` no forma parte del lote reabierto por `#70`: llevaba abierta desde la
 fase 1 por sus propios criterios pendientes. La PR #72 la completó y se
 fusionó el 30-sep con los nueve checks en verde, incluido un
 `provision-test-destroy` real y exitoso en AWS (23m29s) — el mismo tipo de
-evidencia que exige `AGENTS.md` para cerrar una issue. La issue de GitHub
-seguía abierta en el momento de escribir esta memoria porque ese cierre
-formal, con comentario de síntesis, es una acción pendiente de la persona
-responsable, no una carencia de evidencia.
+evidencia que exige `AGENTS.md` para cerrar una issue. `anyulled` abrió
+después la PR #81 para sincronizar `specs/06` y su evidencia con ese
+resultado; su primer intento quedó `BEHIND` de `main` porque el probe de
+aceptación heredado exigía dos permisos Rekognition que el rol OIDC efímero
+no tenía. En vez de aprobar un permiso puntual más, el equipo sustituyó el
+patrón de propuestas por número de PR (`docs/evidence/issue-07-ci-permissions-proposal.json`,
+el usado para PR #72) por una única política gestionada y permanente,
+`findly-ephemeral-pr-extensions`, generalizada por prefijo `findly-pr-*` y
+etiqueta `Ephemeral=true` en vez de por número de PR
+(`docs/evidence/permanent-ephemeral-ci-iam.md`). Validada con el simulador de
+IAM y Access Analyzer (cero _findings_) antes de confiar en ella, autorizó el
+rebase de PR #81, que se fusionó el 02-oct
+([run 37038923309](https://github.com/upc-malvaviscos/findly/actions/runs/37038923309))
+con el recorrido desplegado, `FaceId`/`ENROLLED` y teardown en verde. `#7` se
+cerró ese mismo día con los tres criterios de la spec 06 acreditados en AWS
+real.
 
 ### La auditoría como puerta de calidad
 
