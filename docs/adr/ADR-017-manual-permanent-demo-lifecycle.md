@@ -85,6 +85,7 @@ de solicitud de demo; nunca sobre stages de APIs arbitrarias.
 
 ## Evidencia
 
-Implementación en curso. Pruebas locales con mocks no acreditan la demo real.
-Los runs, resultados y criterios demostrados se registrarán en la evidencia de
-issue #15 después de la validación desplegada y su limpieza.
+Publicación, recorrido real, limpieza, ausencia del inventario original y
+recuperación/idempotencia verificados en AWS con datos sintéticos. La evidencia
+de issue #15 detalla los runs, fallos, verificaciones y límites de cada prueba.
+Las pruebas locales con mocks se mantienen como evidencia independiente.

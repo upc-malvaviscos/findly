@@ -5,10 +5,10 @@
 Publicar demo AWS persistente mediante una acción manual y destruirla mediante
 otra acción manual independiente, sin interferir con CI efímero por PR.
 
-## Implementación en curso — plan aprobado 2026-10-03
+## Implementación y aceptación — plan aprobado 2026-10-03
 
 Los workflows `deploy.yml` y `destroy-demo.yml`, controles e inventario se
-implementan con ADR-017. La configuración reproducible de roles independientes,
+implementados con ADR-017. La configuración reproducible de roles independientes,
 la preparación de identificadores exactos API/OAC y la recuperación de fallos
 se documentan en `docs/runbooks/permanent-demo.md`. El environment `demo` ya
 está limitado a `main`; roles y variables no secretas están configurados.
@@ -16,16 +16,18 @@ Evidencia: `docs/evidence/issue-15-permanent-demo.md`.
 
 El run 37151100042, intento 3, acredita publicación y recorrido real de demo
 con datos sintéticos. El borrado y la ausencia del inventario original se
-verificaron en AWS; queda pendiente integrar PR #92 y registrar el workflow
-final corregido antes de cerrar #15. La preparación
+verificaron en AWS. El run 37153651572 acredita recuperación/idempotencia
+desde main con estado vacío; el verificador corregido se probó además contra
+los 106 recursos originales mediante lecturas AWS. La entrega es PR #92.
+La preparación
 inicial de bindings sólo prepara API/web para autorizar sus IDs reales.
 
 ## Estado y decisiones
 
 Ampliación aprobada el 2026-10-03 de la issue #15 existente. Los workflows
 deploy.yml y destroy-demo.yml implementan publicación y destrucción manual.
-La demo publicada superó el smoke real y su borrado está comprobado; queda la
-integración y reejecución del verificador corregido.
+La demo publicada superó el smoke real y su borrado/ausencia/recuperación están
+comprobados. Runs y limitaciones de cada prueba constan en la evidencia.
 teardown-nonproduction.yml es un handoff con cron sin destrucción real.
 
 Demo permanece hasta destrucción manual. La permanencia es de infraestructura,
@@ -111,7 +113,7 @@ Referencia: [workflows manuales y permiso de escritura](https://docs.github.com/
 - [x] AWS: deploy, recorrido demo y destroy sintéticos; ausencia de recursos
       comprobada además del éxito del workflow.
 - [x] actionlint, Terraform fmt/validate/tflint y gates obligatorios en verde.
-- [ ] ADR, runbook y evidencia sincronizados con #15.
+- [x] ADR, runbook y evidencia sincronizados con #15.
 
 ## Alternativa sin dominio aprobada (2026-10-03)
 

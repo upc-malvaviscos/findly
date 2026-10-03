@@ -123,7 +123,7 @@ La revisión del proveedor identificó también lecturas obligatorias
 Se acotaron a las funciones de demo y al pool con etiquetas de propiedad, sin
 ampliar mutaciones.
 
-## Aceptación AWS pendiente
+## Aceptación AWS y recuperación
 
 El [run 37152095070](https://github.com/upc-malvaviscos/findly/actions/runs/37152095070)
 validó inventario, detuvo productores, esperó quiescencia y limpió los datos.
@@ -132,7 +132,7 @@ ya borrado y en el reset de la política SNS antes de borrar el topic. Se
 autoriza GetEventSourceMapping sobre `*` con región eu-west-1: AWS evalúa ese
 recurso al consultar UUIDs ya ausentes, aunque las lecturas de mappings
 existentes ya estaban permitidas en la región. SetTopicAttributes queda
-limitado al topic exacto findly-demo-alerts. El intento 2 está en curso.
+limitado al topic exacto findly-demo-alerts.
 
 El plan de despliegue sin apply
 [37152194910](https://github.com/upc-malvaviscos/findly/actions/runs/37152194910)
@@ -151,11 +151,15 @@ de los recursos y colecciones, y backend preservado. No se publicó el estado
 ni el inventario. La comparación independiente confirmó los 38 objetos de
 estado ajenos y las protecciones del backend intactos.
 
-Queda pendiente integrar PR #92 y reejecutar la acción desde main para registrar
-también el resultado verde del workflow con la consulta corregida.
+El [run 37153651572](https://github.com/upc-malvaviscos/findly/actions/runs/37153651572)
+repitió la acción manual desde main sobre el estado ya vacío y terminó en
+verde: confirma recuperación e idempotencia. Ese run no ejercita la consulta
+de logs de un inventario completo; ésta se verificó en AWS con el script
+corregido contra los 106 recursos originales, como se detalla arriba.
 
-Pendientes de integrar las correcciones en main y registrar la reejecución final
-del workflow. El ciclo AWS real y la ausencia están verificados; el cierre
-remoto espera los checks y la integración de PR #92.
+El ciclo AWS real, la ausencia y recuperación están verificados. PR #92 entrega
+las correcciones, pruebas y documentación; su integración pasa por los checks
+obligatorios y la fusión automática. #22 conserva únicamente su criterio de
+métricas pendiente; su smoke y publicación ya tienen evidencia real.
 
 Referencias: spec 14, ADR-017 y `docs/runbooks/permanent-demo.md`.
