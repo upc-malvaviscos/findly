@@ -548,16 +548,25 @@ export function demoRolePolicies(config, bindings = {}) {
       `arn:aws:apigateway:${region}::/apis/${bindings.apiId}/*`,
       `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fapis%2F${bindings.apiId}*`,
       `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fv2%2Fapis%2F${bindings.apiId}*`,
-      `arn:aws:apigateway:${region}::/tags/arn:aws:apigateway:${region}::/apis/${bindings.apiId}`,
-      `arn:aws:apigateway:${region}::/tags/arn:aws:apigateway:${region}::/apis/${bindings.apiId}/*`,
-      `arn:aws:apigateway:${region}::/tags/arn:aws:apigateway:${region}::/v2/apis/${bindings.apiId}`,
-      `arn:aws:apigateway:${region}::/tags/arn:aws:apigateway:${region}::/v2/apis/${bindings.apiId}/*`,
     ];
     edgeRead.push(statement(['apigateway:GET'], resources));
     edgeDeploy.push(
       statement(
         ['apigateway:POST', 'apigateway:PATCH', 'apigateway:PUT'],
         resources,
+      ),
+    );
+    // CreateStage separately checks TagResource on the exact API's stages path.
+    edgeDeploy.push(
+      statement(
+        ['apigateway:TagResource'],
+        `arn:aws:apigateway:${region}::/apis/${bindings.apiId}/stages`,
+        {
+          StringEquals: {
+            ...requestTags.StringEquals,
+            'aws:RequestedRegion': region,
+          },
+        },
       ),
     );
     edgeDestroy.push(statement(['apigateway:DELETE'], resources));
