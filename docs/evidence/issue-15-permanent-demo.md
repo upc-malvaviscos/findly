@@ -92,12 +92,15 @@ creó bucket web/OAC/CloudFront y falló en CreateApi: AWS exige POST sobre el
 recurso de etiquetado inicial `.../tags/...%2Fv2%2Fapis%2F*`. Una regla con
 las mismas restricciones de nombre y etiquetas se aplicó y el job fallido se
 reejecutó; también fue rechazado. No se presenta ese intento como aceptación.
-Está pendiente la decisión de la persona responsable entre preparación en dos
-fases con ID exacto y etiquetado inicial sin condición de nombre. No se elimina
-esa condición sin aprobación.
 La regla experimental que también fue rechazada se retiró del configurador y
-de IAM mientras se espera esa decisión. El stack parcial web permanece para
-continuar; no hay API, usuarios ni datos de matching de demo creados.
+de IAM mientras se esperaba la decisión. El usuario aprobó explícitamente la
+opción 2: permitir el etiquetado inicial sin condición de nombre, manteniendo
+región y cuatro etiquetas de solicitud de demo. ADR-017 documenta el alcance
+adicional autorizado y el test de políticas verifica esas condiciones y que
+el rol de destrucción no recibe el permiso.
+El configurador aplicó la regla aprobada y se relanzó el job fallido del run
+37136524071 (intento 3). Su resultado sigue pendiente de verificar; no acredita
+todavía API funcional, publicación ni aceptación completa.
 
 La revisión del proveedor identificó también lecturas obligatorias
 `GetFunctionCodeSigningConfig`, `ListVersionsByFunction` y `GetUserPoolMfaConfig`.

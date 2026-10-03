@@ -63,6 +63,20 @@ quedan acotadas a los IDs revisados; no se amplían como solución a un fallo.
 Referencias: [recursos y herencia de etiquetas de API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-tagging-supported-resources.html),
 [autorización de CloudFront](https://docs.aws.amazon.com/service-authorization/latest/reference/list_cloudfront.html).
 
+## Etiquetado inicial de HTTP API: opción 2 aprobada
+
+El usuario aprobó el 2026-10-03 permitir el POST de etiquetado inicial sobre
+el ARN codificado `/tags/...%2Fv2%2Fapis%2F*`, sin la condición ApiName que AWS
+rechazó en esa autorización dependiente. El permiso exige región `eu-west-1`
+y las cuatro etiquetas de solicitud Project=findly, Environment=demo,
+ManagedBy=Terraform y CostCenter=findly. La creación de API conserva la
+condición de nombre `findly-demo-api`; las mutaciones posteriores de sus hijos
+conservan los IDs exactos. El rol de destrucción no recibe este permiso.
+
+Esta excepción permite etiquetar otras APIs HTTP de esa región si cumplen las
+condiciones de solicitud. Es la ampliación explícitamente autorizada; no
+autoriza modificar o destruir sus recursos hijos ni ampliar otros permisos.
+
 ## Evidencia
 
 Implementación en curso. Pruebas locales con mocks no acreditan la demo real.
