@@ -104,7 +104,7 @@ for (const resource of inventory.resources) {
     assert(removed, `Demo resource remains: ${resource.address}`);
   } else if (resource.type === 'aws_cloudwatch_log_group') {
     const groups =
-      aws('logs', 'describe-log-groups', { LogGroupNamePrefix: v.name })
+      aws('logs', 'describe-log-groups', { logGroupNamePrefix: v.name })
         .logGroups ?? [];
     assert(!groups.some((g) => g.logGroupName === v.name), 'Demo logs remain');
   } else if (resource.type === 'aws_cloudwatch_metric_alarm') {

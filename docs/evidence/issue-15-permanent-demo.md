@@ -141,8 +141,21 @@ tras su terminación; su refresh encontró el mismo GetEventSourceMapping denega
 Esto acredita la serialización efectiva de los dos workflows; no publicó ni
 creó recursos.
 
-Pendientes de integrar las correcciones en main y ejecutar el workflow
-manual de destrucción completo. No marcar esos criterios como completados hasta registrar
-los runs y comprobar stack/colecciones ausentes y backend/otros entornos intactos.
+El intento 2 completó Terraform destroy y dejó el estado vacío. La consulta
+final de logs falló por `LogGroupNamePrefix`: AWS CLI exige `logGroupNamePrefix`.
+Se corrige esa entrada; no se cambia IAM ni se ignora el fallo. El verificador
+corregido se ejecutó en AWS mediante la sesión administrativa, sólo en lectura,
+contra los 106 recursos del inventario original reconstruido desde una versión
+privada del estado previo al borrado. Confirmó estado vacío, ausencia efectiva
+de los recursos y colecciones, y backend preservado. No se publicó el estado
+ni el inventario. La comparación independiente confirmó los 38 objetos de
+estado ajenos y las protecciones del backend intactos.
+
+Queda pendiente integrar PR #92 y reejecutar la acción desde main para registrar
+también el resultado verde del workflow con la consulta corregida.
+
+Pendientes de integrar las correcciones en main y registrar la reejecución final
+del workflow. El ciclo AWS real y la ausencia están verificados; el cierre
+remoto espera los checks y la integración de PR #92.
 
 Referencias: spec 14, ADR-017 y `docs/runbooks/permanent-demo.md`.

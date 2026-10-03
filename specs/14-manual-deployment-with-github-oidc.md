@@ -15,15 +15,17 @@ está limitado a `main`; roles y variables no secretas están configurados.
 Evidencia: `docs/evidence/issue-15-permanent-demo.md`.
 
 El run 37151100042, intento 3, acredita publicación y recorrido real de demo
-con datos sintéticos. La aceptación de destrucción y cierre de #15 siguen
-pendientes hasta completar y documentar el ciclo aprobado. La preparación
+con datos sintéticos. El borrado y la ausencia del inventario original se
+verificaron en AWS; queda pendiente integrar PR #92 y registrar el workflow
+final corregido antes de cerrar #15. La preparación
 inicial de bindings sólo prepara API/web para autorizar sus IDs reales.
 
 ## Estado y decisiones
 
 Ampliación aprobada el 2026-10-03 de la issue #15 existente. Los workflows
 deploy.yml y destroy-demo.yml implementan publicación y destrucción manual.
-La demo publicada superó el smoke real; se está verificando el borrado completo.
+La demo publicada superó el smoke real y su borrado está comprobado; queda la
+integración y reejecución del verificador corregido.
 teardown-nonproduction.yml es un handoff con cron sin destrucción real.
 
 Demo permanece hasta destrucción manual. La permanencia es de infraestructura,
@@ -103,10 +105,10 @@ Referencia: [workflows manuales y permiso de escritura](https://docs.github.com/
 - [x] Rama/environment protegidos, trust OIDC acotado, sin claves estáticas.
 - [x] SPA HTTPS publicada con backend real y sin destrucción automática.
 - [x] Destroy exige confirmación e inventario/plan exacto de demo.
-- [ ] Stack/datos/colecciones demo limpios; backend y otros entornos intactos.
-- [ ] Concurrencia deploy/destroy y recuperación de fallos verificadas.
+- [x] Stack/datos/colecciones demo limpios; backend y otros entornos intactos.
+- [x] Concurrencia deploy/destroy y recuperación de fallos verificadas.
 - [x] CI efímero mantiene aislamiento, permisos y teardown por PR.
-- [ ] AWS: deploy, recorrido demo y destroy sintéticos; ausencia de recursos
+- [x] AWS: deploy, recorrido demo y destroy sintéticos; ausencia de recursos
       comprobada además del éxito del workflow.
 - [x] actionlint, Terraform fmt/validate/tflint y gates obligatorios en verde.
 - [ ] ADR, runbook y evidencia sincronizados con #15.
