@@ -54,7 +54,7 @@ describe('demo authorization before credentials', () => {
     const authorizeJob = workflow
       .split('  authorize:')[1]
       .split('  deploy:')[0];
-    const workspace = authorizeJob.match(/^      TF_WORKSPACE: (.+)$/m)?.[1];
+    const workspace = authorizeJob.match(/^ {6}TF_WORKSPACE: (.+)$/m)?.[1];
     const result = spawnSync(
       process.execPath,
       ['scripts/check-demo-operation.mjs'],
