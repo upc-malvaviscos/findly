@@ -5,6 +5,20 @@
 Publicar demo AWS persistente mediante una acción manual y destruirla mediante
 otra acción manual independiente, sin interferir con CI efímero por PR.
 
+## Implementación en curso — plan aprobado 2026-10-03
+
+Los workflows `deploy.yml` y `destroy-demo.yml`, controles e inventario se
+implementan con ADR-017. La configuración reproducible de roles independientes,
+la preparación de identificadores exactos API/OAC y la recuperación de fallos
+se documentan en `docs/runbooks/permanent-demo.md`. El environment `demo` ya
+está limitado a `main`; roles y variables no secretas están configurados.
+Evidencia: `docs/evidence/issue-15-permanent-demo.md`.
+
+Las pruebas locales no acreditan publicación ni destrucción de demo. La
+aceptación AWS y el cierre de #15 siguen pendientes hasta completar y documentar
+el ciclo aprobado. La preparación inicial de bindings no es un despliegue
+completo: sólo prepara API/web para autorizar sus identificadores reales.
+
 ## Estado y decisiones
 
 Ampliación aprobada el 2026-10-03 de la issue #15 existente; implementación
