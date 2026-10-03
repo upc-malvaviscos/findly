@@ -51,9 +51,8 @@ const bucket = (name = config.uploadsBucket) => ({
 describe('demo authorization before credentials', () => {
   it('runs the pre-credential deployment guard with the workspace supplied by its job', () => {
     const workflow = readFileSync('.github/workflows/deploy.yml', 'utf8');
-    const authorizeJob = workflow
-      .split('  authorize:')[1]
-      .split('  deploy:')[0];
+    const authorizeJob =
+      workflow.split('  authorize:')[1]?.split('  deploy:')[0] ?? '';
     const workspace = authorizeJob.match(/^ {6}TF_WORKSPACE: (.+)$/m)?.[1];
     const result = spawnSync(
       process.execPath,
