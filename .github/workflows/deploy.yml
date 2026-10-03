@@ -36,7 +36,6 @@ jobs:
       TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
       TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
       TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
-      TF_VAR_frontend_domain_url: https://${{ vars.FINDLY_WEB_DOMAIN_NAME }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -52,8 +51,15 @@ jobs:
           test -n "$STATE_BUCKET"
           test -n "$TF_VAR_web_bucket_name"
           test -n "$TF_VAR_uploads_bucket_name"
-          test -n "$TF_VAR_web_domain_name"
-          test -n "$TF_VAR_web_certificate_arn"
+          if [ -z "$TF_VAR_web_domain_name" ]; then
+            test "$TARGET_ENVIRONMENT" = demo
+            test -z "$TF_VAR_web_certificate_arn"
+          else
+            case "$TF_VAR_web_certificate_arn" in
+              arn:aws:acm:us-east-1:*) ;;
+              *) echo '::error::Custom domain requires an ACM certificate in us-east-1'; exit 1 ;;
+            esac
+          fi
           case "$TF_VAR_web_domain_name" in
             *.example|*replace*) echo '::error::Configure an approved real domain'; exit 1 ;;
           esac
@@ -81,8 +87,7 @@ jobs:
         run: |
           plan_file="$RUNNER_TEMP/findly-deployment.tfplan"
           terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" plan -out="$plan_file" \
-            -var="uploads_bucket_name=$TF_VAR_uploads_bucket_name" \
-            -var="frontend_domain_url=$TF_VAR_frontend_domain_url"
+            -var="uploads_bucket_name=$TF_VAR_uploads_bucket_name"
           terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" show -json "$plan_file" \
             | node scripts/check-deployment-plan.mjs
       - name: Apply the exact reviewed run plan
@@ -108,3 +113,5 @@ jobs:
           aws s3 sync dist/ "s3://$web_bucket" --delete --exclude index.html --cache-control 'public,max-age=31536000,immutable'
           aws s3 cp dist/index.html "s3://$web_bucket/index.html" --cache-control 'no-cache' --content-type 'text/html'
           aws cloudfront create-invalidation --distribution-id "$distribution_id" --paths '/*'
+          frontend_origin="$(terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" output -raw frontend_origin)"
+          printf 'Frontend: %s\n' "$frontend_origin" >> "$GITHUB_STEP_SUMMARY"

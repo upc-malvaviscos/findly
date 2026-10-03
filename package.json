@@ -35,13 +35,14 @@
     "package:lambdas": "node scripts/package-lambda-artifacts.mjs",
     "verify:lambdas": "node scripts/verify-lambda-artifacts.mjs",
     "terraform:format": "terraform -chdir=infra fmt -check -recursive",
+    "terraform:test:hosting": "node scripts/test-static-hosting.mjs",
     "terraform:validate": "node scripts/terraform-validate.mjs",
     "security": "npm run security:tracked-files && npm audit --omit=dev",
     "security:tracked-files": "node scripts/check-tracked-secrets.mjs",
     "sync:check": "node scripts/check-documentation-sync.mjs",
     "harness:check": "node scripts/check-local-validation-environment.mjs",
     "harness:check:e2e": "node scripts/check-local-validation-environment.mjs --e2e",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run terraform:format && npm run terraform:validate && npm run security && npm run sync:check",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run terraform:format && npm run terraform:validate && npm run terraform:test:hosting && npm run security && npm run sync:check",
     "prepare": "husky"
   },
   "dependencies": {

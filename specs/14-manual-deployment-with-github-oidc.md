@@ -1,76 +1,106 @@
-# 14 - Despliegue manual seguro mediante autenticación OIDC
+# 14 - Despliegue y destrucción manual de demo permanente mediante OIDC
 
 ## Objetivo
-Permitir el despliegue controlado de infraestructura y código hacia AWS sin utilizar credenciales ni claves de acceso de larga duración (`AWS_ACCESS_KEY_ID`), integrando autenticación federada OpenID Connect (OIDC) entre GitHub Actions y AWS IAM.
+
+Publicar demo AWS persistente mediante una acción manual y destruirla mediante
+otra acción manual independiente, sin interferir con CI efímero por PR.
+
+## Estado y decisiones
+
+Ampliación aprobada el 2026-10-03 de la issue #15 existente; implementación
+pendiente. deploy.yml ya tiene workflow_dispatch, OIDC, plan/apply y publicación;
+falta verificar demo publicada y añadir destrucción manual segura.
+teardown-nonproduction.yml es un handoff con cron sin destrucción real.
+
+Demo permanece hasta destrucción manual. La permanencia es de infraestructura,
+no de datos: conservar caducidad/consentimiento/purga por evento.
+La destrucción elimina todo el stack demo y sus datos; conserva el backend de
+estado compartido y recursos externos/compartidos. No toca sandbox, producción,
+PRs, certificados/DNS externos ni identidades SES compartidas.
 
 ## Alineación con AWS Well-Architected Framework
-- **Seguridad**: Cero credenciales de acceso de larga duración guardadas en GitHub Secrets; uso de asunción de rol temporal mediante OIDC IAM.
-- **Excelencia Operativa**: Despliegue automatizado con sincronización S3 (`aws s3 sync dist/`) e invalidación de caché en CloudFront.
 
-## Especificación del Workflow de Despliegue Continuo (`.github/workflows/cd.yml`)
+- **Seguridad**: OIDC, roles mínimos, autorización explícita antes de credenciales.
+- **Fiabilidad**: estado bloqueado/cifrado y concurrencia común deploy/destroy.
+- **Excelencia Operativa**: plan inspeccionable y evidencia reproducible.
+- **Optimización de Costes**: serverless y presupuesto, sin destrucción programada.
 
-```yaml
-name: Continuous Deployment
+## Autorización y configuración externa
 
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Entorno de destino'
-        required: true
-        default: 'sandbox'
-        type: choice
-        options:
-          - sandbox
-          - demo
-          - production
+Lista autorizada: anyulled, orLuzuriaga, raati5674 y surinyach. Verificar actores
+antes de asumir el rol y en reejecuciones; definir controles sobre github.actor
+y github.triggering_actor. Un colaborador con escritura fuera de la lista
+no recibe credenciales ni modifica AWS. Proteger workflow/lista mediante revisión,
+rama permitida y environment demo; no ejecutar código arbitrario de otra rama.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::ACCOUNT_ID:role/findly-github-actions-${{ inputs.environment }}
-          aws-region: eu-west-1
-          
-      - name: Terraform Apply
-        run: |
-          cd infra/environments/${{ inputs.environment }}
-          terraform init
-          terraform apply -auto-approve
-          
-      - name: Deploy Static Web to S3
-        run: |
-          npm run build
-          aws s3 sync dist/ s3://findly-web-${{ inputs.environment }} --delete
-          
-      - name: Invalidate CloudFront Cache
-        run: |
-          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='findly-${{ inputs.environment }}'].Id" --output text)
-          aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
-```
+Configurar rol/trust OIDC por environment, restricciones GitHub, eu-west-1,
+backend y buckets únicos. Demo admite el dominio HTTPS de CloudFront sin ACM
+propio; con dominio propio, configurar DNS y ACM en us-east-1. Dominio y
+remitente SES (spec 20) pendientes. No aceptar ARN, backend, cuenta o entorno
+arbitrario en la acción de destrucción.
 
-## Guía de Implementación Paso a Paso para el Ingeniero Junior
+Referencia: [workflows manuales y permiso de escritura](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
 
-### Paso 1: Configurar el Workflow YAML
-- En `.github/workflows/cd.yml`, copia la especificación YAML.
-- Asegúrate de sustituir `ACCOUNT_ID` por el secreto o variable de entorno de AWS Account.
+## Workflow de despliegue
 
-### Paso 2: Probar el Despliegue en Sandbox
-- Ejecuta manualmente el workflow mediante `workflow_dispatch` seleccionando `sandbox`.
-- Comprueba que la compilación `dist/` se transfiere a S3 y que CloudFront recibe la invalidación `/*`.
+1. Validar actor/rama/environment/configuración antes de credenciales.
+2. Construir Lambda y validar gates apropiados.
+3. Inicializar infra/environments/demo, estado findly/demo/terraform.tfstate;
+   revisar plan y aplicar exclusivamente el plan de ese run.
+4. Compilar SPA en modo AWS con API/Cognito públicos, publicar dist/ en S3
+   privado con CloudFront/OAC/HTTPS e invalidar caché. CORS usa el origen exacto
+   publicado, también cuando AWS genera el dominio.
+5. Probar demo publicada; no destruir al terminar ni ante un fallo del smoke.
+   Registrar commit/run/resultados sin secretos.
 
-## Errores Comunes a Evitar (Pitfalls)
-- ❌ **ERROR**: Intentar sincronizar la carpeta antigua `out/` en lugar de `dist/`.
-  - *Solución*: Dado que migramos a Vite (ADR-001), el directorio estático es `dist/`.
-- ❌ **ERROR**: Olvidar la bandera `--delete` en `aws s3 sync`.
-  - *Solución*: De lo contrario, archivos obsoletos o borrados permanecerán en S3.
+## Workflow de destrucción
 
-## Lista de Verificación Pre-PR (Junior Checklist)
-- [ ] El workflow CD usa OIDC para asumir el rol IAM sin credenciales estáticas.
-- [ ] La carpeta `dist/` se sincroniza correctamente con S3.
-- [ ] La invalidación de caché de CloudFront se ejecuta al finalizar la sincronización.
+1. Acción separada solo workflow_dispatch, limitada a demo y la misma lista;
+   sin schedule/PR triggers ni reutilizar dev:aws-destroy de sandbox.
+2. Confirmación inequívoca de entorno/borrado de datos en inputs. Inventario y
+   plan de destrucción con comprobación de cuenta, región, estado, tags y propiedad.
+3. Concurrencia común con deploy, sin cancelación peligrosa, y bloqueo Terraform.
+4. Detener productores/trabajos antes de limpiar datos; incluir objetos/versiones
+   S3 y colecciones Rekognition dinámicas del namespace demo fuera del estado.
+5. Resolver protección allow_bucket_destroy=false con diseño/ADR revisado;
+   nunca habilitar destrucción general en demo/production ni quitar protección
+   al backend compartido. Acordar roles de deploy/destroy y excepción manual a ADR-009.
+6. Aplicar el plan de destrucción del run; verificar stack/colecciones ausentes,
+   estado demo vacío y backend compartido intacto. Reintento recuperable.
+
+## Dependencias y ausencia de solapamiento
+
+- #11/#61: backend/aislamiento existentes; conservar evidencia.
+- #22: smoke público/métricas; #18: runbook; #70: aceptación integral.
+- Spec 15/#16: CI efímero independiente con teardown obligatorio por PR.
+- Specs 20-23: aceptación de funciones nuevas cuando estén implementadas.
+
+## Errores comunes a evitar
+
+- Confundir frontend local o AWS efímero con demo publicada permanente.
+- Destruir demo por cron/fin de CI o tocar backend/otros entornos.
+- Confiar en la visibilidad del botón para autorizar colaboradores.
+- Confundir permanencia del stack con datos sin caducidad.
+
+## Criterios de aceptación y verificación
+
+- [ ] Dos acciones manuales identificables: deploy y destroy demo/datos.
+- [ ] Solo cuatro actores autorizados; rechazos y reejecuciones probados antes de AWS.
+- [ ] Rama/environment protegidos, trust OIDC acotado, sin claves estáticas.
+- [ ] SPA HTTPS publicada con backend real y sin destrucción automática.
+- [ ] Destroy exige confirmación e inventario/plan exacto de demo.
+- [ ] Stack/datos/colecciones demo limpios; backend y otros entornos intactos.
+- [ ] Concurrencia deploy/destroy y recuperación de fallos verificadas.
+- [ ] CI efímero mantiene aislamiento, permisos y teardown por PR.
+- [ ] AWS: deploy, recorrido demo y destroy sintéticos; ausencia de recursos
+      comprobada además del éxito del workflow.
+- [ ] actionlint, Terraform fmt/validate/tflint y gates obligatorios en verde.
+- [ ] ADR, runbook y evidencia sincronizados con #15.
+
+## Alternativa sin dominio aprobada (2026-10-03)
+
+Solo demo permite dominio y certificado vacíos: usa HTTPS en el nombre generado
+por CloudFront y certificado predeterminado AWS. AWS fija el mínimo TLSv1 de
+este modo; no se afirma TLSv1.2_2021. Dominios propios conservan ACM/us-east-1
+y TLSv1.2_2021; fuera de demo siguen siendo obligatorios. El ajuste no despliega
+AWS ni completa los restantes criterios de #15.

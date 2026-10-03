@@ -76,22 +76,24 @@ placeholders sintéticos), está en
 ## Nivel 4: entorno `demo`/`production` persistente publicado (bloqueado)
 
 **No ejecutable todavía para este equipo**, y con más requisitos que el nivel
-3 incluso con una cuenta sin restricciones: necesita un dominio propio con
-certificado ACM, además del mismo bootstrap del nivel 3. Requiere, en este
+3 incluso con una cuenta sin restricciones: necesita configuración OIDC y hosting, además del mismo bootstrap del nivel 3.
+Demo puede usar HTTPS en el dominio generado de CloudFront sin dominio propio
+ni certificado ACM propio (ADR-016). Requiere, en este
 orden:
 
 1. Aplicar `infra/bootstrap` en una cuenta AWS sin la restricción del nivel 3
    (issue #61).
 2. Ejecutar el workflow de despliegue manual vía OIDC (spec 14) contra
-   `environments/demo`, con un dominio y certificado ACM propios configurados
-   como variables del _environment_ de GitHub (issue #15;
+   `environments/demo`, con buckets y rol configurados como variables del _environment_ de GitHub.
+   Dejar FINDLY_WEB_DOMAIN_NAME y FINDLY_WEB_CERTIFICATE_ARN vacíos para usar
+   el dominio CloudFront; configurar ambos para un dominio propio (issue #15;
    [`aws-deployment-guide.md`](aws-deployment-guide.md#7-alternativa-desplegar-demo-mediante-el-workflow-de-github-actions)
    detalla las variables exactas).
 3. Sembrar un evento y fotos sintéticas equivalentes al nivel 1, pero contra el
    endpoint real.
 4. Repetir la secuencia Inscripción -> Carga masiva -> Galería -> Derecho al
    olvido con un navegador real, igual que el nivel 3 pero contra un stack que
-   permanece arriba entre sesiones y se sirve por HTTPS con dominio propio.
+   permanece arriba entre sesiones y se sirve por HTTPS con dominio CloudFront o propio.
 5. Teardown explícito y acordado: `demo`/`production` mantienen
    `allow_bucket_destroy = false`; no usar `dev:aws-destroy` contra esos
    roots. La destrucción de `demo`, si se acuerda, es una acción manual

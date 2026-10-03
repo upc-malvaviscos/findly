@@ -1,3 +1,9 @@
+locals {
+  # CloudFront no depende del API ni del bucket de cargas: este origen generado
+  # puede alimentar CORS en el mismo apply sin crear una dependencia circular.
+  frontend_origin = var.enable_web ? "https://${var.web_domain_name != "" ? var.web_domain_name : module.web[0].distribution_domain_name}" : var.frontend_domain_url
+}
+
 module "dynamodb" {
   source                        = "../dynamodb"
   table_name                    = "${var.project}-${var.environment}"
@@ -11,7 +17,7 @@ module "dynamodb" {
 module "uploads_bucket" {
   source              = "../uploads-bucket"
   bucket_name         = var.uploads_bucket_name
-  frontend_domain_url = var.frontend_domain_url
+  frontend_domain_url = local.frontend_origin
   project             = var.project
   environment         = var.environment
   cost_center         = var.cost_center
@@ -21,7 +27,7 @@ module "uploads_bucket" {
 
 module "api_gateway" {
   source              = "../api-gateway"
-  frontend_domain_url = var.frontend_domain_url
+  frontend_domain_url = local.frontend_origin
   project             = var.project
   environment         = var.environment
   cost_center         = var.cost_center
@@ -64,7 +70,7 @@ module "gallery_reader" {
   uploads_bucket_name  = module.uploads_bucket.bucket_name
   uploads_bucket_arn   = module.uploads_bucket.bucket_arn
   lambda_artifact_path = coalesce(var.gallery_lambda_artifact_path, "${path.module}/../../../artifacts/lambdas/gallery.zip")
-  frontend_domain_url  = var.frontend_domain_url
+  frontend_domain_url  = local.frontend_origin
   project              = var.project
   environment          = var.environment
   cost_center          = var.cost_center
