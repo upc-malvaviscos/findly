@@ -1,0 +1,112 @@
+name: Destroy permanent demo and its data
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DELETE FINDLY DEMO AND ALL ITS DATA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-demo
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  TARGET_ENVIRONMENT: demo
+  DEMO_OPERATION: destroy
+  DEMO_CONFIRMATION: ${{ inputs.confirmation }}
+  TF_VAR_enable_web: 'true'
+  TF_IN_AUTOMATION: 'true'
+  TF_INPUT: 'false'
+  TF_WORKSPACE: default
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: demo
+    env:
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
+      ROLE_ARN: ${{ vars.AWS_DESTROY_ROLE_ARN }}
+      TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
+      TF_VAR_web_bucket_name: ${{ vars.FINDLY_WEB_BUCKET_NAME }}
+      TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
+      TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
+    steps:
+      - name: Reject non-main dispatch before checkout
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Authorize actors and exact destructive confirmation before credentials
+        run: node scripts/check-demo-operation.mjs
+  destroy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: demo
+    env:
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
+      ROLE_ARN: ${{ vars.AWS_DESTROY_ROLE_ARN }}
+      TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
+      TF_VAR_web_bucket_name: ${{ vars.FINDLY_WEB_BUCKET_NAME }}
+      TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
+      TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: hashicorp/setup-terraform@v4
+      - name: Install and build artifacts required to refresh the exact stack
+        run: |
+          npm ci
+          npm run build:lambdas
+          npm run package:lambdas
+      - name: Reauthorize even when only the destruction job is rerun
+        run: node scripts/check-demo-operation.mjs
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DESTROY_ROLE_ARN }}
+          aws-region: eu-west-1
+          allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+          role-session-name: findly-demo-destroy
+      - name: Initialize only the demo state
+        run: |
+          terraform -chdir=infra/environments/demo init -input=false \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="key=findly/demo/terraform.tfstate" \
+            -backend-config="workspace_key_prefix=findly/demo/workspaces" \
+            -backend-config="region=eu-west-1" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Inventory, stop producers and clean only demo data
+        run: |
+          terraform -chdir=infra/environments/demo plan -destroy -out="$RUNNER_TEMP/demo-preflight.tfplan"
+          terraform -chdir=infra/environments/demo show -json "$RUNNER_TEMP/demo-preflight.tfplan" > "$RUNNER_TEMP/demo-preflight.json"
+          node scripts/prepare-demo-destroy.mjs "$RUNNER_TEMP/demo-preflight.json" "$RUNNER_TEMP/demo-inventory.json"
+      - name: Refresh and validate the final exact destruction plan
+        run: |
+          terraform -chdir=infra/environments/demo plan -destroy -out="$RUNNER_TEMP/demo-destroy.tfplan"
+          terraform -chdir=infra/environments/demo show -json "$RUNNER_TEMP/demo-destroy.tfplan" \
+            | node scripts/check-demo-destroy-plan.mjs
+      - name: Apply the exact destruction plan
+        run: terraform -chdir=infra/environments/demo apply "$RUNNER_TEMP/demo-destroy.tfplan"
+      - name: Verify resources absent and shared backend preserved
+        run: |
+          terraform -chdir=infra/environments/demo show -json > "$RUNNER_TEMP/demo-empty-state.json"
+          node scripts/verify-demo-destroy.mjs "$RUNNER_TEMP/demo-inventory.json" "$RUNNER_TEMP/demo-empty-state.json"
+          echo 'Demo stack and data removed; shared state backend preserved.' >> "$GITHUB_STEP_SUMMARY"

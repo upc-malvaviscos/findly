@@ -101,3 +101,10 @@ orden:
 
 No se marca este nivel como demostrado hasta que exista evidencia con commit,
 run y capturas, igual que el nivel 2.
+
+## Ciclo de demo permanente (issue #15)
+
+El despliegue, roles independientes, preparación de IDs, destrucción manual y
+recuperación se describen en [el runbook de demo permanente](permanent-demo.md)
+y ADR-017. Su aceptación AWS sigue pendiente en
+`docs/evidence/issue-15-permanent-demo.md`; el CI efímero no la sustituye.

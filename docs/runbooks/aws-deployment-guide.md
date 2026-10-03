@@ -329,3 +329,10 @@ La política TLSv1.2_2021 requiere ese modo. Sin dominio propio, AWS fija la
 política mínima TLSv1; HTTPS/OAC y privacidad de S3 se mantienen. Esta excepción
 solo se admite en demo. El rol/environment y la prueba desplegada siguen
 pendientes; no ejecutar apply sin autorización.
+
+## Ciclo de demo permanente (issue #15)
+
+El despliegue, roles independientes, preparación de IDs, destrucción manual y
+recuperación se describen en [el runbook de demo permanente](permanent-demo.md)
+y ADR-017. Su aceptación AWS sigue pendiente en
+`docs/evidence/issue-15-permanent-demo.md`; el CI efímero no la sustituye.
