@@ -104,9 +104,12 @@ comprobados y comenzó el despliegue completo en
 [run 37151100042](https://github.com/upc-malvaviscos/findly/actions/runs/37151100042).
 Este creó las doce funciones pero falló al etiquetar el stage `$default`
 de la API exacta. CloudTrail confirma CreateStage con etiquetas de demo y
-AccessDenied de la autorización dependiente de etiquetado. Se añaden las
-formas de ARN de etiquetas sin codificar de esa API exacta; su aceptación
-queda pendiente del siguiente intento. No ampliar a etiquetas de otras APIs.
+AccessDenied de la autorización dependiente de etiquetado. Las formas sin
+codificar no resolvieron el intento 2 y se retiraron. El simulador IAM
+confirma POST permitido en stages y en el ARN de etiquetas, pero TagResource
+denegado. CreateStage exige esta acción dependiente sobre `/apis/{id}/stages`:
+se concede únicamente en la API enlazada, con región y cuatro etiquetas de
+solicitud de demo. Su aceptación queda pendiente del siguiente intento.
 El backend conserva versionado, cifrado y bloqueo público; los 38 objetos de
 estado ajenos comparados con el inventario previo permanecen iguales.
 

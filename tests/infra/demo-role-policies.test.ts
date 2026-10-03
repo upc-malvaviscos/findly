@@ -157,8 +157,18 @@ describe('reviewable independent OIDC demo roles', () => {
     expect(JSON.stringify(bound.deploy.edge)).toContain(
       '%2Fv2%2Fapis%2Fdemo123',
     );
-    expect(JSON.stringify(bound.deploy.edge)).toContain(
-      '/tags/arn:aws:apigateway:eu-west-1::/apis/demo123/*',
+    const stageTags = bound.deploy.edge.Statement.find((s) =>
+      s.Action.includes('apigateway:TagResource'),
+    );
+    expect(stageTags?.Resource).toBe(
+      'arn:aws:apigateway:eu-west-1::/apis/demo123/stages',
+    );
+    expect(stageTags?.Condition?.StringEquals).toHaveProperty(
+      'aws:RequestTag/Environment',
+      'demo',
+    );
+    expect(JSON.stringify(unbound.deploy.edge)).not.toContain(
+      'apigateway:TagResource',
     );
   });
 });
