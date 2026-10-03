@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   authorizeDemo,
@@ -47,6 +49,31 @@ const bucket = (name = config.uploadsBucket) => ({
 });
 
 describe('demo authorization before credentials', () => {
+  it('runs the pre-credential deployment guard with the workspace supplied by its job', () => {
+    const workflow = readFileSync('.github/workflows/deploy.yml', 'utf8');
+    const authorizeJob = workflow
+      .split('  authorize:')[1]
+      .split('  deploy:')[0];
+    const workspace = authorizeJob.match(/^      TF_WORKSPACE: (.+)$/m)?.[1];
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/check-demo-operation.mjs'],
+      {
+        env: {
+          ...env,
+          TF_WORKSPACE: workspace,
+          GITHUB_REPOSITORY: context.repository,
+          GITHUB_REF: context.ref,
+          GITHUB_EVENT_NAME: context.event,
+          GITHUB_ACTOR: context.actor,
+          GITHUB_TRIGGERING_ACTOR: context.triggeringActor,
+          TARGET_ENVIRONMENT: context.environment,
+        },
+        encoding: 'utf8',
+      },
+    );
+    expect(result.status, result.stderr).toBe(0);
+  });
   it.each(['anyulled', 'orLuzuriaga', 'raati5674', 'surinyach'])(
     'accepts %s',
     (actor) => {

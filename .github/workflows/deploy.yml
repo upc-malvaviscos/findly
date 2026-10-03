@@ -30,6 +30,7 @@ jobs:
     environment: ${{ inputs.environment }}
     env:
       AWS_REGION: eu-west-1
+      TF_WORKSPACE: default
       TARGET_ENVIRONMENT: ${{ inputs.environment }}
       DEMO_OPERATION: deploy
       FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
