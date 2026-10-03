@@ -113,6 +113,13 @@ recursos exactos y etiquetas de propiedad; los IDs de API/OAC se enlazan tras
 la preparación inicial. El estado compartido y estos roles quedan fuera de la
 destrucción del stack (ADR-017).
 
+La autorización dependiente de etiquetado inicial de HTTP API tiene una
+excepción aprobada: POST sobre el ARN codificado de etiquetas, sin condición
+de nombre, limitado a eu-west-1 y a las cuatro etiquetas de solicitud de demo.
+Puede etiquetar otras APIs HTTP de esa región con esas etiquetas. La creación
+conserva el nombre findly-demo-api; las mutaciones posteriores conservan los
+IDs exactos y el rol de destrucción no recibe ese permiso (ADR-017).
+
 **Nota de trazabilidad de código**: el repositorio conserva un módulo
 `infra/modules/github-oidc/` de una iteración anterior (issue #12) que
 declara un único rol genérico (`findly-github-ci-cd`) sin política de

@@ -99,8 +99,16 @@ región y cuatro etiquetas de solicitud de demo. ADR-017 documenta el alcance
 adicional autorizado y el test de políticas verifica esas condiciones y que
 el rol de destrucción no recibe el permiso.
 El configurador aplicó la regla aprobada y se relanzó el job fallido del run
-37136524071 (intento 3). Su resultado sigue pendiente de verificar; no acredita
-todavía API funcional, publicación ni aceptación completa.
+37136524071 (intento 3), que terminó correctamente. Se enlazaron los IDs
+comprobados y comenzó el despliegue completo en
+[run 37151100042](https://github.com/upc-malvaviscos/findly/actions/runs/37151100042).
+Este creó las doce funciones pero falló al etiquetar el stage `$default`
+de la API exacta. CloudTrail confirma CreateStage con etiquetas de demo y
+AccessDenied de la autorización dependiente de etiquetado. Se añaden las
+formas de ARN de etiquetas sin codificar de esa API exacta; su aceptación
+queda pendiente del siguiente intento. No ampliar a etiquetas de otras APIs.
+El backend conserva versionado, cifrado y bloqueo público; los 38 objetos de
+estado ajenos comparados con el inventario previo permanecen iguales.
 
 La revisión del proveedor identificó también lecturas obligatorias
 `GetFunctionCodeSigningConfig`, `ListVersionsByFunction` y `GetUserPoolMfaConfig`.
