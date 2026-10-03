@@ -103,7 +103,7 @@ No se ejecuta `npm run terraform:validate`, `npm run lint:terraform` ni
 `npm run test:e2e`: esta entrega no modifica Terraform, workflows ni ningún
 flujo de usuario.
 
-## Actualización posterior: alineación con la PR #72 (issue #7)
+## Actualización posterior: cierre de la issue #7 (PR #72 y PR #81)
 
 Tras la entrega inicial, la PR #72 (`feature/issue-7-selfie-enrollment-rekognition`)
 se fusionó en `main` con los nueve checks en verde, incluido un
@@ -111,10 +111,15 @@ se fusionó en `main` con los nueve checks en verde, incluido un
 memoria ya escrita y se corrigieron cinco puntos que habían quedado
 desalineados, sin reabrir ninguna otra sección:
 
-- `02-contexto-objetivos-y-alcance.md`: la fila de la issue `#7` en la tabla de
-  trazabilidad y un párrafo nuevo explican que la PR está fusionada con
-  evidencia AWS real aunque la issue de GitHub siga abierta a falta del
-  comentario de cierre formal.
+- `02-contexto-objetivos-y-alcance.md`: la fila de la issue `#7` y un párrafo
+  nuevo narran su cierre completo — PR #72 (evidencia inicial), PR #81
+  (sincronización de `specs/06`, bloqueada primero por un permiso Rekognition
+  que faltaba) y la sustitución del patrón de permisos por-número-de-PR por
+  la política permanente `findly-ephemeral-pr-extensions`
+  (`docs/evidence/permanent-ephemeral-ci-iam.md`) que la desbloqueó. `#7` se
+  cerró el 02-oct con los tres criterios de la spec 06 acreditados en AWS
+  real (verificado contra el comentario de cierre de `anyulled`, no de
+  memoria).
 - `04-arquitectura-y-decisiones.md`: la PR introdujo en `main` un segundo
   `ADR-010` y un segundo `ADR-011` (`ADR-010-selfie-enrollment-boundaries.md`,
   `ADR-011-pending-erasure-recovery.md`), ambos marcados como documentos
@@ -137,9 +142,11 @@ desalineados, sin reabrir ninguna otra sección:
 
 Los seis diagramas Mermaid de `04-arquitectura-y-decisiones.md`, incluido el
 modificado, se revalidaron renderizándolos con `@mermaid-js/mermaid-cli`.
-`npm run lint:markdown` pasa sobre los cuatro ficheros tocados. No se ha
-aplicado ningún cambio a `docs/adr/`, a la numeración de ADRs ni a la issue de
-GitHub `#7`: esta actualización es exclusivamente de la memoria.
+`npm run lint:markdown` pasa sobre los cuatro ficheros tocados. El cierre de
+`#7` y la política IAM permanente son obra de `anyulled` y del equipo, no de
+esta entrega: aquí sólo se documenta ese resultado ya ocurrido. No se ha
+aplicado ningún cambio a `docs/adr/` ni a la numeración de ADRs, que sigue sin
+resolver.
 
 ## Pendiente
 
