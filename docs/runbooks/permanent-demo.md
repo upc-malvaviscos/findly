@@ -71,5 +71,6 @@ roles operativos permanecen para permitir el siguiente despliegue.
 La publicación y recorrido real pasaron en el run 37151100042 (intento 3).
 Destroy 37152095070 completó el borrado; el verificador corregido comprobó la
 ausencia del inventario original y backend/estados ajenos intactos mediante
-lecturas AWS. La integración y reejecución final se siguen en PR #92/#15.
+lecturas AWS. El run 37153651572 repitió destroy desde main con estado vacío y
+pasó, acreditando recuperación e idempotencia. La entrega se sigue en PR #92/#15.
 Véase `docs/evidence/issue-15-permanent-demo.md` para pruebas y recuperación.
