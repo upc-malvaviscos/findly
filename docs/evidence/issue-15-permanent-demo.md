@@ -4,7 +4,8 @@
 
 Implementación principal fusionada en la
 [PR #91](https://github.com/upc-malvaviscos/findly/pull/91).
-Aceptación y correcciones en `fix/issue-15-demo-aws-acceptance`. El usuario aprobó
+Aceptación y correcciones en la
+[PR #92](https://github.com/upc-malvaviscos/findly/pull/92). El usuario aprobó
 el plan y el ciclo AWS el 2026-10-03. La PR #90 ya mergeada habilitó HTTPS sin
 dominio propio; su CI efímero no acreditó la demo permanente.
 
@@ -26,14 +27,15 @@ colecciones, y comprobación de ausencia después de destruir.
 - Los roles independientes `findly-demo-deploy` y `findly-demo-destroy` y sus
   políticas administradas se configuraron con la sesión administrativa temporal,
   usando el script versionado. Trust acotado al subject del environment demo.
-  OAC/distribución enlazados a sus IDs exactos tras la preparación parcial;
-  el ID de API sigue pendiente porque CreateApi fue rechazado.
+  Durante el ciclo se enlazaron IDs exactos de API, OAC, distribución y pool,
+  comprobados por nombre, etiquetas y propiedad. Tras recrear la demo debe
+  repetirse la preparación para enlazar los identificadores nuevos.
 - El backend compartido existente no se modificó. No existía objeto de estado
   bajo `findly/demo/` antes de comenzar.
 
 ## Validación local
 
-`npm run verify` pasó con 333 pruebas en 41 archivos, TypeScript, lint,
+`npm run verify` pasó con 335 pruebas en 41 archivos, TypeScript, lint,
 actionlint, Terraform fmt/validate/tflint, 8 pruebas Terraform con proveedor
 simulado, empaquetado de Lambda y auditoría de dependencias de producción.
 La verificación final del commit incluye rechazo de roles operativos, workspace

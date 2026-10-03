@@ -250,32 +250,26 @@ secuencia exacta).
 
 ## 7. Alternativa: desplegar `demo` mediante el workflow de GitHub Actions
 
-Los pasos 1-6 despliegan `sandbox` desde tu máquina, sin necesidad de GitHub
-Actions ni de un dominio propio. Si en cambio quieres una SPA publicada de
-verdad por HTTPS (entorno `demo` o `production`), el
-camino es distinto y **no** usa `npm run dev:aws`:
+Los pasos 1-6 despliegan `sandbox` desde tu máquina. Para publicar la SPA demo
+por HTTPS, seguir [el runbook de demo permanente](permanent-demo.md).
+El backend compartido, los roles independientes y el environment demo ya se
+configuraron y verificaron; no repetir el bootstrap de sandbox en esa cuenta.
 
-1. Para dominio propio, crea o reutiliza un certificado ACM en `us-east-1` (obligatorio para
-   CloudFront) para tu dominio.
-2. Configura en el _environment_ de GitHub correspondiente (`demo` o
-   `production`) las variables `AWS_DEPLOY_ROLE_ARN`,
-   `AWS_TERRAFORM_STATE_BUCKET`, `FINDLY_UPLOADS_BUCKET_NAME`,
-   `FINDLY_WEB_BUCKET_NAME`, `FINDLY_WEB_DOMAIN_NAME` y
-   `FINDLY_WEB_CERTIFICATE_ARN` (los dos últimos pueden omitirse solo en demo).
-   El rol de despliegue OIDC se crea y revisa
-   manualmente fuera de Terraform (capítulo 6 de la memoria explica por qué).
-3. Ejecuta el workflow **Deployment** manualmente (`workflow_dispatch`) desde
-   la pestaña Actions de GitHub, eligiendo el `environment` y dejando
-   `apply=false` la primera vez.
-4. Revisa el plan que produce el job (rechaza automáticamente cualquier
-   borrado, reemplazo, o recurso de coste fijo — capítulo 5 de la memoria).
-5. Si el plan es correcto, vuelve a ejecutar el mismo workflow con
-   `apply=true`. Esta segunda ejecución necesita la aprobación del
-   _environment_ de GitHub si está configurada, aplica la infraestructura, y
-   publica la SPA en el bucket web con invalidación de CloudFront.
+1. Operar desde main como uno de los cuatro miembros autorizados. La lista de
+   variables y los roles revisados están en el runbook permanente.
+2. En una demo nueva/recreada, ejecutar **Deployment** con environment demo,
+   apply=true y prepare_demo_bindings=true para preparar API/web.
+3. La persona administradora ejecuta el configurador de roles para enlazar los
+   IDs reales. No ampliar permisos a otros recursos ni publicar todavía.
+4. Ejecutar **Deployment** con prepare_demo_bindings=false y apply=true. El
+   plan rechaza borrados/reemplazos; publica la SPA y verifica el recorrido real.
+5. Destruir únicamente mediante **Destroy permanent demo and its data**, con
+   confirmación explícita y el procedimiento de inventario/limpieza/ausencia.
 
-Esta ruta es la que documenta en detalle `docs/evidence/issue-15-manual-deploy-oidc.md`
-y el capítulo 5 de la memoria; se deja aquí sólo como referencia porque admite también el dominio generado de CloudFront para demo (ADR-016).
+El ciclo AWS de demo está acreditado en
+[la evidencia de #15](../evidence/issue-15-permanent-demo.md). La infraestructura
+persiste entre sesiones hasta el borrado manual. Producción conserva requisitos
+y aceptación propios; dominio/certificado pueden omitirse sólo en demo.
 
 ## 8. Apagar todo cuando termines
 
@@ -327,12 +321,13 @@ workflow publica frontend_origin en el resumen después del apply.
 Con dominio propio, configurar ambos valores y certificado ACM en us-east-1.
 La política TLSv1.2_2021 requiere ese modo. Sin dominio propio, AWS fija la
 política mínima TLSv1; HTTPS/OAC y privacidad de S3 se mantienen. Esta excepción
-solo se admite en demo. El rol/environment y la prueba desplegada siguen
-pendientes; no ejecutar apply sin autorización.
+solo se admite en demo. Los roles/environment y el recorrido publicado se
+verificaron en el ciclo AWS de #15; el runbook permanente explica cómo recrearla.
 
 ## Ciclo de demo permanente (issue #15)
 
 El despliegue, roles independientes, preparación de IDs, destrucción manual y
 recuperación se describen en [el runbook de demo permanente](permanent-demo.md)
-y ADR-017. Su aceptación AWS sigue pendiente en
-`docs/evidence/issue-15-permanent-demo.md`; el CI efímero no la sustituye.
+y ADR-017. Runs y resultados constan en
+[la evidencia de #15](../evidence/issue-15-permanent-demo.md); el CI efímero
+mantiene su verificación independiente.
