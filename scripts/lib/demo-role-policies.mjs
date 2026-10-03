@@ -128,6 +128,14 @@ export function demoRolePolicies(config, bindings = {}) {
     statement(
       [
         's3:GetBucketLocation',
+        // aws_s3_bucket refresh reads these attributes even when unset in HCL.
+        's3:GetBucketAcl',
+        's3:GetBucketWebsite',
+        's3:GetAccelerateConfiguration',
+        's3:GetBucketRequestPayment',
+        's3:GetBucketLogging',
+        's3:GetReplicationConfiguration',
+        's3:GetBucketObjectLockConfiguration',
         's3:GetBucketCORS',
         's3:GetEncryptionConfiguration',
         's3:GetBucketPublicAccessBlock',
@@ -160,6 +168,8 @@ export function demoRolePolicies(config, bindings = {}) {
         'lambda:ListTags',
         'lambda:GetFunctionConcurrency',
         'lambda:GetFunctionEventInvokeConfig',
+        'lambda:GetFunctionCodeSigningConfig',
+        'lambda:ListVersionsByFunction',
       ],
       fnArns,
     ),
@@ -444,6 +454,7 @@ export function demoRolePolicies(config, bindings = {}) {
     statement(
       [
         'cognito-idp:DescribeUserPool',
+        'cognito-idp:GetUserPoolMfaConfig',
         'cognito-idp:DescribeUserPoolClient',
         'cognito-idp:ListUserPoolClients',
         'cognito-idp:ListTagsForResource',
@@ -524,6 +535,7 @@ export function demoRolePolicies(config, bindings = {}) {
       `arn:aws:apigateway:${region}::/apis/${bindings.apiId}`,
       `arn:aws:apigateway:${region}::/apis/${bindings.apiId}/*`,
       `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fapis%2F${bindings.apiId}*`,
+      `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fv2%2Fapis%2F${bindings.apiId}*`,
     ];
     edgeRead.push(statement(['apigateway:GET'], resources));
     edgeDeploy.push(
