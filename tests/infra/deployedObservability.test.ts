@@ -13,19 +13,22 @@ const dlqName = 'findly-pr-70-photos-dlq';
 // This CLI fixture tests fail-closed parsing/privacy gates only. It is not AWS
 // evidence and never runs a real AWS command or emits real account identifiers.
 //
-// Windows-only limitation, verified, not fixed here: this fixture relies on a
-// POSIX shebang script named `aws` on PATH. On Windows, `execFileSync('aws',
-// …)` without `shell: true` (both here and in scripts/deployed-observability.mjs)
-// resolves bare commands via PATHEXT (.exe/.cmd/.bat/…) and never treats an
-// extension-less file as executable, so it finds the real system AWS CLI
-// instead of this fixture and fails on NoRegion. Adding an `aws.cmd` launcher
-// did not fix it either: Windows process spawn appears to resolve the
-// executable before the child's PATH override takes effect, even after
-// mutating this process's own `process.env.PATH` directly. Fixing this needs
-// either a `.cmd` variant plus whatever additional Windows spawn-resolution
-// step actually makes it take effect, or making the production script
-// shell-aware (it also runs for real in provision-test-destroy, so that is a
-// separate, reviewed change). CI runs on Ubuntu and is unaffected.
+// Windows-only limitation, root cause confirmed by isolated repro (not a PATH
+// ordering issue): this fixture is a POSIX shebang script named `aws`, and
+// Windows has no native way to execute that file at all, regardless of PATH
+// contents. `scripts/deployed-observability.mjs` calls it via
+// `execFileSync('aws', …)` with `shell: false`; on Windows, Node's spawn never
+// does PATHEXT resolution for a bare command without `shell: true` (confirmed
+// by mutating `process.env.PATH` directly before spawning — still ENOENT), and
+// separately, Node hard-refuses to launch a `.cmd`/`.bat` file at all without
+// `shell: true` (`EINVAL`, a deliberate Node security hardening). A `.cmd`
+// variant of this fixture would therefore only work with `shell: true` added
+// to the real `aws()` helper — but that helper also issues the real AWS calls
+// in `provision-test-destroy`, where shell-metacharacter interpretation of
+// ARNs/queue URLs would trade a local Windows convenience for a command
+// injection surface on a path that runs with federated AWS credentials. Not
+// worth it: this suite is skipped on Windows below instead. CI (Ubuntu) runs
+// it unaffected, which is where it provides real coverage.
 writeFileSync(
   join(fixtureDirectory, 'aws'),
   `#!${process.execPath}
@@ -75,45 +78,48 @@ function probe(overrides: Record<string, string> = {}) {
   );
 }
 
-describe('deployed observability probe guardrails (CLI fixture)', () => {
-  it('accepts complete JSON log, retention, alarm and SNS delivery evidence', () => {
-    const result = probe();
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('No Budget alert was tested.');
-  });
-
-  it('rejects retention that differs from 14 days', () => {
-    const result = probe({ FINDLY_TEST_RETENTION: '30' });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('retain exactly 14 days');
-  });
-
-  it('rejects nested sensitive fields without echoing their value', () => {
-    const privateValue = 'synthetic-private-marker';
-    const result = probe({
-      FINDLY_TEST_LOG: JSON.stringify({
-        level: 'INFO',
-        event: 'sample',
-        correlationId: 'synthetic',
-        details: { token: privateValue },
-      }),
+describe.skipIf(process.platform === 'win32')(
+  'deployed observability probe guardrails (CLI fixture)',
+  () => {
+    it('accepts complete JSON log, retention, alarm and SNS delivery evidence', () => {
+      const result = probe();
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('No Budget alert was tested.');
     });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('prohibited sensitive field');
-    expect(result.stdout + result.stderr).not.toContain(privateValue);
-  });
 
-  it('rejects non-JSON application logs', () => {
-    const result = probe({
-      FINDLY_TEST_LOG: 'unstructured application output',
+    it('rejects retention that differs from 14 days', () => {
+      const result = probe({ FINDLY_TEST_RETENTION: '30' });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('retain exactly 14 days');
     });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('Application log is not JSON');
-  });
 
-  it('rejects shared environment resources before any AWS operation', () => {
-    const result = probe({ EPHEMERAL_RESOURCE_PREFIX: 'findly-demo' });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('findly-pr-');
-  });
-});
+    it('rejects nested sensitive fields without echoing their value', () => {
+      const privateValue = 'synthetic-private-marker';
+      const result = probe({
+        FINDLY_TEST_LOG: JSON.stringify({
+          level: 'INFO',
+          event: 'sample',
+          correlationId: 'synthetic',
+          details: { token: privateValue },
+        }),
+      });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('prohibited sensitive field');
+      expect(result.stdout + result.stderr).not.toContain(privateValue);
+    });
+
+    it('rejects non-JSON application logs', () => {
+      const result = probe({
+        FINDLY_TEST_LOG: 'unstructured application output',
+      });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('Application log is not JSON');
+    });
+
+    it('rejects shared environment resources before any AWS operation', () => {
+      const result = probe({ EPHEMERAL_RESOURCE_PREFIX: 'findly-demo' });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('findly-pr-');
+    });
+  },
+);
