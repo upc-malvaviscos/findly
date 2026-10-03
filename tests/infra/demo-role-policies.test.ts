@@ -12,6 +12,48 @@ const config = {
 };
 
 describe('reviewable independent OIDC demo roles', () => {
+  it('permits mandatory provider reads without widening Lambda mutation or Cognito ownership', () => {
+    const result = demoRolePolicies(config);
+    for (const role of [result.deploy, result.destroy]) {
+      const functions = role.core.Statement.find((s) =>
+        s.Action.includes('lambda:GetFunctionCodeSigningConfig'),
+      );
+      expect(functions?.Action).toContain('lambda:ListVersionsByFunction');
+      expect(Array.isArray(functions?.Resource)).toBe(true);
+      expect(functions?.Resource).toHaveLength(12);
+      const pool = role.edge.Statement.find((s) =>
+        s.Action.includes('cognito-idp:GetUserPoolMfaConfig'),
+      );
+      expect(pool?.Condition).toEqual({
+        StringEquals: {
+          'aws:ResourceTag/Project': 'findly',
+          'aws:ResourceTag/Environment': 'demo',
+        },
+      });
+    }
+  });
+  it('permits Terraform bucket refresh only on the two demo buckets', () => {
+    const result = demoRolePolicies(config);
+    for (const role of [result.deploy, result.destroy]) {
+      const refresh = role.core.Statement.find((s) =>
+        s.Action.includes('s3:GetBucketAcl'),
+      );
+      expect(refresh?.Resource).toEqual([
+        `arn:aws:s3:::${config.uploadsBucket}`,
+        `arn:aws:s3:::${config.webBucket}`,
+      ]);
+      expect(refresh?.Action).toEqual(
+        expect.arrayContaining([
+          's3:GetBucketWebsite',
+          's3:GetAccelerateConfiguration',
+          's3:GetBucketRequestPayment',
+          's3:GetBucketLogging',
+          's3:GetReplicationConfiguration',
+          's3:GetBucketObjectLockConfiguration',
+        ]),
+      );
+    }
+  });
   it('authorizes absence checks by exact IDs after resource tags disappear', () => {
     const result = demoRolePolicies(config, {
       distributionId: 'EDEMO123',
@@ -86,5 +128,8 @@ describe('reviewable independent OIDC demo roles', () => {
       'arn:aws:cloudfront::123456789012:origin-access-control/EOAC123',
     );
     expect(JSON.stringify(bound.deploy.edge)).toContain('/apis/demo123/*');
+    expect(JSON.stringify(bound.deploy.edge)).toContain(
+      '%2Fv2%2Fapis%2Fdemo123',
+    );
   });
 });

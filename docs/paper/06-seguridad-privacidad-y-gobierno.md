@@ -105,6 +105,14 @@ token — no basta con que la llamada venga de "GitHub", tiene que venir de
   confianza restringida al _claim_ `sub` que GitHub emite cuando el job usa
   `environment: <nombre>` — más preciso que confiar sólo en la rama.
 
+La demo usa dos roles operativos externos al stack: `findly-demo-deploy` y
+`findly-demo-destroy`, con trust exacto del environment demo y sin claves
+estáticas. La rama permitida y la lista de actores se comprueban antes de
+asumirlos. El configurador versionado genera políticas administradas con
+recursos exactos y etiquetas de propiedad; los IDs de API/OAC se enlazan tras
+la preparación inicial. El estado compartido y estos roles quedan fuera de la
+destrucción del stack (ADR-017).
+
 **Nota de trazabilidad de código**: el repositorio conserva un módulo
 `infra/modules/github-oidc/` de una iteración anterior (issue #12) que
 declara un único rol genérico (`findly-github-ci-cd`) sin política de
