@@ -125,6 +125,22 @@ ampliar mutaciones.
 
 ## Aceptación AWS pendiente
 
+El [run 37152095070](https://github.com/upc-malvaviscos/findly/actions/runs/37152095070)
+validó inventario, detuvo productores, esperó quiescencia y limpió los datos.
+La destrucción parcial falló en la lectura de ausencia de un mapping Lambda
+ya borrado y en el reset de la política SNS antes de borrar el topic. Se
+autoriza GetEventSourceMapping sobre `*` con región eu-west-1: AWS evalúa ese
+recurso al consultar UUIDs ya ausentes, aunque las lecturas de mappings
+existentes ya estaban permitidas en la región. SetTopicAttributes queda
+limitado al topic exacto findly-demo-alerts. El intento 2 está en curso.
+
+El plan de despliegue sin apply
+[37152194910](https://github.com/upc-malvaviscos/findly/actions/runs/37152194910)
+quedó pending mientras destrucción estaba activa, sin cancelarla. Comenzó sólo
+tras su terminación; su refresh encontró el mismo GetEventSourceMapping denegado.
+Esto acredita la serialización efectiva de los dos workflows; no publicó ni
+creó recursos.
+
 Pendientes de integrar las correcciones en main y ejecutar el workflow
 manual de destrucción completo. No marcar esos criterios como completados hasta registrar
 los runs y comprobar stack/colecciones ausentes y backend/otros entornos intactos.

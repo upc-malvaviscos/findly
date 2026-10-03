@@ -210,10 +210,7 @@ export function demoRolePolicies(config, bindings = {}) {
       ['cloudwatch:DescribeAlarms', 'cloudwatch:ListTagsForResource'],
       aws('cloudwatch', 'alarm:findly-demo-photos-dlq-has-messages'),
     ),
-    statement(
-      ['lambda:GetEventSourceMapping'],
-      aws('lambda', 'event-source-mapping:*'),
-    ),
+    statement(['lambda:GetEventSourceMapping'], '*', readRegion),
     statement(
       ['lambda:ListTags'],
       aws('lambda', 'event-source-mapping:*'),
@@ -401,7 +398,10 @@ export function demoRolePolicies(config, bindings = {}) {
         aws('sqs', 'findly-demo-photos-dlq'),
       ],
     ),
-    statement(['sns:DeleteTopic'], aws('sns', 'findly-demo-alerts')),
+    statement(
+      ['sns:DeleteTopic', 'sns:SetTopicAttributes'],
+      aws('sns', 'findly-demo-alerts'),
+    ),
     statement(
       ['scheduler:UpdateSchedule', 'scheduler:DeleteSchedule'],
       aws('scheduler', 'schedule/default/findly-demo-retention-purger'),
