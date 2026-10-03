@@ -8,7 +8,7 @@ otra acción manual independiente, sin interferir con CI efímero por PR.
 ## Implementación y aceptación — plan aprobado 2026-10-03
 
 Los workflows `deploy.yml` y `destroy-demo.yml`, controles e inventario se
-implementados con ADR-017. La configuración reproducible de roles independientes,
+implementan con ADR-017. La configuración reproducible de roles independientes,
 la preparación de identificadores exactos API/OAC y la recuperación de fallos
 se documentan en `docs/runbooks/permanent-demo.md`. El environment `demo` ya
 está limitado a `main`; roles y variables no secretas están configurados.
