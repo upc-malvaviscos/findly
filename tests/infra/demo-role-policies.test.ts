@@ -12,6 +12,24 @@ const config = {
 };
 
 describe('reviewable independent OIDC demo roles', () => {
+  it('permits mapping absence reads in the reviewed region and SNS policy removal only on the demo topic', () => {
+    const result = demoRolePolicies(config);
+    for (const role of [result.deploy, result.destroy]) {
+      const mapping = role.core.Statement.find((s) =>
+        s.Action.includes('lambda:GetEventSourceMapping'),
+      );
+      expect(mapping?.Resource).toBe('*');
+      expect(mapping?.Condition).toEqual({
+        StringEquals: { 'aws:RequestedRegion': 'eu-west-1' },
+      });
+    }
+    const topic = result.destroy.core.Statement.find((s) =>
+      s.Action.includes('sns:SetTopicAttributes'),
+    );
+    expect(topic?.Resource).toBe(
+      'arn:aws:sns:eu-west-1:123456789012:findly-demo-alerts',
+    );
+  });
   it('limits initial API tagging to the approved region and demo request tags without ApiName', () => {
     const result = demoRolePolicies(config);
     const tagging = result.deploy.edge.Statement.find(

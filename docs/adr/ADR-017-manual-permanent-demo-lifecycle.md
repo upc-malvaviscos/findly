@@ -77,6 +77,12 @@ Esta excepción permite etiquetar otras APIs HTTP de esa región si cumplen las
 condiciones de solicitud. Es la ampliación explícitamente autorizada; no
 autoriza modificar o destruir sus recursos hijos ni ampliar otros permisos.
 
+La creación del stage requiere además una autorización dependiente
+`apigateway:TagResource` sobre `/apis/{id}/stages`. El run real y el simulador
+IAM demostraron que POST permitido no satisface ese control. El permiso se
+concede sólo después de enlazar la API exacta, con región y las cuatro etiquetas
+de solicitud de demo; nunca sobre stages de APIs arbitrarias.
+
 ## Evidencia
 
 Implementación en curso. Pruebas locales con mocks no acreditan la demo real.

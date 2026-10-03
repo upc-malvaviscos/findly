@@ -14,16 +14,16 @@ se documentan en `docs/runbooks/permanent-demo.md`. El environment `demo` ya
 está limitado a `main`; roles y variables no secretas están configurados.
 Evidencia: `docs/evidence/issue-15-permanent-demo.md`.
 
-Las pruebas locales no acreditan publicación ni destrucción de demo. La
-aceptación AWS y el cierre de #15 siguen pendientes hasta completar y documentar
-el ciclo aprobado. La preparación inicial de bindings no es un despliegue
-completo: sólo prepara API/web para autorizar sus identificadores reales.
+El run 37151100042, intento 3, acredita publicación y recorrido real de demo
+con datos sintéticos. La aceptación de destrucción y cierre de #15 siguen
+pendientes hasta completar y documentar el ciclo aprobado. La preparación
+inicial de bindings sólo prepara API/web para autorizar sus IDs reales.
 
 ## Estado y decisiones
 
-Ampliación aprobada el 2026-10-03 de la issue #15 existente; implementación
-pendiente. deploy.yml ya tiene workflow_dispatch, OIDC, plan/apply y publicación;
-falta verificar demo publicada y añadir destrucción manual segura.
+Ampliación aprobada el 2026-10-03 de la issue #15 existente. Los workflows
+deploy.yml y destroy-demo.yml implementan publicación y destrucción manual.
+La demo publicada superó el smoke real; se está verificando el borrado completo.
 teardown-nonproduction.yml es un handoff con cron sin destrucción real.
 
 Demo permanece hasta destrucción manual. La permanencia es de infraestructura,
@@ -98,17 +98,17 @@ Referencia: [workflows manuales y permiso de escritura](https://docs.github.com/
 
 ## Criterios de aceptación y verificación
 
-- [ ] Dos acciones manuales identificables: deploy y destroy demo/datos.
-- [ ] Solo cuatro actores autorizados; rechazos y reejecuciones probados antes de AWS.
-- [ ] Rama/environment protegidos, trust OIDC acotado, sin claves estáticas.
-- [ ] SPA HTTPS publicada con backend real y sin destrucción automática.
-- [ ] Destroy exige confirmación e inventario/plan exacto de demo.
+- [x] Dos acciones manuales identificables: deploy y destroy demo/datos.
+- [x] Solo cuatro actores autorizados; rechazos y reejecuciones probados antes de AWS.
+- [x] Rama/environment protegidos, trust OIDC acotado, sin claves estáticas.
+- [x] SPA HTTPS publicada con backend real y sin destrucción automática.
+- [x] Destroy exige confirmación e inventario/plan exacto de demo.
 - [ ] Stack/datos/colecciones demo limpios; backend y otros entornos intactos.
 - [ ] Concurrencia deploy/destroy y recuperación de fallos verificadas.
-- [ ] CI efímero mantiene aislamiento, permisos y teardown por PR.
+- [x] CI efímero mantiene aislamiento, permisos y teardown por PR.
 - [ ] AWS: deploy, recorrido demo y destroy sintéticos; ausencia de recursos
       comprobada además del éxito del workflow.
-- [ ] actionlint, Terraform fmt/validate/tflint y gates obligatorios en verde.
+- [x] actionlint, Terraform fmt/validate/tflint y gates obligatorios en verde.
 - [ ] ADR, runbook y evidencia sincronizados con #15.
 
 ## Alternativa sin dominio aprobada (2026-10-03)
