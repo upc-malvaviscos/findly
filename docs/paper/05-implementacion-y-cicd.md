@@ -4,7 +4,7 @@ Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la
 metodología del capítulo 2. React + Vite y TypeScript compilan la SPA;
 esbuild empaqueta las Lambdas; Terraform describe la infraestructura; GitHub
-Actions ejecuta seis workflows distintos, cada uno con una responsabilidad
+Actions ejecuta workflows distintos, cada uno con una responsabilidad
 única, sobre autenticación federada OIDC sin ninguna clave de acceso AWS
 almacenada como secreto.
 
@@ -50,11 +50,11 @@ Terraform consumen ese stack o son independientes:
 Todas comparten bloqueo nativo de S3 (`use_lockfile = true`, ADR-009): ninguna
 tabla DynamoDB adicional gestiona el lock.
 
-## Los seis workflows de GitHub Actions
+## Workflows de GitHub Actions
 
 ### `ci.yml` — validación estática en cada PR y en cada push a `main`
 
-Cuatro jobs en **paralelo**, sin AWS: `frontend` (lint, tipos, 294 tests con
+Cuatro jobs en **paralelo**, sin AWS: `frontend` (lint, tipos, 331 tests con
 cobertura, build, sube `dist/` y el informe de cobertura como artefactos);
 `terraform` (`actionlint`, `terraform fmt -check`, `terraform validate`,
 `tflint`); `security-and-sync` (Markdown, `npm audit` de dependencias de
@@ -104,10 +104,11 @@ del redrive SQS y el estado agregado de CloudWatch/SNS y Scheduler. Estos mensaj
 resultado del check sólo es verde cuando terminan todas las suites y el
 `destroy` posterior.
 
-### `deploy.yml` — despliegue manual con doble puerta de aprobación
+### `deploy.yml` — despliegue manual autorizado
 
-`workflow_dispatch` con dos entradas: `environment` (`sandbox`/`demo`/`production`)
-y `apply` (booleano, por defecto `false`). El job usa
+`workflow_dispatch` con `environment` (`sandbox`/`demo`/`production`),
+`apply` (booleano, por defecto `false`) y `prepare_demo_bindings` para la
+preparación inicial de API/web de una demo nueva. El job usa
 `environment: ${{ inputs.environment }}`, que activa la puerta de aprobación
 nativa de GitHub Environments — una persona debe aprobar la ejecución antes de
 que el job arranque, si el entorno la tiene configurada. Con `apply=false` el
@@ -125,6 +126,27 @@ se suben con `cache-control: public,max-age=31536000,immutable`, e
 inmediato sin esperar a que expire una caché de un año. La invalidación de
 CloudFront usa el `distribution_id` que expone la propia salida de Terraform,
 no una búsqueda por metadato.
+
+La demo añade una lista de cuatro actores y comprueba tanto el actor original
+como el de reejecución antes de obtener credenciales, incluso al repetir sólo
+el job de despliegue. Su environment permite únicamente `main`. El rol
+`findly-demo-deploy` usa OIDC y estado exclusivo de demo. La preparación inicial
+permite enlazar IDs de API/OAC en IAM; el despliegue completo publica HTTPS
+y ejecuta `test-demo.mjs` en Chromium contra la SPA y backend reales. Un fallo
+de esta aceptación conserva el stack para diagnóstico (ADR-017).
+
+### `destroy-demo.yml` — destrucción manual del stack y datos de demo
+
+La acción separada exige confirmación exacta, los mismos actores y `main`.
+Comparte concurrencia y lock con despliegue; el rol `findly-demo-destroy` es
+independiente. Valida el inventario y plan, detiene productores, espera los
+timeouts de Lambda y limpia objetos, versiones, multipart y colecciones
+Rekognition de demo antes de aplicar el plan exacto. Comprueba ausencia efectiva
+y estado vacío, manteniendo `allow_bucket_destroy=false`, backend y roles
+operativos. Un `AccessDenied` detiene la comprobación: no acredita ausencia.
+El runbook y los resultados AWS están en
+[`permanent-demo.md`](../runbooks/permanent-demo.md) y
+[la evidencia de #15](../evidence/issue-15-permanent-demo.md).
 
 ### `teardown-nonproduction.yml` — placeholder heredado, sin efecto
 
