@@ -109,7 +109,12 @@ codificar no resolvieron el intento 2 y se retiraron. El simulador IAM
 confirma POST permitido en stages y en el ARN de etiquetas, pero TagResource
 denegado. CreateStage exige esta acción dependiente sobre `/apis/{id}/stages`:
 se concede únicamente en la API enlazada, con región y cuatro etiquetas de
-solicitud de demo. Su aceptación queda pendiente del siguiente intento.
+solicitud de demo. El intento 3 terminó correctamente: apply añadió el stage
+y actualizó 12 funciones, sin destruir recursos. La SPA HTTPS publicada en
+CloudFront superó login Cognito, creación de evento en navegador, inscripción
+pública/PUT/CORS/indexación real, subida de foto por administrador, matching
+real y carga de la imagen de galería privada. Sólo se usaron datos sintéticos,
+sin interceptar respuestas. La destrucción completa queda pendiente.
 El backend conserva versionado, cifrado y bloqueo público; los 38 objetos de
 estado ajenos comparados con el inventario previo permanecen iguales.
 
@@ -120,8 +125,7 @@ ampliar mutaciones.
 
 ## Aceptación AWS pendiente
 
-Pendientes de resolver la autorización inicial de API, publicar sus correcciones,
-enlazar su ID, desplegar la SPA, probar el recorrido real y ejecutar el workflow
+Pendientes de integrar las correcciones en main y ejecutar el workflow
 manual de destrucción completo. No marcar esos criterios como completados hasta registrar
 los runs y comprobar stack/colecciones ausentes y backend/otros entornos intactos.
 

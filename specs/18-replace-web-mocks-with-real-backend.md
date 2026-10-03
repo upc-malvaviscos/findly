@@ -89,10 +89,16 @@ Implementado en el cliente web (evidencia: [issue-22-web-real-backend.md](../doc
 - Subida XHR con timeout y cancelación, y polling extraído a `pollRegistrationStatus.ts` (10 intentos cada 1,5 s).
 - Pruebas unitarias/contrato y E2E contra un backend HTTP simulado compatible con el contrato.
 
-Pendiente, sin cerrar la issue #22:
+La aceptación AWS efímera de PR #71 verificó los endpoints públicos,
+inscripción, PUT S3, estados ENROLLED/FAILED y CORS nativo. El run
+[37151100042, intento 3](https://github.com/upc-malvaviscos/findly/actions/runs/37151100042)
+verificó además la SPA de demo publicada mediante HTTPS/OAC, con configuración
+AWS real, inscripción pública y matching desde navegador sin interceptar
+respuestas y con datos sintéticos. Véase la evidencia de issue #15.
 
-- Los endpoints públicos existen en `src/lambdas/publicEvents.ts` y `publicEnrollment.ts`, con módulos IaC aislados y rutas en el adaptador local. Su ensamblado y verificación AWS real pertenecen a #7/#70; los tests locales no acreditan ese despliegue.
-- Smoke E2E contra el entorno `demo`, métricas de error de registro/subida/polling y verificación de CORS con S3 real (issue #45).
+Pendiente, sin cerrar la issue #22: completar la exposición y verificación de
+métricas de error de registro/subida/polling en demo. Los contadores de cliente
+en memoria no acreditan todavía ese criterio operativo completo.
 
 ## Contrato público actualizado (issue #70)
 
