@@ -90,10 +90,8 @@ resource "aws_cloudfront_distribution" "web" {
     }
   }
 
-  # La spec 03 exige TLSv1.2_2021, pero ese minimo solo es configurable con
-  # un certificado ACM propio (SNI); el certificado por defecto de
-  # *.cloudfront.net no lo admite. Ningun spec de este proyecto define
-  # todavia un dominio propio ni una zona Route53 — ver custom_domain_name.
+  # El certificado predeterminado permite HTTPS sin dominio propio en demo.
+  # Su politica minima TLS la fija AWS; TLSv1.2_2021 requiere ACM y dominio.
   dynamic "viewer_certificate" {
     for_each = local.has_custom_domain ? [1] : []
     content {
@@ -111,8 +109,10 @@ resource "aws_cloudfront_distribution" "web" {
 
   lifecycle {
     precondition {
-      condition     = local.has_custom_domain && startswith(var.acm_certificate_arn, "arn:aws:acm:us-east-1:") && var.bucket_name != ""
-      error_message = "Static hosting requires an approved domain, a us-east-1 ACM certificate and a nonempty private bucket name for TLSv1.2_2021."
+      condition = var.bucket_name != "" && (local.has_custom_domain ? startswith(var.acm_certificate_arn, "arn:aws:acm:us-east-1:") : (
+        var.environment == "demo" && var.acm_certificate_arn == ""
+      ))
+      error_message = "Static hosting requires a private bucket and either a domain with a us-east-1 ACM certificate, or demo with both domain and certificate empty."
     }
   }
 

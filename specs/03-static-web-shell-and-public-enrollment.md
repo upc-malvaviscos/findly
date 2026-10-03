@@ -70,3 +70,11 @@ La PR #23 acredita el frontend simulado; la PR #60 entrega el adaptador HTTP,
 XHR y polling. Ninguna acredita inscripción pública AWS. La auditoría de
 [#70](https://github.com/upc-malvaviscos/findly/issues/70) conserva este límite
 en [la matriz de evidencia](../docs/evidence/issue-checklist-audit.md).
+
+## Excepción de demo sin dominio propio (2026-10-03)
+
+Decisión autorizada para #15: demo puede usar el dominio CloudFront y su
+certificado predeterminado. Sigue HTTPS/OAC/bucket privado; la política mínima
+TLS la fija AWS en TLSv1. El requisito TLSv1.2_2021 se conserva con dominio
+propio y fuera de demo. No marcar el criterio estricto como demostrado con
+el certificado predeterminado. Véase ADR-016.

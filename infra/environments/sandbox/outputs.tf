@@ -57,3 +57,5 @@ output "retention_purger_function_name" { value = module.findly.retention_purger
 
 output "public_function_names" { value = module.findly.public_function_names }
 output "selfie_indexer_function_name" { value = module.findly.selfie_indexer_function_name }
+
+output "frontend_origin" { value = module.findly.frontend_origin }

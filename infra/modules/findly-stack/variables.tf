@@ -63,7 +63,7 @@ variable "enable_budget" {
 }
 
 variable "enable_web" {
-  description = "Opt-in to provision static hosting after domain and deployment permissions review."
+  description = "Opt-in to provision static hosting after deployment permissions review."
   type        = bool
   default     = false
 }
@@ -73,12 +73,12 @@ variable "web_bucket_name" {
   default     = ""
 }
 variable "web_domain_name" {
-  description = "Approved frontend domain; required for TLSv1.2_2021."
+  description = "Optional custom frontend domain in demo; empty uses the CloudFront domain. Required outside demo."
   type        = string
   default     = ""
 }
 variable "web_certificate_arn" {
-  description = "Existing ACM certificate ARN in us-east-1 for web_domain_name."
+  description = "ACM certificate ARN in us-east-1, required only with a custom domain."
   type        = string
   default     = ""
 }

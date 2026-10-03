@@ -252,16 +252,17 @@ secuencia exacta).
 
 Los pasos 1-6 despliegan `sandbox` desde tu máquina, sin necesidad de GitHub
 Actions ni de un dominio propio. Si en cambio quieres una SPA publicada de
-verdad con su propio dominio HTTPS (entorno `demo` o `production`), el
+verdad por HTTPS (entorno `demo` o `production`), el
 camino es distinto y **no** usa `npm run dev:aws`:
 
-1. Crea o reutiliza un certificado ACM en `us-east-1` (obligatorio para
+1. Para dominio propio, crea o reutiliza un certificado ACM en `us-east-1` (obligatorio para
    CloudFront) para tu dominio.
 2. Configura en el _environment_ de GitHub correspondiente (`demo` o
    `production`) las variables `AWS_DEPLOY_ROLE_ARN`,
    `AWS_TERRAFORM_STATE_BUCKET`, `FINDLY_UPLOADS_BUCKET_NAME`,
    `FINDLY_WEB_BUCKET_NAME`, `FINDLY_WEB_DOMAIN_NAME` y
-   `FINDLY_WEB_CERTIFICATE_ARN` — el rol de despliegue OIDC se crea y revisa
+   `FINDLY_WEB_CERTIFICATE_ARN` (los dos últimos pueden omitirse solo en demo).
+   El rol de despliegue OIDC se crea y revisa
    manualmente fuera de Terraform (capítulo 6 de la memoria explica por qué).
 3. Ejecuta el workflow **Deployment** manualmente (`workflow_dispatch`) desde
    la pestaña Actions de GitHub, eligiendo el `environment` y dejando
@@ -274,8 +275,7 @@ camino es distinto y **no** usa `npm run dev:aws`:
    publica la SPA en el bucket web con invalidación de CloudFront.
 
 Esta ruta es la que documenta en detalle `docs/evidence/issue-15-manual-deploy-oidc.md`
-y el capítulo 5 de la memoria; se deja aquí sólo como referencia porque exige
-un dominio propio que esta guía no asume que tengas.
+y el capítulo 5 de la memoria; se deja aquí sólo como referencia porque admite también el dominio generado de CloudFront para demo (ADR-016).
 
 ## 8. Apagar todo cuando termines
 
@@ -314,3 +314,18 @@ de prueba.
 | La galería aparece siempre vacía                                           | El rostro de la selfie no coincide con ninguna foto subida, o la similitud queda por debajo del 95 %. | Sube una foto del organizador y una selfie del mismo rostro, con buena iluminación.                                                              |
 | `BACKEND_NOT_CONFIGURED` en el navegador                                   | Falta `VITE_API_BASE_URL`; sólo ocurre si lanzas Vite manualmente en vez de con `npm run dev:aws`.    | Usa `npm run dev:aws`, que ya inyecta esa variable automáticamente.                                                                              |
 | El estado de inscripción se queda en `FAILED`                              | La imagen no tiene un rostro detectable por Rekognition.                                              | Prueba con una foto distinta, con el rostro bien visible y sin oclusiones.                                                                       |
+
+## Demo publicada sin dominio propio (ADR-016)
+
+En Deployment seleccionar demo. Configurar AWS_DEPLOY_ROLE_ARN,
+AWS_TERRAFORM_STATE_BUCKET, FINDLY_WEB_BUCKET_NAME y FINDLY_UPLOADS_BUCKET_NAME
+con valores revisados del environment. Dejar FINDLY_WEB_DOMAIN_NAME y
+FINDLY_WEB_CERTIFICATE_ARN vacíos; no usar placeholders ni una dirección IP.
+Terraform crea CloudFront, calcula el origen HTTPS exacto para CORS y el
+workflow publica frontend_origin en el resumen después del apply.
+
+Con dominio propio, configurar ambos valores y certificado ACM en us-east-1.
+La política TLSv1.2_2021 requiere ese modo. Sin dominio propio, AWS fija la
+política mínima TLSv1; HTTPS/OAC y privacidad de S3 se mantienen. Esta excepción
+solo se admite en demo. El rol/environment y la prueba desplegada siguen
+pendientes; no ejecutar apply sin autorización.

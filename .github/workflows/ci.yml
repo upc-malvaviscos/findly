@@ -46,6 +46,9 @@ jobs:
       - run: npm exec github-actionlint -- .github/workflows/*.yml
       - run: npm run terraform:format
       - run: npm run terraform:validate
+      - run: npm run build:lambdas
+      - run: npm run package:lambdas
+      - run: npm run terraform:test:hosting
       - run: npm run lint:terraform
 
   security-and-sync:
