@@ -73,38 +73,28 @@ guía completa, con cada comando exacto y el recorrido manual de la demo
 placeholders sintéticos), está en
 [`aws-deployment-guide.md`](aws-deployment-guide.md).
 
-## Nivel 4: entorno `demo`/`production` persistente publicado (bloqueado)
+## Nivel 4: demo persistente publicada; producción sin verificar
 
-**No ejecutable todavía para este equipo**, y con más requisitos que el nivel
-3 incluso con una cuenta sin restricciones: necesita configuración OIDC y hosting, además del mismo bootstrap del nivel 3.
-Demo puede usar HTTPS en el dominio generado de CloudFront sin dominio propio
-ni certificado ACM propio (ADR-016). Requiere, en este
-orden:
+Demo está configurada y su ciclo AWS se verificó el 2026-10-03: publicación
+HTTPS/OAC, Cognito, evento, inscripción/PUT/CORS, matching y galería desde el
+navegador. Se comprobó después el borrado del stack y sus datos, con estado
+vacío y backend compartido conservado. El ciclo de aceptación terminó con la
+demo destruida; para una nueva sesión hay que desplegarla de nuevo.
 
-1. Aplicar `infra/bootstrap` en una cuenta AWS sin la restricción del nivel 3
-   (issue #61).
-2. Ejecutar el workflow de despliegue manual vía OIDC (spec 14) contra
-   `environments/demo`, con buckets y rol configurados como variables del _environment_ de GitHub.
-   Dejar FINDLY_WEB_DOMAIN_NAME y FINDLY_WEB_CERTIFICATE_ARN vacíos para usar
-   el dominio CloudFront; configurar ambos para un dominio propio (issue #15;
-   [`aws-deployment-guide.md`](aws-deployment-guide.md#7-alternativa-desplegar-demo-mediante-el-workflow-de-github-actions)
-   detalla las variables exactas).
-3. Sembrar un evento y fotos sintéticas equivalentes al nivel 1, pero contra el
-   endpoint real.
-4. Repetir la secuencia Inscripción -> Carga masiva -> Galería -> Derecho al
-   olvido con un navegador real, igual que el nivel 3 pero contra un stack que
-   permanece arriba entre sesiones y se sirve por HTTPS con dominio CloudFront o propio.
-5. Teardown explícito y acordado: `demo`/`production` mantienen
-   `allow_bucket_destroy = false`; no usar `dev:aws-destroy` contra esos
-   roots. La destrucción de `demo`, si se acuerda, es una acción manual
-   revisada, no automatizada.
+Seguir [el procedimiento de demo permanente](permanent-demo.md): roles OIDC
+independientes, cuatro actores autorizados, main protegido, preparación de IDs,
+publicación y destrucción manual con confirmación. No recrear el backend
+compartido ni usar los comandos de sandbox para demo. Dominio y certificado
+pueden quedar vacíos para usar HTTPS en CloudFront (ADR-016).
 
-No se marca este nivel como demostrado hasta que exista evidencia con commit,
-run y capturas, igual que el nivel 2.
+Esta evidencia acredita los recorridos existentes; las nuevas funcionalidades
+MVP de specs 20-23 tienen aceptación propia. Producción no se acredita con el
+ciclo de demo.
 
 ## Ciclo de demo permanente (issue #15)
 
 El despliegue, roles independientes, preparación de IDs, destrucción manual y
 recuperación se describen en [el runbook de demo permanente](permanent-demo.md)
-y ADR-017. Su aceptación AWS sigue pendiente en
-`docs/evidence/issue-15-permanent-demo.md`; el CI efímero no la sustituye.
+y ADR-017. Runs, resultados, fallos y recuperación constan en
+[la evidencia de #15](../evidence/issue-15-permanent-demo.md); el CI efímero
+conserva una aceptación independiente.
