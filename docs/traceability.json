@@ -2,6 +2,38 @@
   "version": 1,
   "requirements": [
     {
+      "id": "REQ-PRODUCTION-DOMAIN",
+      "description": "Preparar identidad SES y certificado compartidos por OIDC con producción restringida a main.",
+      "issues": [98],
+      "spec": "specs/20-gallery-email-notifications-with-ses.md",
+      "implementation": [
+        "infra/web-certificate/main.tf",
+        "scripts/configure-shared-config-role.mjs",
+        "scripts/lib/shared-config-policy.mjs",
+        "scripts/lib/production-controls.mjs",
+        ".github/workflows/configure-production-domain.yml"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": ["tests/infra/productionControls.test.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-98-ses-production.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-020-production-domain-bootstrap.md",
+        "docs/runbooks/gallery-email-ses-acens.md",
+        "docs/paper/05-implementacion-y-cicd.md",
+        "README.md"
+      ]
+    },
+    {
       "id": "REQ-SCRIPTS-RELIABILITY",
       "description": "Aislar validación Terraform y comunicar limpieza incompleta sin falsos positivos.",
       "issues": [2],

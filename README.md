@@ -1,5 +1,12 @@
 # Findly
 
+La configuración de correo y producción continúa en #98: DNS en Acens,
+aplicación/galerías en `https://www.findly.barcelona` y remitente
+`info@findly.barcelona`. [ADR-020](docs/adr/ADR-020-production-domain-bootstrap.md)
+define el bootstrap compartido por OIDC; [evidencia de #98](docs/evidence/issue-98-ses-production.md)
+separa preparación, recursos reales y entregabilidad pendiente. Producción
+se publicará cuando el correo esté configurado. #49 permanece abierta.
+
 Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la UPC. Permite a asistentes de un evento inscribirse con consentimiento explícito y una selfie, localizar coincidencias en fotografías de evento y recibir una galería privada de duración limitada.
 
 ## Alcance del MVP

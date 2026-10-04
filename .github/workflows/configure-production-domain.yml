@@ -1,0 +1,80 @@
+name: Configure production domain
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Create the reviewed shared SES identity and HTTPS certificate
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: findly-shared-domain
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: production
+    env: &configuration
+      TARGET_ENVIRONMENT: production
+      SHARED_CONFIGURATION: 'true'
+      TF_WORKSPACE: default
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
+      ROLE_ARN: ${{ vars.AWS_SHARED_CONFIG_ROLE_ARN }}
+    steps:
+      - name: Reject non-main dispatch before checkout
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-production-operation.mjs
+  configure:
+    needs: authorize
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env: *configuration
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - uses: hashicorp/setup-terraform@v4
+      - name: Reauthorize reruns before credentials
+        run: node scripts/check-production-operation.mjs
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_SHARED_CONFIG_ROLE_ARN }}
+          aws-region: eu-west-1
+          allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+          role-session-name: findly-shared-domain
+      - name: Plan shared resources and reject deletion
+        run: |
+          for root in email-identity web-certificate; do
+            terraform -chdir="infra/$root" init -input=false -lockfile=readonly \
+              -backend-config="bucket=$STATE_BUCKET" \
+              -backend-config="key=findly/shared/$root/terraform.tfstate" \
+              -backend-config="region=eu-west-1" \
+              -backend-config="encrypt=true" \
+              -backend-config="use_lockfile=true"
+            terraform -chdir="infra/$root" plan -input=false -out="$RUNNER_TEMP/$root.tfplan"
+            terraform -chdir="infra/$root" show -json "$RUNNER_TEMP/$root.tfplan" \
+              | node scripts/check-deployment-plan.mjs
+          done
+      - name: Apply exact plans and report public DNS records
+        if: ${{ inputs.apply }}
+        run: |
+          for root in email-identity web-certificate; do
+            terraform -chdir="infra/$root" apply "$RUNNER_TEMP/$root.tfplan"
+            terraform -chdir="infra/$root" output -json >> "$GITHUB_STEP_SUMMARY"
+          done

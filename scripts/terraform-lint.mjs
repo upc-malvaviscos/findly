@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 const roots = [
   'bootstrap',
   'email-identity',
+  'web-certificate',
   'environments/sandbox',
   'environments/demo',
   'environments/production',
