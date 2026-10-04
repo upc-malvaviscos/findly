@@ -13,10 +13,13 @@ limitados con la sesión administrativa existente. #49 permanece abierta.
 
 - PR #97 integrada; sus pruebas efímeras no habilitaron SES ni prueban recepción.
 - SES eu-west-1 permanece en sandbox: 200 mensajes/día, 1 por segundo;
-  identidad propia inexistente antes del bootstrap, acceso aún no solicitado.
+  identidad creada por OIDC; acceso aún no solicitado mientras se valida DNS.
 - Acens mantiene DNS/MX/SPF del dominio raíz. DMARC de observación se guardó
   en su panel: `v=DMARC1; p=none; adkim=r; aspf=r`; publicación comprobada
-  en `ns11.servicio-online.net`. DKIM/MAIL FROM aún pendientes.
+  en `ns11.servicio-online.net`. Los tres CNAME DKIM, MX/TXT MAIL FROM y
+  CNAME ACM están guardados en Acens y comprobados sin recursión en los
+  tres servidores autoritativos. Algunas respuestas negativas previas continúan
+  en caché; SES todavía informa PENDING para DKIM/MAIL FROM.
 - Entorno GitHub `production` creado, limitado a la rama `main`; variables
   públicas de cuenta, bucket existente y rol compartido configuradas.
 - Rol `findly-shared-config` creado y corregido a confianza GitHub OIDC exacta.
@@ -35,10 +38,10 @@ lint, TypeScript, 469 tests, build, formato/validación/lint Terraform de las
 siete raíces, contratos de hosting/correo, auditoría sin vulnerabilidades y
 trazabilidad de diez requisitos. No constituyen aceptación AWS de correo.
 La revisión de normas y spec corrigió el permiso de etiquetas ACM para exigir
-propiedad previa además de las etiquetas solicitadas. La operación compuesta
-de creación/etiquetado queda pendiente de su ejecución real desde GitHub.
+propiedad previa además de las etiquetas solicitadas. La creación compuesta ACM con estas restricciones se ejecutó correctamente
+desde GitHub en el bootstrap real.
 
-Pendientes: ejecutar bootstrap desde main, DNS/DKIM/SPF/DMARC, certificado
+Pendientes: completar propagación DNS y validación SES/DKIM/MAIL FROM, certificado
 emitido, salida del sandbox, rol y despliegue de producción, origen HTTPS,
 recuperación/checkpoint/DLQ, feedback y supresión reales, borrado/caducidad,
 recepción/apertura y cabeceras en ambos proveedores. No cerrar #98 ni #86.
@@ -47,8 +50,9 @@ recepción/apertura y cabeceras en ambos proveedores. No cerrar #98 ni #86.
 
 La segunda entrega prepara `findly-production-deploy`, sin destrucción de
 producción, y un límite obligatorio para roles de aplicación/Scheduler.
-La sesión administrativa sólo genera documentos de permisos hasta completar
-la revisión y validación; ningún recurso del stack se ha desplegado todavía.
+El rol y su límite se crearon con la sesión administrativa autorizada, tras
+revisión y validación; los documentos desplegados coinciden con los revisados.
+Ningún recurso del stack se ha desplegado todavía.
 Los permisos demo generados antes/después de parametrizar su builder son
 idénticos. AWS Access Analyzer no encontró errores ni advertencias de seguridad
 en las cinco políticas y el límite; sugirió eliminar dos ARN de logs redundantes
@@ -60,16 +64,17 @@ permisos de envío directo en el rol de despliegue.
 El workflow preparado bloquea producción mientras SES/ACM/DNS no estén listos.
 Las pruebas de esas condiciones, los roles y el wiring Terraform se validan
 localmente; sus resultados se detallan en la validación al final de este documento. Estos controles
-no acreditan creación real ni entrega, y la configuración AWS sigue pendiente.
+no acreditan creación del stack ni entrega; el rol AWS sí está configurado.
 
 ## Revisión y operación pendiente
 
 PR #99 integrada con todos los checks verdes, incluido provision-test-destroy
-AWS (run 37227517206). GitHub todavía no registra el nuevo workflow: tanto
-la consulta como el dispatch directo por filename responden 404, aunque el
-archivo existe en main. La siguiente PR se integrará como usuario tras sus
-checks para comprobar de nuevo el registro; no se relajan main/OIDC ni se
-despliega con la sesión raíz.
+AWS (run 37227517206). PR #100 se integró como usuario después de todos sus
+checks, incluido provision-test-destroy AWS (run 37230626594). GitHub registró
+el workflow y el bootstrap desde main terminó correctamente:
+[run 37232209363](https://github.com/upc-malvaviscos/findly/actions/runs/37232209363).
+Creó identidad SES eu-west-1 y certificado ACM us-east-1 con el rol compartido;
+no se aplicó Terraform con raíz. El certificado sigue pendiente de validación.
 
 La revisión corrigió etiquetado de CloudFront, Cognito y API Gateway en
 producción: modificar etiquetas exige propiedad existente. El permiso
@@ -89,3 +94,54 @@ TypeScript, build, lint/actionlint, siete raíces Terraform y contratos, auditor
 sin vulnerabilidades y sync). IAM Simulator completó 19 casos, incluidos
 rechazo de etiquetado ajeno y creación CloudFront limitada por etiquetas.
 Estos casos no acreditan el contexto de tag-on-create ni lectura SNS reales.
+
+## Pruebas de aceptación preparadas
+
+El responsable aprobó un operador temporal para datos sintéticos antes de
+admitir tráfico real. El manifiesto privado identifica exactamente eventos,
+claves DynamoDB, objetos y colecciones de una ejecución; caduca en seis horas.
+Las políticas y confianza OIDC también caducan y no conceden IAM, envío SES
+directo, escaneo DynamoDB, purga de colas ni borrado de versiones S3.
+SES exige alcance regional para supresión: el harness limita las mutaciones a
+una dirección ficticia propia del simulador y la retira durante limpieza.
+
+El nuevo workflow manual comparte exclusión con despliegue, exige main,
+responsable autorizado y confirmación de ausencia de tráfico. Las credenciales,
+contraseña, JWT, capacidades y destinatarios se mantienen privados. La fase
+sintética prepara API/idempotencia, estados durables de recuperación, DLQ,
+feedback y supresión; no demuestra un crash original durante SendEmail ni una
+carrera de borrado concurrente. La fase de buzones exige evidencia posterior
+por proveedor de SPF/DKIM/DMARC, bandeja/spam y apertura antes de revocar enlaces.
+La aceptación SES sola no cuenta como recepción.
+
+El operador no se ha creado ni se han ejecutado estas pruebas en AWS: requieren
+outputs reales de producción y un manifiesto nuevo. La limpieza elimina sólo
+fixtures propias y espera la finalización del worker; una cancelación abrupta
+puede exigir intervención. No publicar manifiestos, cuerpos de colas, buzones,
+cabeceras completas ni URLs privadas. #86/#98/#49 permanecen abiertas.
+
+Validación local de esta preparación: `npm run verify` pasó con 544 tests en
+59 archivos, TypeScript, lint/actionlint, build, siete raíces Terraform, contratos
+y auditoría sin vulnerabilidades. No equivale a ejecución de aceptación AWS.
+
+AWS Access Analyzer validó las dos políticas del operador sin findings. Esto
+valida documentos de permisos; el rol sigue sin crear y su uso desplegado
+continúa pendiente.
+
+IAM Simulator pasó seis casos del operador: datos propios permitidos; datos
+ajenos, Scan, SendEmail directo, IAM y PurgeQueue rechazados. La revisión
+reforzó presupuesto global, vigencia previa y limpieza selectiva de colas.
+
+Captura del panel limitada a registros públicos, sin datos de sesión:
+
+![Registros públicos SES y ACM guardados en Acens](assets/issue-98-acens-public-dns.png)
+
+La comprobación real detectó que el transporte CLI por stdin no era portable.
+Se sustituyó por SDK oficial con parámetros privados en memoria, allowlist y
+timeouts; una consulta real STS confirmó el transporte sin mutaciones.
+
+La revisión de limpieza conserva referencias y capacidades ante errores/404
+de revocación, conserva fixtures si falla la desactivación del evento y aplica
+un presupuesto de limpieza con reserva para finalizar el organizador temporal.
+El preflight preparado exige 401 sin JWT para lectura y envío administrativos.
+Estas comprobaciones aún requieren su ejecución contra producción.

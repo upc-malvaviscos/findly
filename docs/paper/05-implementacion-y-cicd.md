@@ -10,6 +10,9 @@ Su rol de despliegue exige un límite de permisos en los roles de ejecución,
 separado de las políticas específicas de cada función. Los gates previos
 comprueban correo autenticado, acceso regional SES y certificado; el smoke
 HTTPS posterior es sólo una comprobación del origen y la ruta pública.
+La aceptación de correo usa un workflow independiente con manifiesto privado,
+operador OIDC de seis horas y limpieza de fixtures propias. Las pruebas locales
+validan su coordinación; feedback AWS y recepción/apertura siguen pendientes.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la
@@ -47,16 +50,18 @@ bundle no dependa de una sintaxis que el runtime no soporte.
 ## Terraform: módulos y raíces
 
 `infra/modules/` contiene 15 módulos reutilizables (capítulo 4 detalla cada
-uno); `findly-stack` los compone en un único stack. Cinco raíces (`roots`)
+uno); `findly-stack` los compone en un único stack. Siete raíces (`roots`)
 Terraform consumen ese stack o son independientes:
 
-| Raíz                            | Propósito                                                          | Backend de estado                                          |
-| ------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `infra/bootstrap`               | Crea el bucket S3 de estado (versionado, SSE-S3, TLS-only)         | Local (se aplica una única vez, manualmente)               |
-| `infra/environments/sandbox`    | Entorno de desarrollo compartido                                   | S3 remoto, clave `findly/sandbox/terraform.tfstate`        |
-| `infra/environments/demo`       | Entorno de demostración                                            | S3 remoto, clave `findly/demo/terraform.tfstate`           |
-| `infra/environments/production` | Entorno de producción (no usado en este TFM académico)             | S3 remoto, clave `findly/production/terraform.tfstate`     |
-| `infra/ephemeral`               | Un stack completo por número de pull request, aislado y desechable | S3 remoto, clave `ephemeral/pr-{numero}/terraform.tfstate` |
+| Raíz                            | Propósito                                                          | Backend de estado                                                  |
+| ------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `infra/bootstrap`               | Crea el bucket S3 de estado (versionado, SSE-S3, TLS-only)         | Local (se aplica una única vez, manualmente)                       |
+| `infra/environments/sandbox`    | Entorno de desarrollo compartido                                   | S3 remoto, clave `findly/sandbox/terraform.tfstate`                |
+| `infra/environments/demo`       | Entorno de demostración                                            | S3 remoto, clave `findly/demo/terraform.tfstate`                   |
+| `infra/environments/production` | Producción preparada; despliegue pendiente de SES                  | S3 remoto, clave `findly/production/terraform.tfstate`             |
+| `infra/ephemeral`               | Un stack completo por número de pull request, aislado y desechable | S3 remoto, clave `ephemeral/pr-{numero}/terraform.tfstate`         |
+| `infra/email-identity`          | Identidad SES compartida eu-west-1                                 | S3 remoto, clave `findly/shared/email-identity/terraform.tfstate`  |
+| `infra/web-certificate`         | Certificado ACM para CloudFront us-east-1                          | S3 remoto, clave `findly/shared/web-certificate/terraform.tfstate` |
 
 Todas comparten bloqueo nativo de S3 (`use_lockfile = true`, ADR-009): ninguna
 tabla DynamoDB adicional gestiona el lock.

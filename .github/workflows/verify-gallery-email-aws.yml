@@ -1,0 +1,81 @@
+name: Verify production gallery email
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Synthetic AWS checks or authorized mailbox delivery
+        type: choice
+        options: [synthetic, recipients]
+        required: true
+      confirm_no_production_traffic:
+        description: Confirm no concurrent production traffic during selective queue checks
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-production
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    environment: production
+    env: &configuration
+      TARGET_ENVIRONMENT: production
+      TF_WORKSPACE: default
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
+      ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+      TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
+      TF_VAR_web_bucket_name: ${{ vars.FINDLY_WEB_BUCKET_NAME }}
+      TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
+      TF_VAR_email_identity_arn: ${{ vars.FINDLY_EMAIL_IDENTITY_ARN }}
+      TF_VAR_email_from_address: ${{ vars.FINDLY_EMAIL_FROM_ADDRESS }}
+      TF_VAR_email_gallery_origin: ${{ vars.FINDLY_EMAIL_GALLERY_ORIGIN }}
+      FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_RUN_ID: ${{ vars.FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_RUN_ID }}
+      FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_STARTED_AT: ${{ vars.FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_STARTED_AT }}
+      ACCEPTANCE_PHASE: ${{ inputs.phase }}
+      CONFIRM_NO_PRODUCTION_TRAFFIC: ${{ inputs.confirm_no_production_traffic }}
+    steps:
+      - name: Reject non-main or unconfirmed dispatch before checkout
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$CONFIRM_NO_PRODUCTION_TRAFFIC" = true
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-production-operation.mjs
+  verify:
+    needs: authorize
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: production
+    permissions:
+      contents: read
+      issues: read
+      id-token: write
+    env: *configuration
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+      - name: Install reviewed dependencies
+        run: npm ci
+      - name: Reauthorize and coordinate private credentials, fixtures and cleanup
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FINDLY_EMAIL_ACCEPTANCE_MANIFEST: ${{ secrets.FINDLY_EMAIL_ACCEPTANCE_MANIFEST }}
+          FINDLY_EMAIL_ACCEPTANCE_RECIPIENTS: ${{ secrets.FINDLY_EMAIL_ACCEPTANCE_RECIPIENTS }}
+        run: node scripts/run-email-acceptance.mjs

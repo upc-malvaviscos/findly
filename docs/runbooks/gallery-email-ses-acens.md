@@ -148,3 +148,41 @@ en demo con buzones autorizados de proveedores distintos. Registrar cabeceras
 de autenticación y bandeja/spam sin dirección, inscripción, token ni URL secreta.
 No cerrar #86 por pruebas simuladas; mantener #49 abierta por instrucción del
 responsable.
+
+## Ejecución de la aceptación autorizada
+
+Después del despliegue y HTTPS, generar un manifiesto fuera del repositorio con
+`node scripts/prepare-email-acceptance.mjs --out=<ruta-privada>`; el fichero es
+privado y caduca en seis horas. Revisar los documentos del operador mediante
+`configure-email-acceptance-role.mjs --manifest=<ruta> --outputs=<outputs-privados>
+--out-dir=<directorio-privado>` antes de aplicar exclusivamente IAM con la
+sesión administrativa autorizada. Nunca publicar outputs ni manifiesto.
+
+Configurar los secretos production `FINDLY_EMAIL_ACCEPTANCE_MANIFEST` y
+`FINDLY_EMAIL_ACCEPTANCE_RECIPIENTS` mediante entrada privada. Ejecutar
+`Verify production gallery email` primero en fase synthetic, confirmando que
+no hay tráfico. Revisar AWS y limpieza antes de registrar el marcador
+`FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC:<runId>` en #98 y las variables públicas
+`FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_RUN_ID` y
+`FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_STARTED_AT` de esa ejecución.
+
+En los marcadores, `runId` es el ID numérico de GitHub Actions, distinto del
+UUID privado del manifiesto. Crear un manifiesto nuevo si no quedan al menos
+65 minutos antes de su caducidad al iniciar el job.
+
+La fase recipients envía sólo a los buzones autorizados. Dentro de su ventana
+de treinta minutos, comprobar cada mensaje y abrir su galería. Registrar en
+la issue #98 un marcador por proveedor A/B, sin direcciones ni enlaces:
+`FINDLY_EMAIL_ACCEPTANCE_RECEIPT:<runId>:A` seguido de un JSON con `spf`,
+`dkim`, `dmarc` iguales a `pass`, `folder` igual a `inbox` o `spam`, y
+`opened: true`; repetir con B. Sólo los responsables autorizados y evidencia
+posterior al inicio se aceptan. No registrar resultados inferidos de SendEmail.
+Una espera agotada revoca los enlaces y deja recepción/apertura pendientes.
+Comprobar siempre limpieza; si se cancela el job bruscamente, intervenir con
+los identificadores privados antes de admitir tráfico real.
+
+Si la revocación falla, conservar el manifiesto, las capacidades y referencias
+de esa ejecución para reintentar la limpieza. No sustituir sus permisos por los
+de un manifiesto nuevo ni admitir tráfico hasta resolver los datos pendientes.
+La observación de colas vacías es puntual: feedback posterior aún puede llegar
+y el handler debe ignorar registros ya borrados.

@@ -20,7 +20,14 @@
         "scripts/check-production-web.mjs",
         "scripts/request-ses-production-access.mjs",
         "infra/environments/production/main.tf",
-        ".github/workflows/deploy.yml"
+        ".github/workflows/deploy.yml",
+        "scripts/prepare-email-acceptance.mjs",
+        "scripts/configure-email-acceptance-role.mjs",
+        "scripts/lib/email-acceptance-policy.mjs",
+        "scripts/lib/email-acceptance-manifest.mjs",
+        "scripts/lib/email-acceptance-harness.mjs",
+        "scripts/run-email-acceptance.mjs",
+        ".github/workflows/verify-gallery-email-aws.yml"
       ],
       "verification": [
         {
@@ -30,7 +37,11 @@
             "tests/infra/productionControls.test.ts",
             "tests/infra/productionReadiness.test.ts",
             "tests/infra/productionRolePolicies.test.ts",
-            "tests/infra/productionOwnership.test.ts"
+            "tests/infra/productionOwnership.test.ts",
+            "tests/infra/emailAcceptanceManifest.test.ts",
+            "tests/infra/emailAcceptancePolicy.test.ts",
+            "tests/infra/emailAcceptanceHarness.test.ts",
+            "tests/infra/emailAcceptanceEvidence.test.ts"
           ]
         }
       ],

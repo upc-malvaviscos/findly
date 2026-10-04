@@ -9,6 +9,8 @@ se publicará cuando el correo esté configurado. #49 permanece abierta.
 El despliegue preparado exige SES/DKIM/MAIL FROM y certificado verificados,
 SPF/DMARC publicados y salida del sandbox. Los roles de ejecución de producción
 tienen un límite de permisos; los resultados reales siguen pendientes en #98.
+Las pruebas de aceptación están preparadas en un workflow manual, con fixtures
+privadas, operador temporal y confirmación de recepción/apertura por proveedor.
 
 Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la UPC. Permite a asistentes de un evento inscribirse con consentimiento explícito y una selfie, localizar coincidencias en fotografías de evento y recibir una galería privada de duración limitada.
 

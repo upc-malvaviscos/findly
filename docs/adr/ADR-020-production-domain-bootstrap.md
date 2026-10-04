@@ -70,3 +70,21 @@ hasta verificar todos sus criterios; #49 permanece abierta por instrucción del
 responsable. Los tests locales, el bootstrap y la integración de código no
 acreditan recepción real. Mantener privacidad, consentimiento, revocación,
 retención y supresión de ADR-019. Sin servicios de coste fijo ni DNS en Route53.
+
+## Operador de aceptación temporal
+
+Ampliación aprobada el 2026-10-04: un rol OIDC separado ejecuta únicamente las
+pruebas sintéticas y envíos a los dos buzones autorizados. Su manifiesto privado
+y permisos caducan a las seis horas; DynamoDB y S3 se limitan a identificadores
+exactos de la ejecución. No concede IAM, SES SendEmail directo ni purga de
+colas. Los permisos regionales de supresión se usan sólo para una dirección
+ficticia propia. Las colas no permiten aislamiento IAM por cuerpo: las pruebas
+exigen ausencia de tráfico y comprueban pertenencia antes de borrar o redirigir.
+
+El workflow comparte exclusión con despliegue. Crea un organizador temporal con
+el desplegador, ejecuta las pruebas con el operador y elimina usuario y fixtures
+al finalizar. La fase de destinatarios exige aceptación sintética previa y
+confirmación de autenticación/recepción/apertura antes de retirar las capacidades.
+Una interrupción abrupta requiere comprobar limpieza manualmente. Preparar
+checkpoint durable no acredita un crash real en el origen del envío; no cerrar
+criterios de carreras ni entrega sin su evidencia correspondiente.
