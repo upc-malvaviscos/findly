@@ -191,18 +191,25 @@ describe('reviewable independent OIDC demo roles', () => {
     expect(JSON.stringify(bound.deploy.edge)).toContain(
       '%2Fv2%2Fapis%2Fdemo123',
     );
-    const stageTags = bound.deploy.edge.Statement.find((s) =>
-      s.Action.includes('apigateway:TagResource'),
+    const stageCreation = bound.deploy.edge.Statement.find(
+      (s) =>
+        s.Action.includes('apigateway:POST') &&
+        [s.Resource]
+          .flat()
+          .includes('arn:aws:apigateway:eu-west-1::/apis/demo123/*'),
     );
-    expect(stageTags?.Resource).toBe(
-      'arn:aws:apigateway:eu-west-1::/apis/demo123/stages',
-    );
-    expect(stageTags?.Condition?.StringEquals).toHaveProperty(
-      'aws:RequestTag/Environment',
-      'demo',
-    );
-    expect(JSON.stringify(unbound.deploy.edge)).not.toContain(
-      'apigateway:TagResource',
-    );
+    expect(stageCreation).toBeDefined();
+    // CreateStage and TagResource map to HTTP-method IAM actions. API operation
+    // names are not IAM actions; Access Analyzer rejects apigateway:TagResource.
+    for (const document of [bound.deploy.edge, bound.destroy.edge])
+      for (const action of document.Statement.flatMap((s) => s.Action))
+        if (action.startsWith('apigateway:'))
+          expect([
+            'apigateway:GET',
+            'apigateway:POST',
+            'apigateway:PATCH',
+            'apigateway:PUT',
+            'apigateway:DELETE',
+          ]).toContain(action);
   });
 });

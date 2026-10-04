@@ -12,6 +12,23 @@ const config = {
 const documents = productionDeploymentPolicies(config);
 
 describe('production role isolation', () => {
+  it('allows stage creation on the exact bound API using valid HTTP-method IAM actions', () => {
+    const bound = productionDeploymentPolicies(config, {
+      apiId: 'production123',
+    });
+    expect(
+      bound.deploy.edge.Statement.some(
+        (statement) =>
+          [statement.Action].flat().includes('apigateway:POST') &&
+          [statement.Resource]
+            .flat()
+            .includes('arn:aws:apigateway:eu-west-1::/apis/production123/*'),
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(bound.deploy)).not.toContain(
+      'apigateway:TagResource',
+    );
+  });
   it('authorizes SNS subscription refresh using its parent feedback topic', () => {
     const reads = documents.deploy.core.Statement.filter(
       (statement) =>
