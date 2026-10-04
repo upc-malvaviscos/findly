@@ -16,6 +16,10 @@ on:
         description: First demo run only - provision API and web for exact role bindings
         type: boolean
         default: false
+      prepare_production_bindings:
+        description: First production run only - prepare API/web for exact role bindings
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -39,16 +43,20 @@ jobs:
       TF_VAR_web_bucket_name: ${{ vars.FINDLY_WEB_BUCKET_NAME }}
       ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
     steps:
-      - name: Reject non-main demo dispatch before checkout
+      - name: Reject non-main persistent dispatch before checkout
         env:
           PREPARE_BINDINGS: ${{ inputs.prepare_demo_bindings }}
+          PREPARE_PRODUCTION_BINDINGS: ${{ inputs.prepare_production_bindings }}
         run: |
-          if [ "$TARGET_ENVIRONMENT" = demo ]; then
+          if [ "$TARGET_ENVIRONMENT" = demo ] || [ "$TARGET_ENVIRONMENT" = production ]; then
             test "$GITHUB_REF" = refs/heads/main
             test "$GITHUB_EVENT_NAME" = workflow_dispatch
           fi
           if [ "$PREPARE_BINDINGS" = true ]; then
             test "$TARGET_ENVIRONMENT" = demo
+          fi
+          if [ "$PREPARE_PRODUCTION_BINDINGS" = true ]; then
+            test "$TARGET_ENVIRONMENT" = production
           fi
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -57,6 +65,9 @@ jobs:
       - name: Authorize original actor and rerun actor before credentials
         if: ${{ inputs.environment == 'demo' }}
         run: node scripts/check-demo-operation.mjs
+      - name: Authorize production before credentials
+        if: ${{ inputs.environment == 'production' }}
+        run: node scripts/check-production-operation.mjs
   deploy:
     needs: authorize
     runs-on: ubuntu-latest
@@ -79,6 +90,9 @@ jobs:
       TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
       TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
       TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
+      TF_VAR_email_identity_arn: ${{ inputs.environment == 'production' && vars.FINDLY_EMAIL_IDENTITY_ARN || '' }}
+      TF_VAR_email_from_address: ${{ inputs.environment == 'production' && vars.FINDLY_EMAIL_FROM_ADDRESS || '' }}
+      TF_VAR_email_gallery_origin: ${{ vars.FINDLY_EMAIL_GALLERY_ORIGIN || 'https://www.findly.barcelona' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -109,12 +123,18 @@ jobs:
       - name: Reauthorize even when only the deployment job is rerun
         if: ${{ inputs.environment == 'demo' }}
         run: node scripts/check-demo-operation.mjs
+      - name: Reauthorize production reruns before credentials
+        if: ${{ inputs.environment == 'production' }}
+        run: node scripts/check-production-operation.mjs
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: findly-deploy-${{ inputs.environment }}
           allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      - name: Require verified production email and HTTPS certificate
+        if: ${{ inputs.environment == 'production' }}
+        run: node scripts/check-production-readiness.mjs
       - name: Install and build Lambda artifacts before planning
         run: |
           npm ci
@@ -125,8 +145,8 @@ jobs:
       - name: Initialize environment-scoped remote state
         run: |
           backend_args=()
-          if [ "$TARGET_ENVIRONMENT" = demo ]; then
-            backend_args+=('-backend-config=workspace_key_prefix=findly/demo/workspaces')
+          if [ "$TARGET_ENVIRONMENT" = demo ] || [ "$TARGET_ENVIRONMENT" = production ]; then
+            backend_args+=("-backend-config=workspace_key_prefix=findly/$TARGET_ENVIRONMENT/workspaces")
           fi
           terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" init -input=false \
             -backend-config="bucket=$STATE_BUCKET" \
@@ -137,10 +157,16 @@ jobs:
       - name: Plan and reject resource deletion
         env:
           PREPARE_BINDINGS: ${{ inputs.prepare_demo_bindings }}
+          PREPARE_PRODUCTION_BINDINGS: ${{ inputs.prepare_production_bindings }}
         run: |
           plan_file="$RUNNER_TEMP/findly-deployment.tfplan"
           if [ "$PREPARE_BINDINGS" = true ]; then
             terraform -chdir=infra/environments/demo plan -out="$plan_file" \
+              -target=module.findly.module.api_gateway.aws_apigatewayv2_api.http_api \
+              -target=module.findly.module.web
+          elif [ "$PREPARE_PRODUCTION_BINDINGS" = true ]; then
+            terraform -chdir=infra/environments/production plan -out="$plan_file" \
+              -var="uploads_bucket_name=$TF_VAR_uploads_bucket_name" \
               -target=module.findly.module.api_gateway.aws_apigatewayv2_api.http_api \
               -target=module.findly.module.web
           else
@@ -153,7 +179,7 @@ jobs:
         if: ${{ inputs.apply }}
         run: terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" apply "$RUNNER_TEMP/findly-deployment.tfplan"
       - name: Build SPA with public deployed outputs and publish
-        if: ${{ inputs.apply && !inputs.prepare_demo_bindings }}
+        if: ${{ inputs.apply && !inputs.prepare_demo_bindings && !inputs.prepare_production_bindings }}
         run: |
           export VITE_FINDLY_EXECUTION_MODE=aws
           VITE_API_BASE_URL="$(terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" output -raw api_endpoint)"
@@ -180,6 +206,12 @@ jobs:
           npm exec -- playwright install --with-deps chromium
           terraform -chdir=infra/environments/demo output -json > "$RUNNER_TEMP/demo-outputs.json"
           node scripts/test-demo.mjs "$RUNNER_TEMP/demo-outputs.json"
+      - name: Verify production HTTPS and gallery route
+        if: ${{ inputs.apply && inputs.environment == 'production' && !inputs.prepare_production_bindings }}
+        run: node scripts/check-production-web.mjs
       - name: Report bindings preparation
         if: ${{ inputs.apply && inputs.prepare_demo_bindings }}
         run: echo 'Demo API/web prepared. Review exact API/OAC role bindings with configure-demo-roles.mjs --apply, then run a complete deployment with prepare_demo_bindings=false.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Report production bindings preparation
+        if: ${{ inputs.apply && inputs.prepare_production_bindings }}
+        run: echo 'Production API/web prepared. Bind their exact IDs using configure-production-role.mjs, then deploy completely. This preparation does not publish the application or prove email delivery.' >> "$GITHUB_STEP_SUMMARY"

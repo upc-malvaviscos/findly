@@ -43,7 +43,9 @@ describe.each(environments)('environment root %s', (environment) => {
 
   it('only allows bucket destruction in sandbox', () => {
     const expected = environment === 'sandbox' ? 'true' : 'false';
-    expect(main).toContain(`allow_bucket_destroy = ${expected}`);
+    expect(main).toMatch(
+      new RegExp(`allow_bucket_destroy\\s*=\\s*${expected}\\b`),
+    );
   });
 });
 

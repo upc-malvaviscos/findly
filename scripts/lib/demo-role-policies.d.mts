@@ -1,7 +1,7 @@
 import type { DemoConfiguration } from './demo-controls.mjs';
 export interface PolicyStatement {
   Effect: string;
-  Action: string[];
+  Action: string | string[];
   Resource: string | string[];
   Condition?: Record<string, Record<string, string | string[]>>;
 }
@@ -34,3 +34,12 @@ export function demoRolePolicies(
 export function partitionManagedPolicies(
   documents: RoleDocuments,
 ): PolicyDocument[];
+export function productionRolePolicies(
+  config: DemoConfiguration,
+  bindings?: {
+    apiId?: string;
+    oacId?: string;
+    distributionId?: string;
+    poolId?: string;
+  },
+): { trust: TrustDocument; deploy: RoleDocuments };

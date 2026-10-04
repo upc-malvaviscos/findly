@@ -1,11 +1,5 @@
 import assert from 'node:assert/strict';
 
-const tags = {
-  Project: 'findly',
-  Environment: 'demo',
-  ManagedBy: 'Terraform',
-  CostCenter: 'findly',
-};
 const lifecycleNames = [
   'admin-list_events',
   'admin-create_event',
@@ -23,19 +17,50 @@ const lifecycleNames = [
 ];
 
 export function demoRolePolicies(config, bindings = {}) {
+  return environmentRolePolicies(config, bindings, 'demo');
+}
+
+export function productionRolePolicies(config, bindings = {}) {
+  const { trust, deploy } = environmentRolePolicies(
+    config,
+    bindings,
+    'production',
+  );
+  return { trust, deploy };
+}
+
+function environmentRolePolicies(config, bindings, environment) {
+  const prefix = `findly-${environment}`;
+  const names =
+    environment === 'production'
+      ? [
+          ...lifecycleNames,
+          'gallery-email-request',
+          'gallery-email-status',
+          'gallery-email-worker',
+          'gallery-email-feedback',
+        ]
+      : lifecycleNames;
+  const tags = {
+    Project: 'findly',
+    Environment: environment,
+    ManagedBy: 'Terraform',
+    CostCenter: 'findly',
+  };
+
   const { account, region, stateBucket, uploadsBucket, webBucket } = config;
   assert(/^\d{12}$/.test(account));
   assert.equal(region, 'eu-west-1');
   const aws = (service, resource) =>
     `arn:aws:${service}:${region}:${account}:${resource}`;
-  const fnArns = lifecycleNames.map((name) =>
-    aws('lambda', `function:findly-demo-${name}`),
+  const fnArns = names.map((name) =>
+    aws('lambda', `function:${prefix}-${name}`),
   );
-  const roleNames = lifecycleNames.map(
+  const roleNames = names.map(
     (name) =>
-      `findly-demo-${name}${['gallery-reader', 'delete-registration', 'retention-purger', 'photo-matcher'].includes(name) ? '-role' : ''}`,
+      `${prefix}-${name}${['gallery-reader', 'delete-registration', 'retention-purger', 'photo-matcher'].includes(name) ? '-role' : ''}`,
   );
-  roleNames.push('findly-demo-retention-purger-scheduler-role');
+  roleNames.push(`${prefix}-retention-purger-scheduler-role`);
   const roleArns = roleNames.map(
     (name) => `arn:aws:iam::${account}:role/${name}`,
   );
@@ -53,7 +78,7 @@ export function demoRolePolicies(config, bindings = {}) {
   const resourceTags = {
     StringEquals: {
       'aws:ResourceTag/Project': 'findly',
-      'aws:ResourceTag/Environment': 'demo',
+      'aws:ResourceTag/Environment': environment,
     },
   };
   const readRegion = { StringEquals: { 'aws:RequestedRegion': region } };
@@ -74,8 +99,7 @@ export function demoRolePolicies(config, bindings = {}) {
       Condition: {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub':
-            'repo:upc-malvaviscos/findly:environment:demo',
+          'token.actions.githubusercontent.com:sub': `repo:upc-malvaviscos/findly:environment:${environment}`,
         },
       },
     },
@@ -83,15 +107,15 @@ export function demoRolePolicies(config, bindings = {}) {
   const common = [
     statement(['sts:GetCallerIdentity'], '*'),
     statement(['s3:ListBucket'], `arn:aws:s3:::${stateBucket}`, {
-      StringLike: { 's3:prefix': ['findly/demo/*'] },
+      StringLike: { 's3:prefix': [`findly/${environment}/*`] },
     }),
     statement(
       ['s3:GetObject', 's3:PutObject'],
-      `arn:aws:s3:::${stateBucket}/findly/demo/terraform.tfstate`,
+      `arn:aws:s3:::${stateBucket}/findly/${environment}/terraform.tfstate`,
     ),
     statement(
       ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'],
-      `arn:aws:s3:::${stateBucket}/findly/demo/terraform.tfstate.tflock`,
+      `arn:aws:s3:::${stateBucket}/findly/${environment}/terraform.tfstate.tflock`,
     ),
     statement(
       [
@@ -106,7 +130,7 @@ export function demoRolePolicies(config, bindings = {}) {
       Action: ['s3:DeleteBucket', 's3:DeleteObject', 's3:DeleteObjectVersion'],
       Resource: [
         `arn:aws:s3:::${stateBucket}`,
-        `arn:aws:s3:::${stateBucket}/findly/demo/terraform.tfstate`,
+        `arn:aws:s3:::${stateBucket}/findly/${environment}/terraform.tfstate`,
       ],
     },
     {
@@ -120,8 +144,8 @@ export function demoRolePolicies(config, bindings = {}) {
         'iam:UpdateAssumeRolePolicy',
       ],
       Resource: [
-        `arn:aws:iam::${account}:role/findly-demo-deploy`,
-        `arn:aws:iam::${account}:role/findly-demo-destroy`,
+        `arn:aws:iam::${account}:role/${prefix}-deploy`,
+        `arn:aws:iam::${account}:role/${prefix}-destroy`,
       ],
     },
   ];
@@ -159,7 +183,7 @@ export function demoRolePolicies(config, bindings = {}) {
         'dynamodb:DescribeContinuousBackups',
         'dynamodb:ListTagsOfResource',
       ],
-      aws('dynamodb', 'table/findly-demo'),
+      aws('dynamodb', `table/${prefix}`),
     ),
     statement(
       [
@@ -188,28 +212,28 @@ export function demoRolePolicies(config, bindings = {}) {
     statement(
       ['logs:ListTagsForResource', 'logs:DescribeMetricFilters'],
       [
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*'),
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*:*'),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*`),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*:*`),
       ],
     ),
     statement(
       ['sqs:GetQueueAttributes', 'sqs:GetQueueUrl', 'sqs:ListQueueTags'],
       [
-        aws('sqs', 'findly-demo-photos-queue'),
-        aws('sqs', 'findly-demo-photos-dlq'),
+        aws('sqs', `${prefix}-photos-queue`),
+        aws('sqs', `${prefix}-photos-dlq`),
       ],
     ),
     statement(
       ['sns:GetTopicAttributes', 'sns:ListTagsForResource'],
-      aws('sns', 'findly-demo-alerts'),
+      aws('sns', `${prefix}-alerts`),
     ),
     statement(
       ['scheduler:GetSchedule'],
-      aws('scheduler', 'schedule/default/findly-demo-retention-purger'),
+      aws('scheduler', `schedule/default/${prefix}-retention-purger`),
     ),
     statement(
       ['cloudwatch:DescribeAlarms', 'cloudwatch:ListTagsForResource'],
-      aws('cloudwatch', 'alarm:findly-demo-photos-dlq-has-messages'),
+      aws('cloudwatch', `alarm:${prefix}-photos-dlq-has-messages`),
     ),
     statement(['lambda:GetEventSourceMapping'], '*', readRegion),
     statement(
@@ -244,7 +268,7 @@ export function demoRolePolicies(config, bindings = {}) {
         'dynamodb:TagResource',
         'dynamodb:UntagResource',
       ],
-      aws('dynamodb', 'table/findly-demo'),
+      aws('dynamodb', `table/${prefix}`),
     ),
     statement(
       [
@@ -285,8 +309,8 @@ export function demoRolePolicies(config, bindings = {}) {
         'logs:PutMetricFilter',
       ],
       [
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*'),
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*:*'),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*`),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*:*`),
       ],
     ),
     statement(
@@ -297,8 +321,8 @@ export function demoRolePolicies(config, bindings = {}) {
         'sqs:UntagQueue',
       ],
       [
-        aws('sqs', 'findly-demo-photos-queue'),
-        aws('sqs', 'findly-demo-photos-dlq'),
+        aws('sqs', `${prefix}-photos-queue`),
+        aws('sqs', `${prefix}-photos-dlq`),
       ],
     ),
     statement(
@@ -308,11 +332,11 @@ export function demoRolePolicies(config, bindings = {}) {
         'sns:TagResource',
         'sns:UntagResource',
       ],
-      aws('sns', 'findly-demo-alerts'),
+      aws('sns', `${prefix}-alerts`),
     ),
     statement(
       ['scheduler:CreateSchedule', 'scheduler:UpdateSchedule'],
-      aws('scheduler', 'schedule/default/findly-demo-retention-purger'),
+      aws('scheduler', `schedule/default/${prefix}-retention-purger`),
     ),
     statement(
       [
@@ -320,19 +344,16 @@ export function demoRolePolicies(config, bindings = {}) {
         'cloudwatch:TagResource',
         'cloudwatch:UntagResource',
       ],
-      aws('cloudwatch', 'alarm:findly-demo-photos-dlq-has-messages'),
+      aws('cloudwatch', `alarm:${prefix}-photos-dlq-has-messages`),
     ),
     statement(['lambda:CreateEventSourceMapping'], '*', {
       StringEquals: {
         'aws:RequestedRegion': region,
         'aws:RequestTag/Project': 'findly',
-        'aws:RequestTag/Environment': 'demo',
+        'aws:RequestTag/Environment': environment,
       },
       ArnEquals: {
-        'lambda:FunctionArn': aws(
-          'lambda',
-          'function:findly-demo-photo-matcher',
-        ),
+        'lambda:FunctionArn': aws('lambda', `function:${prefix}-photo-matcher`),
       },
     }),
     statement(
@@ -342,7 +363,7 @@ export function demoRolePolicies(config, bindings = {}) {
         ArnEquals: {
           'lambda:FunctionArn': aws(
             'lambda',
-            'function:findly-demo-photo-matcher',
+            `function:${prefix}-photo-matcher`,
           ),
         },
       },
@@ -371,7 +392,7 @@ export function demoRolePolicies(config, bindings = {}) {
       ['s3:DeleteObject', 's3:DeleteObjectVersion', 's3:AbortMultipartUpload'],
       bucketArns.map((arn) => `${arn}/*`),
     ),
-    statement(['dynamodb:DeleteTable'], aws('dynamodb', 'table/findly-demo')),
+    statement(['dynamodb:DeleteTable'], aws('dynamodb', `table/${prefix}`)),
     statement(
       [
         'lambda:DeleteFunction',
@@ -388,28 +409,28 @@ export function demoRolePolicies(config, bindings = {}) {
     statement(
       ['logs:DeleteLogGroup', 'logs:DeleteMetricFilter'],
       [
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*'),
-        aws('logs', 'log-group:/aws/lambda/findly-demo-*:*'),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*`),
+        aws('logs', `log-group:/aws/lambda/${prefix}-*:*`),
       ],
     ),
     statement(
       ['sqs:DeleteQueue', 'sqs:SetQueueAttributes'],
       [
-        aws('sqs', 'findly-demo-photos-queue'),
-        aws('sqs', 'findly-demo-photos-dlq'),
+        aws('sqs', `${prefix}-photos-queue`),
+        aws('sqs', `${prefix}-photos-dlq`),
       ],
     ),
     statement(
       ['sns:DeleteTopic', 'sns:SetTopicAttributes'],
-      aws('sns', 'findly-demo-alerts'),
+      aws('sns', `${prefix}-alerts`),
     ),
     statement(
       ['scheduler:UpdateSchedule', 'scheduler:DeleteSchedule'],
-      aws('scheduler', 'schedule/default/findly-demo-retention-purger'),
+      aws('scheduler', `schedule/default/${prefix}-retention-purger`),
     ),
     statement(
       ['cloudwatch:DeleteAlarms'],
-      aws('cloudwatch', 'alarm:findly-demo-photos-dlq-has-messages'),
+      aws('cloudwatch', `alarm:${prefix}-photos-dlq-has-messages`),
     ),
     statement(
       ['lambda:DeleteEventSourceMapping'],
@@ -418,7 +439,7 @@ export function demoRolePolicies(config, bindings = {}) {
         ArnEquals: {
           'lambda:FunctionArn': aws(
             'lambda',
-            'function:findly-demo-photo-matcher',
+            `function:${prefix}-photo-matcher`,
           ),
         },
       },
@@ -430,7 +451,7 @@ export function demoRolePolicies(config, bindings = {}) {
         'rekognition:DeleteCollection',
         'rekognition:DescribeCollection',
       ],
-      aws('rekognition', 'collection/findly-demo-event-*'),
+      aws('rekognition', `collection/${prefix}-event-*`),
     ),
   ];
   const distributionArn = `arn:aws:cloudfront::${account}:distribution/*`;
@@ -471,8 +492,10 @@ export function demoRolePolicies(config, bindings = {}) {
   ];
   const edgeDeploy = [
     statement(
-      ['cloudfront:CreateDistribution', 'cloudfront:TagResource'],
-      distributionArn,
+      environment === 'production'
+        ? ['cloudfront:CreateDistribution']
+        : ['cloudfront:CreateDistribution', 'cloudfront:TagResource'],
+      environment === 'production' ? '*' : distributionArn,
       requestTags,
     ),
     statement(
@@ -487,7 +510,9 @@ export function demoRolePolicies(config, bindings = {}) {
     ),
     statement(['cloudfront:CreateOriginAccessControl'], '*'),
     statement(
-      ['cognito-idp:CreateUserPool', 'cognito-idp:TagResource'],
+      environment === 'production'
+        ? ['cognito-idp:CreateUserPool']
+        : ['cognito-idp:CreateUserPool', 'cognito-idp:TagResource'],
       aws('cognito-idp', 'userpool/*'),
       requestTags,
     ),
@@ -512,17 +537,19 @@ export function demoRolePolicies(config, bindings = {}) {
       ...requestTags,
       StringEquals: {
         ...requestTags.StringEquals,
-        'apigateway:Request/ApiName': 'findly-demo-api',
+        'apigateway:Request/ApiName': `${prefix}-api`,
       },
     }),
     // CreateApi authorizes its initial tags separately, without ApiName context.
-    // Approved option 2 permits demo-tagged APIs in this region at that step.
+    // Demo retains its approved tagging exception. Production requires prior
+    // ownership, even if that causes tag-on-create to fail closed.
     statement(
       ['apigateway:POST'],
       `arn:aws:apigateway:${region}::/tags/arn%3Aaws%3Aapigateway%3A${region}%3A%3A%2Fv2%2Fapis%2F*`,
       {
         StringEquals: {
           ...requestTags.StringEquals,
+          ...(environment === 'production' && resourceTags.StringEquals),
           'aws:RequestedRegion': region,
         },
       },

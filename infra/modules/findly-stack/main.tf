@@ -45,37 +45,39 @@ module "cognito" {
 }
 
 module "admin_api" {
-  source               = "../admin-api"
-  api_id               = module.api_gateway.api_id
-  api_execution_arn    = module.api_gateway.execution_arn
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_name  = module.uploads_bucket.bucket_name
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  user_pool_arn        = module.cognito.user_pool_arn
-  user_pool_client_id  = module.cognito.client_id
-  user_pool_issuer_url = module.cognito.issuer_url
-  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/adminEvents.zip"
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
+  permissions_boundary_arn = var.permissions_boundary_arn
+  source                   = "../admin-api"
+  api_id                   = module.api_gateway.api_id
+  api_execution_arn        = module.api_gateway.execution_arn
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  user_pool_arn            = module.cognito.user_pool_arn
+  user_pool_client_id      = module.cognito.client_id
+  user_pool_issuer_url     = module.cognito.issuer_url
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/adminEvents.zip"
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
 }
 
 module "gallery_reader" {
-  source               = "../gallery-reader"
-  api_id               = module.api_gateway.api_id
-  api_execution_arn    = module.api_gateway.execution_arn
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_name  = module.uploads_bucket.bucket_name
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  lambda_artifact_path = coalesce(var.gallery_lambda_artifact_path, "${path.module}/../../../artifacts/lambdas/gallery.zip")
-  frontend_domain_url  = local.frontend_origin
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
+  permissions_boundary_arn = var.permissions_boundary_arn
+  source                   = "../gallery-reader"
+  api_id                   = module.api_gateway.api_id
+  api_execution_arn        = module.api_gateway.execution_arn
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = coalesce(var.gallery_lambda_artifact_path, "${path.module}/../../../artifacts/lambdas/gallery.zip")
+  frontend_domain_url      = local.frontend_origin
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
 }
 
 module "monitoring" {
@@ -90,19 +92,20 @@ module "monitoring" {
 }
 
 module "photo_matching" {
-  selfie_indexer_arn   = module.selfie_indexer.lambda_arn
-  depends_on           = [module.selfie_indexer]
-  source               = "../photo-matching"
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_id    = module.uploads_bucket.bucket_name
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/photoMatcher.zip"
-  dlq_alarm_actions    = [module.monitoring.alerts_topic_arn]
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
+  permissions_boundary_arn = var.permissions_boundary_arn
+  selfie_indexer_arn       = module.selfie_indexer.lambda_arn
+  depends_on               = [module.selfie_indexer]
+  source                   = "../photo-matching"
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_id        = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/photoMatcher.zip"
+  dlq_alarm_actions        = [module.monitoring.alerts_topic_arn]
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
 }
 
 module "web" {
@@ -118,34 +121,37 @@ module "web" {
 }
 
 module "delete_registration" {
-  source               = "../delete-registration"
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_name  = module.uploads_bucket.bucket_name
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/deleteRegistration.zip"
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
-  api_id               = module.api_gateway.api_id
-  api_execution_arn    = module.api_gateway.execution_arn
+  permissions_boundary_arn = var.permissions_boundary_arn
+  source                   = "../delete-registration"
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/deleteRegistration.zip"
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
+  api_id                   = module.api_gateway.api_id
+  api_execution_arn        = module.api_gateway.execution_arn
 }
 
 module "retention_purger" {
-  source               = "../retention-purger"
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_name  = module.uploads_bucket.bucket_name
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/retentionPurger.zip"
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
+  permissions_boundary_arn = var.permissions_boundary_arn
+  source                   = "../retention-purger"
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/retentionPurger.zip"
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
 }
 
 module "public_enrollment" {
+  permissions_boundary_arn        = var.permissions_boundary_arn
   source                          = "../public-enrollment"
   api_id                          = module.api_gateway.api_id
   api_execution_arn               = module.api_gateway.execution_arn
@@ -161,36 +167,38 @@ module "public_enrollment" {
   data_class                      = var.data_class
 }
 module "selfie_indexer" {
-  uploads_bucket_name  = module.uploads_bucket.bucket_name
-  source               = "../selfie-indexer"
-  table_name           = module.dynamodb.table_name
-  table_arn            = module.dynamodb.table_arn
-  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
-  lambda_artifact_path = "${path.module}/../../../artifacts/lambdas/selfieIndexer.zip"
-  project              = var.project
-  environment          = var.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
+  permissions_boundary_arn = var.permissions_boundary_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  source                   = "../selfie-indexer"
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/selfieIndexer.zip"
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
 }
 
 module "gallery_email" {
-  count                  = var.email_identity_arn != "" ? 1 : 0
-  source                 = "../gallery-email"
-  project                = var.project
-  environment            = var.environment
-  cost_center            = var.cost_center
-  data_class             = var.data_class
-  table_name             = module.dynamodb.table_name
-  table_arn              = module.dynamodb.table_arn
-  uploads_bucket_name    = module.uploads_bucket.bucket_name
-  uploads_bucket_arn     = module.uploads_bucket.bucket_arn
-  api_id                 = module.api_gateway.api_id
-  api_execution_arn      = module.api_gateway.execution_arn
-  authorizer_id          = module.admin_api.authorizer_id
-  identity_arn           = var.email_identity_arn
-  from_address           = var.email_from_address
-  gallery_origin         = var.email_gallery_origin
-  artifact_path          = "${path.module}/../../../artifacts/lambdas/galleryEmail.zip"
-  feedback_artifact_path = "${path.module}/../../../artifacts/lambdas/galleryEmailFeedback.zip"
-  alarm_actions          = [module.monitoring.alerts_topic_arn]
+  permissions_boundary_arn = var.permissions_boundary_arn
+  count                    = var.email_identity_arn != "" ? 1 : 0
+  source                   = "../gallery-email"
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  api_id                   = module.api_gateway.api_id
+  api_execution_arn        = module.api_gateway.execution_arn
+  authorizer_id            = module.admin_api.authorizer_id
+  identity_arn             = var.email_identity_arn
+  from_address             = var.email_from_address
+  gallery_origin           = var.email_gallery_origin
+  artifact_path            = "${path.module}/../../../artifacts/lambdas/galleryEmail.zip"
+  feedback_artifact_path   = "${path.module}/../../../artifacts/lambdas/galleryEmailFeedback.zip"
+  alarm_actions            = [module.monitoring.alerts_topic_arn]
 }

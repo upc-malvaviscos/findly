@@ -35,7 +35,8 @@ resource "aws_cloudwatch_log_group" "retention_purger" {
 }
 
 resource "aws_iam_role" "retention_purger" {
-  name = "${local.function_name}-role"
+  permissions_boundary = var.permissions_boundary_arn
+  name                 = "${local.function_name}-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -124,7 +125,8 @@ resource "aws_lambda_function" "retention_purger" {
 }
 
 resource "aws_iam_role" "scheduler" {
-  name = "${local.function_name}-scheduler-role"
+  permissions_boundary = var.permissions_boundary_arn
+  name                 = "${local.function_name}-scheduler-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

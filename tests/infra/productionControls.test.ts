@@ -19,6 +19,23 @@ describe('production credential boundary', () => {
   it('accepts authorized manual main execution and its authorized rerun', () => {
     expect(() => authorizeProduction(env)).not.toThrow();
   });
+  it('requires the exact production buckets for deployment', () => {
+    const deploy = {
+      ...env,
+      SHARED_CONFIGURATION: 'false',
+      ROLE_ARN: 'arn:aws:iam::123456789012:role/findly-production-deploy',
+      TF_VAR_uploads_bucket_name:
+        'findly-production-uploads-123456789012-eu-west-1',
+      TF_VAR_web_bucket_name: 'findly-production-web-123456789012-eu-west-1',
+    };
+    expect(() => authorizeProduction(deploy)).not.toThrow();
+    expect(() =>
+      authorizeProduction({ ...deploy, TF_VAR_uploads_bucket_name: 'foreign' }),
+    ).toThrow();
+    expect(() =>
+      authorizeProduction({ ...deploy, TF_VAR_web_bucket_name: 'foreign' }),
+    ).toThrow();
+  });
   it.each([
     { GITHUB_ACTOR: 'outside' },
     { GITHUB_TRIGGERING_ACTOR: 'outside' },

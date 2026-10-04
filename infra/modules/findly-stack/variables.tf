@@ -102,3 +102,13 @@ variable "email_gallery_origin" {
     error_message = "Gallery origin must be an HTTPS origin without a path."
   }
 }
+
+variable "permissions_boundary_arn" {
+  description = "Optional runtime permissions ceiling; mandatory for the production stack."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.environment != "production" || var.permissions_boundary_arn != null
+    error_message = "Production requires a reviewed runtime permissions boundary."
+  }
+}

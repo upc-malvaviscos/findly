@@ -3,7 +3,7 @@
   "requirements": [
     {
       "id": "REQ-PRODUCTION-DOMAIN",
-      "description": "Preparar identidad SES y certificado compartidos por OIDC con producción restringida a main.",
+      "description": "Preparar identidad SES, HTTPS y despliegue de producción por OIDC con límites runtime y verificaciones previas.",
       "issues": [98],
       "spec": "specs/20-gallery-email-notifications-with-ses.md",
       "implementation": [
@@ -11,13 +11,27 @@
         "scripts/configure-shared-config-role.mjs",
         "scripts/lib/shared-config-policy.mjs",
         "scripts/lib/production-controls.mjs",
-        ".github/workflows/configure-production-domain.yml"
+        ".github/workflows/configure-production-domain.yml",
+        "scripts/configure-production-role.mjs",
+        "scripts/lib/production-role-policies.mjs",
+        "scripts/lib/production-readiness.mjs",
+        "scripts/check-production-readiness.mjs",
+        "scripts/check-production-permissions.mjs",
+        "scripts/check-production-web.mjs",
+        "scripts/request-ses-production-access.mjs",
+        "infra/environments/production/main.tf",
+        ".github/workflows/deploy.yml"
       ],
       "verification": [
         {
           "command": "test",
           "environment": "unit",
-          "files": ["tests/infra/productionControls.test.ts"]
+          "files": [
+            "tests/infra/productionControls.test.ts",
+            "tests/infra/productionReadiness.test.ts",
+            "tests/infra/productionRolePolicies.test.ts",
+            "tests/infra/productionOwnership.test.ts"
+          ]
         }
       ],
       "evidence": [

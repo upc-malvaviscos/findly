@@ -63,3 +63,9 @@ variable "selfie_indexer_arn" {
   type        = string
   default     = null
 }
+
+variable "permissions_boundary_arn" {
+  description = "Optional runtime permissions ceiling; mandatory for the production stack."
+  type        = string
+  default     = null
+}

@@ -11,6 +11,10 @@ separado. El bootstrap manual por OIDC sólo prepara estos recursos. No acredita
 salida del sandbox, permisos del stack, recepción ni apertura; estos criterios
 permanecen pendientes. Producción se despliega tras configurar el correo.
 Evidencia: [configuración SES y producción](../docs/evidence/issue-98-ses-production.md).
+La preparación del despliegue añade aislamiento OIDC/estado/buckets y un límite
+de permisos obligatorio para las funciones de producción. SES/DKIM/MAIL FROM,
+SPF/DMARC, acceso regional y certificado emitido se comprueban antes del plan;
+el smoke HTTPS posterior no sustituye las pruebas reales de entregabilidad.
 
 ## Objetivo
 
