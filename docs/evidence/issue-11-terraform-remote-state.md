@@ -159,3 +159,5 @@ para esta verificación.
 - `environments/sandbox`: `init` con ese bucket como backend (lockfile S3) y
   `plan`: `Plan: 38 to add, 0 to change, 0 to destroy`; 34 recursos con
   etiqueta `Environment = "sandbox"`. No se hizo `apply` del sandbox.
+
+<!-- requirement: REQ-REMOTE-STATE -->

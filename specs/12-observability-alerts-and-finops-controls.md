@@ -106,3 +106,7 @@ Pendiente, sin cerrar la issue hasta resolverlo:
 La issue #13 permanece abierta por Budgets y correo. La recepción SNS → SQS de
 PR #71 acredita la alarma efímera; publicar manualmente en SNS no probaría el
 umbral de AWS Budgets.
+
+<!-- requirement: REQ-OBSERVABILITY -->
+
+Trazabilidad `REQ-OBSERVABILITY`: [#13](https://github.com/upc-malvaviscos/findly/issues/13) · [evidencia](../docs/evidence/issue-13-observability-finops.md).

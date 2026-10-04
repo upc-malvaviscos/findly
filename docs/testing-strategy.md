@@ -58,3 +58,10 @@ los contratos `200`, `404`, `410` y galería vacía; después elimina sus datos.
 CI ordinaria ejecuta unitarias y Floci. El workflow de PR usa un stack AWS
 efímero con OIDC, datos sintéticos y `destroy`, una evidencia AWS independiente.
 El sandbox compartido no se consume automáticamente desde CI.
+
+## Regresiones de scripts
+
+Las pruebas en `tests/infra` cubren aislamiento de Terraform, trazabilidad
+estructurada y errores de limpieza con procesos/proveedores simulados. No son
+aceptación AWS. `test:aws` comunica éxito únicamente tras completar su limpieza;
+si falla, conserva tanto el error original como las eliminaciones pendientes.

@@ -53,3 +53,15 @@ y la exportación efímera que permite a Terraform usar una sesión AWS activa.
 Consulta
 [`docs/evidence/issue-51-54-local-execution-modes.md`](../docs/evidence/issue-51-54-local-execution-modes.md)
 para los comandos ejecutados, resultados y verificación de limpieza.
+
+<!-- requirement: REQ-LOCAL-MODES -->
+
+## Fallos de limpieza del sandbox
+
+`test:aws` solo declara éxito después de limpiar todos los fixtures registrados.
+Los fallos de prueba y de limpieza se conservan conjuntamente. `dev:aws` limpia
+el usuario también al fallar la preparación o el servidor y termina con error
+si el borrado falla. Un fallo requiere revisar el sandbox o ejecutar el destroy
+confirmado; no convierte una ejecución parcial en aceptación AWS.
+
+Trazabilidad `REQ-LOCAL-MODES`: [#51](https://github.com/upc-malvaviscos/findly/issues/51) · [#52](https://github.com/upc-malvaviscos/findly/issues/52) · [#53](https://github.com/upc-malvaviscos/findly/issues/53) · [#54](https://github.com/upc-malvaviscos/findly/issues/54) · [evidencia](../docs/evidence/issue-51-54-local-execution-modes.md).

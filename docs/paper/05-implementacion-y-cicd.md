@@ -202,3 +202,14 @@ un fallo detectado en local y uno detectado en remoto compartan siempre la
 misma causa, nunca una configuración distinta entre ambos. Ninguna rama se
 fusiona directamente contra `main`; la única vía es una PR revisable contra el
 ruleset del repositorio (capítulo 2, convenciones de Git).
+
+## Fiabilidad de los scripts de verificación
+
+La validación Terraform utiliza una configuración desechable con lockfiles
+readonly y datos propios para no modificar el backend, estado ni overrides del
+checkout. La trazabilidad se expresa en `docs/traceability.json`, con requisitos,
+specs, issues, implementación, pruebas y evidencias, en lugar de detectar frases
+históricas. Esa validación es estática y no sustituye la lectura de resultados.
+Los comandos sandbox propagan fallos de limpieza y no declaran éxito mientras
+haya eliminaciones pendientes. Las regresiones de estos caminos simulan fallos;
+no se presentan como una nueva aceptación en AWS.

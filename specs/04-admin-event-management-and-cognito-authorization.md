@@ -86,3 +86,7 @@ No firma nuevas capacidades ni escribe Photo mientras los metadatos se
 conservan para reintentar una purga. Las fotos de un evento vigente mantienen
 PUT de 300 segundos. Las pruebas unitarias verifican ese rechazo; el plan
 de aceptación AWS sigue pendiente de ejecución.
+
+<!-- requirement: REQ-ADMIN-AUTH -->
+
+Trazabilidad `REQ-ADMIN-AUTH`: [#5](https://github.com/upc-malvaviscos/findly/issues/5) · [evidencia](../docs/evidence/issue-05-admin-cognito.md).

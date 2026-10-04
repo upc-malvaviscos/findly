@@ -137,3 +137,5 @@ ESLint enfocado, Markdownlint, Terraform fmt y TFLint de ambos módulos.
 La aceptación AWS integrada se ejecutó después; el cron real permanece pendiente. El rol
 RetentionPurger incluye además GetItem
 para validar el origen de localizadores cuando REG legacy conserva FaceId.
+
+<!-- requirement: REQ-ERASURE-RETENTION -->

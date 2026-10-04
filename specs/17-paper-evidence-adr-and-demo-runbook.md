@@ -58,3 +58,7 @@ bootstrap del estado Terraform y el despliegue manual, y por tanto una SPA
 `demo` publicada y navegable. Evidencia:
 [`docs/evidence/issue-18-paper-runbook.md`](../docs/evidence/issue-18-paper-runbook.md).
 No se cierra esta issue con esta entrega.
+
+<!-- requirement: REQ-PAPER-RUNBOOK -->
+
+Trazabilidad `REQ-PAPER-RUNBOOK`: [#18](https://github.com/upc-malvaviscos/findly/issues/18) · [evidencia](../docs/evidence/issue-18-paper-runbook.md).

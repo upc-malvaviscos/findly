@@ -72,3 +72,7 @@ La sintaxis y el aislamiento se validan offline. El bootstrap y la migración co
 estado previo se creó desplegando la raíz anterior a ADR-009 y se destruyó
 después. El `plan` resultante no se aplicó. No se ejecutaron planes reales de
 `demo` ni `production`. Evidencia: `docs/evidence/issue-11-terraform-remote-state.md`.
+
+<!-- requirement: REQ-REMOTE-STATE -->
+
+Trazabilidad `REQ-REMOTE-STATE`: [#11](https://github.com/upc-malvaviscos/findly/issues/11) · [evidencia](../docs/evidence/issue-11-terraform-remote-state.md).

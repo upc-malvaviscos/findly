@@ -47,3 +47,7 @@ Al cerrar una implementación se actualizan conjuntamente código, esta evidenci
 la spec 19 y la issue GitHub. `npm run sync:check` comprueba esta trazabilidad
 estática en CI; la sincronización del estado remoto de la issue (comentario,
 casillas y cierre) se revisa en la fase Sync definida por `AGENTS.md`.
+
+<!-- requirement: REQ-VALIDATION-PLANES -->
+
+<!-- requirement: REQ-LOCAL-MODES -->

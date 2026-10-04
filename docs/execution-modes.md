@@ -78,3 +78,12 @@ credenciales ni outputs en el repositorio.
 - No añadas perfiles, claves, contraseñas ni `.tfvars` al repositorio.
 - El CI efímero de PR conserva OIDC y `destroy`; no se sustituye por el
   sandbox compartido.
+
+## Resultado de la limpieza AWS
+
+El smoke solo comunica éxito cuando sus fixtures se han limpiado. Intenta todas
+las eliminaciones y falla si alguna queda pendiente, incluso si la prueba ya
+había fallado. La sesión `dev:aws` también falla si no puede borrar el usuario
+temporal; cubre fallos de contraseña, arranque, salida y parada del servidor.
+Revisa el sandbox antes de dar por terminado un intento fallido; su destrucción
+continúa requiriendo `dev:aws-destroy -- --confirm`.

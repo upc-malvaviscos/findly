@@ -38,3 +38,5 @@ sandbox y su estado remoto queda vacío.
 No se versionaron ni registraron credenciales, tokens, outputs Terraform o
 datos biométricos. La evidencia del ciclo AWS local está también en
 [`issue-51-54-local-execution-modes.md`](issue-51-54-local-execution-modes.md).
+
+<!-- requirement: REQ-ADMIN-AUTH -->
