@@ -1,3 +1,4 @@
+import { withCleanup, deleteSandboxOrganizer } from './lib/sandbox-cleanup.mjs';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -74,7 +75,6 @@ const dynamo = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region, credentials }),
 );
 const s3 = new S3Client({ region, credentials });
-const cleanup = [];
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const admin = async (token, path, init = {}) => {
   const response = await fetch(`${apiEndpoint}${path}`, {
@@ -99,7 +99,23 @@ const gallery = async (token, expected) => {
   return response.json();
 };
 
-try {
+await withCleanup(async (cleanup) => {
+  cleanup.add('temporary organizer', () =>
+    deleteSandboxOrganizer(() =>
+      run(
+        'aws',
+        [
+          'cognito-idp',
+          'admin-delete-user',
+          '--user-pool-id',
+          userPoolId,
+          '--username',
+          userName,
+        ],
+        '.',
+      ),
+    ),
+  );
   run(
     'aws',
     [
@@ -113,20 +129,6 @@ try {
       'SUPPRESS',
     ],
     '.',
-  );
-  cleanup.push(() =>
-    run(
-      'aws',
-      [
-        'cognito-idp',
-        'admin-delete-user',
-        '--user-pool-id',
-        userPoolId,
-        '--username',
-        userName,
-      ],
-      '.',
-    ),
   );
   run(
     'aws',
@@ -177,6 +179,15 @@ try {
     }),
   });
   const eventId = created.eventId;
+  if (!eventId) throw new Error('Admin event contract was incomplete.');
+  cleanup.add('admin event', () =>
+    dynamo.send(
+      new DeleteCommand({
+        TableName: tableName,
+        Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' },
+      }),
+    ),
+  );
   const upload = await admin(
     token,
     `/admin/events/${encodeURIComponent(eventId)}/photos/uploads`,
@@ -190,6 +201,18 @@ try {
   const photo = upload.uploads?.[0];
   if (!eventId || !photo?.photoId || !photo?.uploadUrl)
     throw new Error('Admin upload contract was incomplete.');
+  const adminPhotoKey = `events/${eventId}/photos/${photo.photoId}.jpg`;
+  cleanup.add('admin photo metadata', () =>
+    dynamo.send(
+      new DeleteCommand({
+        TableName: tableName,
+        Key: { PK: `EVENT#${eventId}`, SK: `PHOTO#${photo.photoId}` },
+      }),
+    ),
+  );
+  cleanup.add('admin photo object', () =>
+    s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: adminPhotoKey })),
+  );
   const uploadResponse = await fetch(photo.uploadUrl, {
     method: 'PUT',
     headers: { 'content-type': 'image/jpeg' },
@@ -197,25 +220,6 @@ try {
   });
   if (!uploadResponse.ok)
     throw new Error(`Presigned upload returned ${uploadResponse.status}.`);
-  const adminPhotoKey = `events/${eventId}/photos/${photo.photoId}.jpg`;
-  cleanup.push(
-    () =>
-      dynamo.send(
-        new DeleteCommand({
-          TableName: tableName,
-          Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' },
-        }),
-      ),
-    () =>
-      dynamo.send(
-        new DeleteCommand({
-          TableName: tableName,
-          Key: { PK: `EVENT#${eventId}`, SK: `PHOTO#${photo.photoId}` },
-        }),
-      ),
-    () =>
-      s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: adminPhotoKey })),
-  );
   const galleryEventId = `evt-gallery-${randomUUID()}`;
   const registrationId = `reg-${randomUUID()}`;
   const galleryPhotoId = randomUUID();
@@ -271,10 +275,26 @@ try {
       uploadedAt: new Date().toISOString(),
     },
   ];
-  await Promise.all(
+  for (const item of items)
+    cleanup.add('gallery fixture row', () =>
+      dynamo.send(
+        new DeleteCommand({
+          TableName: tableName,
+          Key: { PK: item.PK, SK: item.SK },
+        }),
+      ),
+    );
+  // Wait for every write before cleanup: Promise.all rejects while other writes
+  // may still be creating fixtures that a concurrent deletion would miss.
+  const writes = await Promise.allSettled(
     items.map((Item) =>
       dynamo.send(new PutCommand({ TableName: tableName, Item })),
     ),
+  );
+  if (writes.some((result) => result.status === 'rejected'))
+    throw new Error('Could not create every sandbox gallery fixture.');
+  cleanup.add('gallery fixture object', () =>
+    s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: galleryKey })),
   );
   await s3.send(
     new PutObjectCommand({
@@ -283,18 +303,6 @@ try {
       Body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
       ContentType: 'image/jpeg',
     }),
-  );
-  cleanup.push(
-    ...items.map(
-      (item) => () =>
-        dynamo.send(
-          new DeleteCommand({
-            TableName: tableName,
-            Key: { PK: item.PK, SK: item.SK },
-          }),
-        ),
-    ),
-    () => s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: galleryKey })),
   );
   const valid = await gallery(validToken, 200);
   if (valid.eventId !== galleryEventId || valid.photos?.length !== 1)
@@ -308,7 +316,7 @@ try {
     throw new Error('Expired token contract failed.');
   if ((await gallery(emptyToken, 200)).photos?.length !== 0)
     throw new Error('Empty gallery contract failed.');
-  console.log('AWS sandbox smoke passed with synthetic data.');
-} finally {
-  await Promise.allSettled(cleanup.reverse().map((task) => task()));
-}
+});
+console.log(
+  'AWS sandbox smoke and fixture cleanup passed with synthetic data.',
+);
