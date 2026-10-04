@@ -35,5 +35,18 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http_api.id
   name        = "$default"
   auto_deploy = true
-  tags        = local.tags
+
+  # ADR-018: the unauthenticated telemetry route is capped so it cannot be
+  # used to drive Lambda/Logs cost. The key comes from the module that owns
+  # the route, which orders the stage after the route without a cycle.
+  dynamic "route_settings" {
+    for_each = toset(var.throttled_route_keys)
+    content {
+      route_key              = route_settings.value
+      throttling_burst_limit = var.throttled_route_burst_limit
+      throttling_rate_limit  = var.throttled_route_rate_limit
+    }
+  }
+
+  tags = local.tags
 }

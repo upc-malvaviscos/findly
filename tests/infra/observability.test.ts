@@ -158,3 +158,50 @@ describe('alerts and budget (spec 12)', () => {
       expect(text, path).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.-]+/);
   });
 });
+
+describe('enrollment error metrics (spec 18, ADR-018)', () => {
+  const publicEnrollment = read('modules/public-enrollment/main.tf');
+
+  it('counts server-side registration and polling failures', () => {
+    expect(publicEnrollment).toMatch(
+      /each\.key == "register" \? "RegistrationErrors" : "PollingErrors"/,
+    );
+  });
+
+  it('counts client-reported failures per stage from the telemetry log group only', () => {
+    const filter = publicEnrollment.match(
+      /resource "aws_cloudwatch_log_metric_filter" "client_errors" \{\n([\s\S]*?)\n\}/,
+    )?.[1];
+    expect(filter).toBeDefined();
+    expect(filter).toMatch(
+      /log_group_name\s*=\s*aws_cloudwatch_log_group\.public\["telemetry"\]\.name/,
+    );
+    expect(filter).toMatch(/\$\.event = \\"client_enrollment_error\\"/);
+    expect(filter).toMatch(/name\s*=\s*"ClientEnrollmentErrors"/);
+    expect(filter).toMatch(/namespace\s*=\s*"Findly\/\$\{var\.environment\}"/);
+    // The only dimension is the closed stage enum: no identifiers.
+    expect(filter).toMatch(/dimensions\s*=\s*\{ Stage = "\$\.stage" \}/);
+  });
+
+  it('routes the telemetry handler and grants it no data access', () => {
+    expect(publicEnrollment).toMatch(
+      /telemetry\s*=\s*\{ handler = "publicEnrollment\.reportClientEnrollmentError".*route = "POST \/telemetry\/enrollment-errors" \}/,
+    );
+    const dataActions = publicEnrollment.match(
+      /data_actions = \{\n([\s\S]*?)\n {2}\}/,
+    )?.[1];
+    expect(dataActions).toBeDefined();
+    expect(dataActions).not.toMatch(/telemetry/);
+  });
+
+  it('throttles the telemetry route in every stack that deploys it', () => {
+    const stage = read('modules/api-gateway/main.tf');
+    expect(stage).toMatch(/dynamic "route_settings"/);
+    expect(stage).toMatch(/throttling_burst_limit\s*=\s*var\./);
+    expect(stage).toMatch(/throttling_rate_limit\s*=\s*var\./);
+    for (const root of ['modules/findly-stack/main.tf', 'ephemeral/main.tf'])
+      expect(read(root), root).toMatch(
+        /throttled_route_keys\s*=\s*\[module\.public_enrollment\.telemetry_route_key\]/,
+      );
+  });
+});

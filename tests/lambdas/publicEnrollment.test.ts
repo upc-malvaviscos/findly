@@ -6,7 +6,7 @@ import {
   TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/lambdas/lib/presignedUpload', () => ({
   createPresignedUploadUrl: vi.fn().mockResolvedValue({
     uploadUrl: 'https://synthetic.invalid/put',
@@ -16,7 +16,9 @@ vi.mock('../../src/lambdas/lib/presignedUpload', () => ({
 import {
   createPublicRegistration,
   getPublicRegistrationStatus,
+  reportClientEnrollmentError,
 } from '../../src/lambdas/publicEnrollment';
+import { captureLogs } from './lib/logCapture';
 const db = mockClient(DynamoDBDocumentClient);
 const request = {
   pathParameters: { eventId: 'demo' },
@@ -186,5 +188,72 @@ describe('public enrollment', () => {
       .resolvesOnce({ Item: { status: 'PROCESSING' } })
       .resolvesOnce({ Item: { cleanupState: 'DELETING' } });
     expect((await getPublicRegistrationStatus(polling)).statusCode).toBe(404);
+  });
+});
+
+describe('client enrollment error telemetry (ADR-018)', () => {
+  let logs: ReturnType<typeof captureLogs>;
+  beforeEach(() => {
+    logs = captureLogs();
+  });
+  afterEach(() => logs.restore());
+
+  it('logs only the stage and closed code of a valid report, without AWS calls', async () => {
+    for (const stage of ['registration', 'upload', 'polling'])
+      expect(
+        (
+          await reportClientEnrollmentError({
+            body: JSON.stringify({ stage, code: 'NETWORK_ERROR' }),
+            headers: { 'x-gallery-token': 'synthetic-token' },
+            requestContext: { requestId: 'req-telemetry' },
+          })
+        ).statusCode,
+      ).toBe(204);
+    expect(db.calls()).toHaveLength(0);
+    const reports = logs
+      .records()
+      .filter((record) => record.event === 'client_enrollment_error');
+    expect(reports.map((record) => record.stage)).toEqual([
+      'registration',
+      'upload',
+      'polling',
+    ]);
+    for (const record of reports)
+      expect(Object.keys(record).sort()).toEqual([
+        'clientErrorCode',
+        'correlationId',
+        'event',
+        'level',
+        'stage',
+      ]);
+    expect(logs.lines.join('\n')).not.toContain('synthetic-token');
+  });
+
+  it('rejects unknown values, extra fields, oversized and malformed bodies without logging a report', async () => {
+    for (const body of [
+      null,
+      'not-json',
+      JSON.stringify({ stage: 'gallery', code: 'NETWORK_ERROR' }),
+      JSON.stringify({ stage: 'upload', code: 'user@example.com' }),
+      JSON.stringify({
+        stage: 'upload',
+        code: 'UPLOAD_FAILED',
+        registrationId: 'reg-synthetic',
+      }),
+      JSON.stringify({ stage: 'upload', code: 'UPLOAD_FAILED' }) +
+        ' '.repeat(300),
+    ]) {
+      const result = await reportClientEnrollmentError({ body });
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body)).toMatchObject({
+        code: 'INVALID_REQUEST',
+      });
+    }
+    expect(
+      logs
+        .records()
+        .some((record) => record.event === 'client_enrollment_error'),
+    ).toBe(false);
+    expect(logs.lines.join('\n')).not.toMatch(/user@example|reg-synthetic/);
   });
 });
