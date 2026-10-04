@@ -2,6 +2,10 @@
 
 ## Objetivo
 
+La preparación de producción continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
+y ADR-020, con rol separado, límite de ejecución y gates de correo/HTTPS.
+No modifica la evidencia de demo descrita abajo ni acredita producción publicada.
+
 Publicar demo AWS persistente mediante una acción manual y destruirla mediante
 otra acción manual independiente, sin interferir con CI efímero por PR.
 

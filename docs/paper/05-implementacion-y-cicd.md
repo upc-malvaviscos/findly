@@ -6,6 +6,10 @@ independientes, rol OIDC limitado y environment production restringido a main.
 Este bootstrap no equivale al despliegue del stack ni a entregabilidad real;
 los resultados y pendientes constan en la evidencia de #98. La publicación
 de producción queda condicionada a configurar el correo.
+Su rol de despliegue exige un límite de permisos en los roles de ejecución,
+separado de las políticas específicas de cada función. Los gates previos
+comprueban correo autenticado, acceso regional SES y certificado; el smoke
+HTTPS posterior es sólo una comprobación del origen y la ruta pública.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la

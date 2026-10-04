@@ -29,6 +29,32 @@ administra IAM ni borra identidades, certificados o estados. La creación del
 certificado requiere ARN aún desconocido; se limita por dominio, región y tags.
 La solicitud de salida del sandbox es regional y no activa el módulo por sí sola.
 
+## Despliegue de producción preparado
+
+El rol `findly-production-deploy` conserva el aislamiento de ADR-017, con
+namespace/buckets/estado propios y sin rol de destrucción de producción.
+La generación de políticas parametriza el entorno; se comprobó que la salida
+de las políticas demo no cambia. La preparación inicial sólo crea API/web
+para revisar y fijar los IDs exactos de API/OAC antes de mutar sus hijos.
+La autorización inicial de tags API, sin contexto ApiName en AWS, exige tags
+Findly/production y eu-west-1; las mutaciones posteriores usan IDs exactos.
+CloudFront requiere crear OAC con recurso global por limitación de AWS; tras
+crear la distribución, el binding verifica tags, cuenta, bucket y OAC exactos.
+
+Los roles Lambda/Scheduler de producción reciben la política límite
+`findly-production-runtime-boundary`: sólo operaciones de aplicación en recursos
+del namespace de producción, correo desde el remitente acordado y consulta de
+supresión regional. La política no concede permisos por sí sola; cada función
+conserva además su política específica mínima. El desplegador no puede crear
+roles sin ese límite, retirarlo, modificarlo ni modificar su propio rol.
+Demo y CI efímero conservan su configuración vigente.
+
+El workflow rechaza rama, actor original, actor de reejecución, backend, cuenta
+o buckets distintos antes de credenciales. Tras OIDC comprueba identidad SES,
+DKIM, MAIL FROM, SPF/DMARC públicos, salida del sandbox, estado de envío/cuotas
+y certificado ACM emitido. Después de publicar comprueba HTTPS y `/gallery`.
+Esto no sustituye recuperación/feedback ni recepción/apertura de un enlace real.
+
 ## Secuencia y límites
 
 1. Integrar por PR la configuración reproducible y ejecutar el workflow manual.

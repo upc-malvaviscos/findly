@@ -34,24 +34,27 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "production" {}
+
 module "findly" {
-  email_identity_arn   = var.email_identity_arn
-  email_from_address   = var.email_from_address
-  email_gallery_origin = var.email_gallery_origin
-  enable_web           = var.enable_web
-  web_bucket_name      = var.web_bucket_name
-  web_domain_name      = var.web_domain_name
-  web_certificate_arn  = var.web_certificate_arn
-  source               = "../../modules/findly-stack"
-  aws_region           = var.aws_region
-  project              = var.project
-  environment          = local.environment
-  cost_center          = var.cost_center
-  data_class           = var.data_class
-  frontend_domain_url  = var.frontend_domain_url
-  uploads_bucket_name  = var.uploads_bucket_name
-  allow_bucket_destroy = false
-  alert_email          = var.alert_email
+  permissions_boundary_arn = "arn:aws:iam::${data.aws_caller_identity.production.account_id}:policy/findly-production-runtime-boundary"
+  email_identity_arn       = var.email_identity_arn
+  email_from_address       = var.email_from_address
+  email_gallery_origin     = var.email_gallery_origin
+  enable_web               = var.enable_web
+  web_bucket_name          = var.web_bucket_name
+  web_domain_name          = var.web_domain_name
+  web_certificate_arn      = var.web_certificate_arn
+  source                   = "../../modules/findly-stack"
+  aws_region               = var.aws_region
+  project                  = var.project
+  environment              = local.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
+  frontend_domain_url      = var.frontend_domain_url
+  uploads_bucket_name      = var.uploads_bucket_name
+  allow_bucket_destroy     = false
+  alert_email              = var.alert_email
   # The budget is account-wide: sandbox owns it. Enable it here instead if
   # this environment lives in a different AWS account.
   enable_budget = false

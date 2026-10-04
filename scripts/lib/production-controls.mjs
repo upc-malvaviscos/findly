@@ -40,4 +40,16 @@ export function authorizeProduction(env) {
     `arn:aws:iam::${env.FINDLY_AWS_ACCOUNT_ID}:role/${env.SHARED_CONFIGURATION === 'true' ? 'findly-shared-config' : 'findly-production-deploy'}`,
     'Unapproved role',
   );
+  if (env.SHARED_CONFIGURATION !== 'true') {
+    assert.equal(
+      env.TF_VAR_uploads_bucket_name,
+      `findly-production-uploads-${env.FINDLY_AWS_ACCOUNT_ID}-eu-west-1`,
+      'Unapproved uploads bucket',
+    );
+    assert.equal(
+      env.TF_VAR_web_bucket_name,
+      `findly-production-web-${env.FINDLY_AWS_ACCOUNT_ID}-eu-west-1`,
+      'Unapproved web bucket',
+    );
+  }
 }

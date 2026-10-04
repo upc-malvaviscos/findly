@@ -30,10 +30,11 @@ resource "aws_cloudwatch_log_group" "public" {
   tags              = local.tags
 }
 resource "aws_iam_role" "public" {
-  for_each           = local.handlers
-  name               = "${local.prefix}-public-${each.key}"
-  assume_role_policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }] })
-  tags               = local.tags
+  permissions_boundary = var.permissions_boundary_arn
+  for_each             = local.handlers
+  name                 = "${local.prefix}-public-${each.key}"
+  assume_role_policy   = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }] })
+  tags                 = local.tags
 }
 resource "aws_iam_role_policy" "public" {
   for_each = local.handlers

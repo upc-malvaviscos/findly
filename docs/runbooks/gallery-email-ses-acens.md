@@ -84,12 +84,40 @@ sin `--apply` sólo genera documentos. No publicar planes ni estados.
 Añadir en Acens los outputs públicos DKIM/MAIL FROM y el CNAME de validación
 ACM generado por `infra/web-certificate`; conservarlo para renovación.
 No apuntar `www` a CloudFront hasta preparar y comprobar su distribución.
+Una vez verificadas identidad, DKIM y MAIL FROM, ejecutar el mismo workflow
+con `request_production_access=true` para solicitar acceso SES transaccional.
+La solicitud describe los pendientes reales y no incluye buzones de prueba.
+La aprobación AWS es externa; una solicitud pendiente no se vuelve a enviar.
 Verificar `/gallery` en HTTPS antes de habilitar envíos. El ARN vacío
 deshabilita los recursos y rutas de envío.
 El formulario sigue exigiendo email aunque el envío esté deshabilitado.
 No habilitar este módulo en CI efímera para enviar a terceros; usar simulador
 SES o buzones de prueba expresamente autorizados en una prueba AWS futura.
 Las ampliaciones de permisos de roles externos se revisan aparte del Terraform.
+
+## Preparación de producción
+
+Generar documentos revisables con la sesión administrativa aprobada:
+`FINDLY_AWS_ACCOUNT_ID=... node scripts/configure-production-role.mjs --out-dir=...`.
+La opción `--apply` configura exclusivamente el rol de despliegue y su límite
+de ejecución; no despliega el stack. El límite de aplicación es obligatorio en
+producción y el desplegador no puede retirarlo o modificarlo.
+
+Configurar variables públicas en environment production: cuenta/bucket de
+estado, `AWS_DEPLOY_ROLE_ARN`, buckets únicos production, dominio
+`www.findly.barcelona`, certificado ACM emitido y las variables de correo SES.
+Sólo main está permitida; originales y reejecutores deben ser responsables
+autorizados. El workflow verifica SES/DKIM/MAIL FROM, cuota/acceso regional,
+SPF/DMARC públicos y certificado antes de planificar producción.
+
+Después de configurar correo, ejecutar Deployment para production con
+`prepare_production_bindings=true` y `apply=true`. Revisar los IDs exactos de
+API/OAC mediante el configurador de roles: exige propiedad de API/distribución,
+origen S3 de producción y OAC vinculado. Configurar CNAME `www` al nombre real
+CloudFront que devuelva ese entorno, conservando CNAME de validación ACM.
+Ejecutar el despliegue completo con `prepare_production_bindings=false`.
+El smoke verifica HTTPS y ruta SPA `/gallery`, sin probar todavía recepción
+ni abrir una galería privada; éstos requieren las pruebas autorizadas de #98.
 
 ## Operación y recuperación
 

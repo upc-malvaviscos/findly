@@ -7,6 +7,10 @@ on:
         description: Create the reviewed shared SES identity and HTTPS certificate
         type: boolean
         default: false
+      request_production_access:
+        description: Request reviewed transactional SES production access after identity verification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -78,3 +82,6 @@ jobs:
             terraform -chdir="infra/$root" apply "$RUNNER_TEMP/$root.tfplan"
             terraform -chdir="infra/$root" output -json >> "$GITHUB_STEP_SUMMARY"
           done
+      - name: Request transactional SES production access
+        if: ${{ inputs.request_production_access }}
+        run: node scripts/request-ses-production-access.mjs

@@ -110,7 +110,8 @@ resource "aws_cloudwatch_log_group" "photo_matcher" {
 }
 
 resource "aws_iam_role" "photo_matcher" {
-  name = "${local.function_name}-role"
+  permissions_boundary = var.permissions_boundary_arn
+  name                 = "${local.function_name}-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

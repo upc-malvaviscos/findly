@@ -29,7 +29,8 @@ resource "aws_cloudwatch_log_group" "delete_registration" {
 }
 
 resource "aws_iam_role" "delete_registration" {
-  name = "${local.function_name}-role"
+  permissions_boundary = var.permissions_boundary_arn
+  name                 = "${local.function_name}-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

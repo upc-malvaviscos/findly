@@ -29,10 +29,11 @@ resource "aws_cloudwatch_log_group" "function" {
 }
 
 resource "aws_iam_role" "function" {
-  for_each           = local.functions
-  name               = "${var.project}-${var.environment}-admin-${each.key}"
-  assume_role_policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }] })
-  tags               = local.tags
+  permissions_boundary = var.permissions_boundary_arn
+  for_each             = local.functions
+  name                 = "${var.project}-${var.environment}-admin-${each.key}"
+  assume_role_policy   = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }] })
+  tags                 = local.tags
 }
 
 resource "aws_iam_role_policy" "function" {

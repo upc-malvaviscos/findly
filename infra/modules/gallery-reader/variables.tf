@@ -60,3 +60,9 @@ variable "log_retention_days" {
   type        = number
   default     = 14
 }
+
+variable "permissions_boundary_arn" {
+  description = "Optional runtime permissions ceiling; mandatory for the production stack."
+  type        = string
+  default     = null
+}

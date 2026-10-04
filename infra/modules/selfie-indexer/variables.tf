@@ -34,3 +34,9 @@ variable "lambda_artifact_path" {
   type        = string
   description = "lambda artifact path."
 }
+
+variable "permissions_boundary_arn" {
+  description = "Optional runtime permissions ceiling; mandatory for the production stack."
+  type        = string
+  default     = null
+}
