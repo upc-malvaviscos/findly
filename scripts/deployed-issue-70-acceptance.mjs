@@ -16,6 +16,7 @@ import {
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
 import { runPublicEnrollmentSmoke } from './public-enrollment-smoke.mjs';
+import { SYNTHETIC_CLIENT_REPORTS } from './lib/enrollment-error-metrics.mjs';
 import {
   ephemeralCollectionId,
   requireEphemeralCollectionNamespace,
@@ -115,6 +116,39 @@ try {
       grants.push(grant);
     },
   };
+  // The telemetry handler is a separate deployed Lambda. This browser probe
+  // calls the real endpoint with native CORS before the all-handler log check.
+  const telemetryStatuses = await page.evaluate(
+    async ({ api, reports }) => {
+      const post = (body) =>
+        fetch(`${api}/telemetry/enrollment-errors`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then((response) => response.status);
+      const accepted = [];
+      for (const report of reports) accepted.push(await post(report));
+      const rejected = await post({
+        ...reports[0],
+        registrationId: 'synthetic-forbidden-field',
+      });
+      return { accepted, rejected };
+    },
+    { api, reports: SYNTHETIC_CLIENT_REPORTS },
+  );
+  assert.deepEqual(
+    telemetryStatuses.accepted,
+    SYNTHETIC_CLIENT_REPORTS.map(() => 204),
+    'Synthetic enrollment telemetry was not accepted.',
+  );
+  assert.equal(
+    telemetryStatuses.rejected,
+    400,
+    'Enrollment telemetry accepted an extra identifier field.',
+  );
+  console.log(
+    'Public acceptance: enrollment telemetry accepted all three stages and rejected an extra field with native browser CORS.',
+  );
   await runPublicEnrollmentSmoke(options);
   const failed = await item(
     `EVENT#${eventId}`,
