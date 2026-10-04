@@ -30,6 +30,19 @@ describe('reviewable independent OIDC demo roles', () => {
       'arn:aws:sns:eu-west-1:123456789012:findly-demo-alerts',
     );
   });
+  it('lets only the deploy smoke read metrics, read-only and region-scoped', () => {
+    const result = demoRolePolicies(config);
+    const metrics = result.deploy.edge.Statement.find((s) =>
+      s.Action.includes('cloudwatch:GetMetricData'),
+    );
+    expect(metrics?.Action).toEqual(['cloudwatch:GetMetricData']);
+    expect(metrics?.Condition).toEqual({
+      StringEquals: { 'aws:RequestedRegion': 'eu-west-1' },
+    });
+    expect(JSON.stringify(result.destroy)).not.toContain(
+      'cloudwatch:GetMetricData',
+    );
+  });
   it('limits initial API tagging to the approved region and demo request tags without ApiName', () => {
     const result = demoRolePolicies(config);
     const tagging = result.deploy.edge.Statement.find(
@@ -64,7 +77,10 @@ describe('reviewable independent OIDC demo roles', () => {
       );
       expect(functions?.Action).toContain('lambda:ListVersionsByFunction');
       expect(Array.isArray(functions?.Resource)).toBe(true);
-      expect(functions?.Resource).toHaveLength(12);
+      expect(functions?.Resource).toHaveLength(13);
+      expect(functions?.Resource).toContain(
+        'arn:aws:lambda:eu-west-1:123456789012:function:findly-demo-public-telemetry',
+      );
       const pool = role.edge.Statement.find((s) =>
         s.Action.includes('cognito-idp:GetUserPoolMfaConfig'),
       );

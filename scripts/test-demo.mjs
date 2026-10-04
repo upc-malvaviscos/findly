@@ -6,6 +6,10 @@ import { awsCommand as aws } from './lib/aws-command.mjs';
 import { demoConfiguration } from './lib/demo-controls.mjs';
 import { requireDemoTags } from './lib/demo-cleanup.mjs';
 import { runPublicEnrollmentSmoke } from './public-enrollment-smoke.mjs';
+import {
+  SYNTHETIC_CLIENT_REPORTS,
+  waitForEnrollmentErrorMetrics,
+} from './lib/enrollment-error-metrics.mjs';
 
 const config = demoConfiguration(process.env);
 assert.equal(aws('sts', 'get-caller-identity').Account, config.account);
@@ -131,8 +135,65 @@ try {
       (img) => img.complete && img.naturalWidth > 0,
     ),
   );
+  stage = 'enrollment error metrics';
+  // Floor to the minute so the first 60 s datapoint covers the induced errors.
+  const metricsStart = new Date(Math.floor(Date.now() / 60000) * 60000);
+  // From the published origin (native CORS preflight, no routes): one invalid
+  // registration, one poll with a foreign token and one synthetic client
+  // report per stage. Only status codes leave the browser context.
+  const induced = await page.evaluate(
+    async ({ api, eventId, registrationId, reports }) => {
+      const post = (path, body) =>
+        fetch(`${api}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then((response) => response.status);
+      const registrationStatus = await post(
+        `/events/${encodeURIComponent(eventId)}/registrations`,
+        {},
+      );
+      const pollingStatus = await fetch(
+        `${api}/registrations/${encodeURIComponent(registrationId)}/status`,
+        { headers: { 'X-Gallery-Token': 'synthetic-foreign-token' } },
+      ).then((response) => response.status);
+      const reportStatuses = [];
+      for (const report of reports)
+        reportStatuses.push(await post('/telemetry/enrollment-errors', report));
+      const rejectedReport = await post('/telemetry/enrollment-errors', {
+        stage: 'upload',
+        code: 'UPLOAD_FAILED',
+        registrationId,
+      });
+      return {
+        registrationStatus,
+        pollingStatus,
+        reportStatuses,
+        rejectedReport,
+      };
+    },
+    {
+      api: apiEndpoint.replace(/\/$/, ''),
+      eventId,
+      registrationId: registration.registrationId,
+      reports: SYNTHETIC_CLIENT_REPORTS,
+    },
+  );
+  assert.equal(induced.registrationStatus, 400);
+  assert.equal(induced.pollingStatus, 404);
+  assert.deepEqual(
+    induced.reportStatuses,
+    SYNTHETIC_CLIENT_REPORTS.map(() => 204),
+  );
+  // Extra fields (here an identifier) are refused, not logged.
+  assert.equal(induced.rejectedReport, 400);
+  await waitForEnrollmentErrorMetrics({
+    aws,
+    environment: 'demo',
+    startTime: metricsStart,
+  });
   console.log(
-    'Permanent demo verified: HTTPS SPA, Cognito, browser event creation, enrollment/CORS, admin upload, actual matching and private gallery image.',
+    'Permanent demo verified: HTTPS SPA, Cognito, browser event creation, enrollment/CORS, admin upload, actual matching, private gallery image and registration/upload/polling error metrics.',
   );
 } catch {
   // Playwright errors can include URLs with gallery capabilities. Emit only stage.

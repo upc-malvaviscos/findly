@@ -14,6 +14,7 @@ const lifecycleNames = [
   'public-event',
   'public-register',
   'public-status',
+  'public-telemetry',
   'gallery-reader',
   'delete-registration',
   'retention-purger',
@@ -504,6 +505,9 @@ export function demoRolePolicies(config, bindings = {}) {
       aws('cognito-idp', 'userpool/*'),
       resourceTags,
     ),
+    // The demo smoke reads the enrollment error metrics it induces (ADR-018).
+    // GetMetricData has no resource-level scoping; it is read-only.
+    statement(['cloudwatch:GetMetricData'], '*', readRegion),
     statement(['apigateway:POST'], `arn:aws:apigateway:${region}::/apis`, {
       ...requestTags,
       StringEquals: {
