@@ -1,3 +1,7 @@
+import {
+  runSandboxSession,
+  deleteSandboxOrganizer,
+} from './lib/sandbox-cleanup.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 
@@ -87,68 +91,61 @@ const outputs = JSON.parse(commandOutput('terraform', ['output', '-json']));
 const userName = `local-${randomUUID()}`;
 const password = `${randomBytes(24).toString('base64url')}Aa1!`;
 const aws = (args) => commandOutput('aws', args);
-aws([
-  'cognito-idp',
-  'admin-create-user',
-  '--user-pool-id',
-  outputs.cognito_user_pool_id.value,
-  '--username',
-  userName,
-  '--message-action',
-  'SUPPRESS',
-]);
-aws([
-  'cognito-idp',
-  'admin-set-user-password',
-  '--user-pool-id',
-  outputs.cognito_user_pool_id.value,
-  '--username',
-  userName,
-  '--password',
-  password,
-  '--permanent',
-]);
-console.log(`Organizer username: ${userName}`);
-console.log(`Organizer password: ${password}`);
-console.log('The credentials are synthetic and exist only in this sandbox.');
-const vite = spawn(
-  'npm',
-  ['exec', 'vite', '--', '--host', '127.0.0.1', '--port', webPort],
-  {
-    stdio: 'inherit',
-    env: {
-      ...env,
-      VITE_FINDLY_EXECUTION_MODE: 'aws',
-      VITE_API_BASE_URL: outputs.api_endpoint.value,
-      VITE_COGNITO_USER_POOL_ID: outputs.cognito_user_pool_id.value,
-      VITE_COGNITO_CLIENT_ID: outputs.cognito_client_id.value,
-      VITE_COGNITO_REGION: region,
-    },
-  },
-);
-let userDeleted = false;
-const deleteTemporaryUser = () => {
-  if (userDeleted) return;
-  userDeleted = true;
-  try {
+await runSandboxSession({
+  createUser: () =>
     aws([
       'cognito-idp',
-      'admin-delete-user',
+      'admin-create-user',
       '--user-pool-id',
       outputs.cognito_user_pool_id.value,
       '--username',
       userName,
+      '--message-action',
+      'SUPPRESS',
+    ]),
+  configureUser: () => {
+    aws([
+      'cognito-idp',
+      'admin-set-user-password',
+      '--user-pool-id',
+      outputs.cognito_user_pool_id.value,
+      '--username',
+      userName,
+      '--password',
+      password,
+      '--permanent',
     ]);
-  } catch {
-    console.error(
-      'Could not remove the temporary organizer; run dev:aws-destroy.',
+    console.log(`Organizer username: ${userName}`);
+    console.log(`Organizer password: ${password}`);
+    console.log(
+      'The credentials are synthetic and exist only in this sandbox.',
     );
-  }
-};
-const stop = () => vite.kill('SIGTERM');
-process.on('SIGINT', stop);
-process.on('SIGTERM', stop);
-vite.on('exit', (code) => {
-  deleteTemporaryUser();
-  process.exit(code ?? 0);
+  },
+  startServer: () =>
+    spawn(
+      'npm',
+      ['exec', 'vite', '--', '--host', '127.0.0.1', '--port', webPort],
+      {
+        stdio: 'inherit',
+        env: {
+          ...env,
+          VITE_FINDLY_EXECUTION_MODE: 'aws',
+          VITE_API_BASE_URL: outputs.api_endpoint.value,
+          VITE_COGNITO_USER_POOL_ID: outputs.cognito_user_pool_id.value,
+          VITE_COGNITO_CLIENT_ID: outputs.cognito_client_id.value,
+          VITE_COGNITO_REGION: region,
+        },
+      },
+    ),
+  deleteUser: () =>
+    deleteSandboxOrganizer(() =>
+      aws([
+        'cognito-idp',
+        'admin-delete-user',
+        '--user-pool-id',
+        outputs.cognito_user_pool_id.value,
+        '--username',
+        userName,
+      ]),
+    ),
 });
