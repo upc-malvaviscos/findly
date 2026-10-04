@@ -21,6 +21,15 @@ identificador como `requestId`, lo que permite localizar en los logs el fallo qu
 reporta un usuario. Cada Lambda declara su grupo de logs con retención de 14
 días, para que el almacenamiento no crezca sin límite.
 
+Los errores de la inscripción pública se miden en sus tres etapas (ADR-018).
+`RegistrationErrors` y `PollingErrors` cuentan las respuestas de error de las
+Lambdas a partir de sus logs. La subida de la selfie, en cambio, va del navegador
+directamente a S3, y los fallos de red o CORS nunca llegan al servidor. Para
+estos casos, el cliente envía a `POST /telemetry/enrollment-errors` sólo la etapa
+y un código de una lista cerrada. La métrica `ClientEnrollmentErrors` los cuenta
+con la dimensión `Stage`. La ruta tiene throttling propio, y el cliente envía como
+mucho 20 reportes por sesión.
+
 La cola de fotos tiene una DLQ con una alarma que se activa con un mensaje o más.
 La alarma y el presupuesto publican en un único topic SNS, que reenvía a un correo
 configurado en el despliegue (nunca versionado) una vez que su destinatario
