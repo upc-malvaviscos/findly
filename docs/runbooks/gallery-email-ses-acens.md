@@ -73,10 +73,19 @@ Configurar en el entorno elegido:
 - `email_identity_arn`: ARN verificado en eu-west-1.
 - `email_from_address`: `info@findly.barcelona`.
 - `email_gallery_origin`: origen HTTPS propio que sirva `/gallery`, por
-  ejemplo `https://findly.barcelona` después de configurar DNS/certificado/web.
+  `https://www.findly.barcelona` después de configurar DNS/certificado/web.
 
-El dominio web propio no se configura en esta entrega; verificar esa ruta antes
-de habilitar el correo. El ARN vacío deshabilita los recursos y rutas de envío.
+ADR-020 y #98 preparan el certificado y la identidad mediante el workflow
+manual `configure-production-domain.yml` desde main, con environment
+production limitado a main y rol OIDC `findly-shared-config`. Su input `apply`
+es falso por defecto. La sesión administrativa aprobada configura el rol con
+`FINDLY_AWS_ACCOUNT_ID` y `node scripts/configure-shared-config-role.mjs --apply`;
+sin `--apply` sólo genera documentos. No publicar planes ni estados.
+Añadir en Acens los outputs públicos DKIM/MAIL FROM y el CNAME de validación
+ACM generado por `infra/web-certificate`; conservarlo para renovación.
+No apuntar `www` a CloudFront hasta preparar y comprobar su distribución.
+Verificar `/gallery` en HTTPS antes de habilitar envíos. El ARN vacío
+deshabilita los recursos y rutas de envío.
 El formulario sigue exigiendo email aunque el envío esté deshabilitado.
 No habilitar este módulo en CI efímera para enviar a terceros; usar simulador
 SES o buzones de prueba expresamente autorizados en una prueba AWS futura.

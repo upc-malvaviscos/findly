@@ -2,6 +2,16 @@
 
 <!-- requirement: REQ-MANUAL-GALLERY-EMAIL -->
 
+<!-- requirement: REQ-PRODUCTION-DOMAIN -->
+
+La configuración externa continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
+y ADR-020: `www.findly.barcelona`
+para web/galerías, DNS en Acens, identidad SES compartida y certificado ACM
+separado. El bootstrap manual por OIDC sólo prepara estos recursos. No acredita
+salida del sandbox, permisos del stack, recepción ni apertura; estos criterios
+permanecen pendientes. Producción se despliega tras configurar el correo.
+Evidencia: [configuración SES y producción](../docs/evidence/issue-98-ses-production.md).
+
 ## Objetivo
 
 Exigir email en la inscripción y permitir que el administrador envíe por evento

@@ -1,5 +1,12 @@
 # 5. Implementación y CI/CD
 
+La preparación de producción de #98 incorpora el workflow manual compartido
+de ADR-020: identidad SES y certificado de `www.findly.barcelona` en estados
+independientes, rol OIDC limitado y environment production restringido a main.
+Este bootstrap no equivale al despliegue del stack ni a entregabilidad real;
+los resultados y pendientes constan en la evidencia de #98. La publicación
+de producción queda condicionada a configurar el correo.
+
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la
 metodología del capítulo 2. React + Vite y TypeScript compilan la SPA;

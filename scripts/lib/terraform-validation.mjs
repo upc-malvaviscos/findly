@@ -6,6 +6,7 @@ import { basename, join } from 'node:path';
 export const terraformRoots = [
   'infra/bootstrap',
   'infra/email-identity',
+  'infra/web-certificate',
   'infra/environments/sandbox',
   'infra/environments/demo',
   'infra/environments/production',
