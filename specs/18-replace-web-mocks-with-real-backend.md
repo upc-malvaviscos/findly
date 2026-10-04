@@ -96,8 +96,9 @@ verificó además la SPA de demo publicada mediante HTTPS/OAC, con configuració
 AWS real, inscripción pública y matching desde navegador sin interceptar
 respuestas y con datos sintéticos. Véase la evidencia de issue #15.
 
-Métricas de error (ADR-018, rama `feature/issue-22-enrollment-error-metrics`).
-Implementado y validado en local:
+Métricas de error (ADR-018), integradas en PR #93 y verificadas en la demo
+publicada con el run
+[37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959):
 
 - `POST /telemetry/enrollment-errors` recibe del cliente `{ stage, code }` con
   enums cerrados.
@@ -112,9 +113,17 @@ Implementado y validado en local:
   antes de exigir logs de todos los handlers. No sustituye la prueba de métricas
   de demo.
 
-Pendiente, sin cerrar la issue #22: ejecutar el despliegue de demo con el smoke
-ampliado y registrar el run como evidencia AWS. Las pruebas unitarias, E2E y de
-plan no acreditan el entorno desplegado.
+El smoke ampliado y una lectura posterior de CloudWatch acreditan datos en
+las cinco series de demo: `RegistrationErrors`, `PollingErrors` y
+`ClientEnrollmentErrors` por las tres etapas. Se rechazan los campos extra y
+los logs de telemetría no contienen los identificadores sensibles revisados.
+El ciclo y el borrado autorizado se siguen en
+[la evidencia posterior a PR #93](../docs/evidence/2026-10-04-pr-93-demo-acceptance.md).
+Las pruebas unitarias, E2E y de plan conservan su evidencia independiente.
+El run [37199188358](https://github.com/upc-malvaviscos/findly/actions/runs/37199188358)
+acredita el borrado del stack y datos de demo con el backend compartido
+preservado. Los criterios de #22 quedan verificados en su alcance original;
+las nuevas capacidades MVP se siguen en #86–#89.
 
 ## Contrato público actualizado (issue #70)
 

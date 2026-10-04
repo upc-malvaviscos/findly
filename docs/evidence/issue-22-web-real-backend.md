@@ -38,7 +38,7 @@ en la rama `feature/issue-22-enrollment-error-metrics`.
 | Rol de demo: `GetMetricData` regional sólo en deploy     | `tests/infra/demo-role-policies.test.ts`                           |
 | Comprobación de las cinco series en el smoke             | `tests/infra/enrollmentErrorMetrics.test.ts`                       |
 | Fallo de PUT reportado como `upload`/`UPLOAD_HTTP_4XX`   | `e2e/foundation.spec.ts` (backend HTTP simulado, tres navegadores) |
-| Métricas en demo desplegada                              | Pendiente: deploy de demo con `scripts/test-demo.mjs` ampliado     |
+| Métricas en demo desplegada                              | Run 37198156959: cinco series verificadas por el smoke ampliado    |
 
 Validación local del 2026-10-04:
 
@@ -54,12 +54,12 @@ Validación local del 2026-10-04:
 - `npm run test:e2e:local` (Floci) no se ejecutó porque Docker no estaba
   disponible.
 
-Ninguna de estas pruebas es evidencia de AWS. La issue #22 permanece abierta
-hasta ejecutar el deploy de demo con el smoke ampliado. Ese smoke provoca un
+Ninguna de estas pruebas locales es evidencia de AWS. El smoke ampliado provoca un
 registro inválido, un polling con un token ajeno y un reporte por etapa desde el
 origen publicado. Después comprueba con `GetMetricData` que `RegistrationErrors`,
 `PollingErrors` y `ClientEnrollmentErrors` (registration/upload/polling) tienen
-al menos un dato. Tras el smoke se ejecuta la destrucción autorizada de la demo.
+al menos un dato. El run 37198156959 pasó esas aserciones en demo el 2026-10-04.
+El ciclo posterior de destrucción se registra en la evidencia específica.
 
 ## Corrección de aceptación efímera de PR #93 — 2026-10-04
 
@@ -92,5 +92,12 @@ los handlers declarados en el módulo Terraform y rechaza una clave desconocida.
 La revisión administrativa de los roles compara las políticas activas con las
 generadas: añade exclusivamente la función/rol de telemetría al inventario y
 `cloudwatch:GetMetricData` en deploy, limitado a `eu-west-1`. La demo tenía
-estado vacío antes del ciclo. La aceptación de métricas y el borrado posterior
-siguen pendientes hasta registrar los nuevos runs AWS.
+estado vacío antes del ciclo. La aceptación de métricas pasó en
+[37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959).
+La corrección del inventario se integró en PR #94 tras pasar el run efímero
+37197959200 y su destrucción de 111 recursos. El detalle de verificaciones,
+métricas y borrado está en
+[la evidencia del ciclo](2026-10-04-pr-93-demo-acceptance.md).
+El run 37199188358 completó la destrucción y verificación del inventario de
+114 recursos, con backend y 41 estados ajenos conservados. Los criterios
+originales de #22 quedan verificados; #13 mantiene Budgets/correo pendientes.

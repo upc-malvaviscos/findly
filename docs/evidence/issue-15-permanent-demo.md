@@ -164,4 +164,15 @@ las correcciones, pruebas y documentación; su integración pasa por los checks
 obligatorios y la fusión automática. #22 conserva únicamente su criterio de
 métricas pendiente; su smoke y publicación ya tienen evidencia real.
 
+## Ciclo posterior a PR #93 — 2026-10-04
+
+El run 37198156959 acredita también las cinco series de métricas de inscripción
+de ADR-018. PR #94 incorpora `telemetry` al inventario de destrucción, sin
+ampliar recursos ajenos ni permisos de CI. La preparación, revisión de roles,
+aceptación de demo y seguimiento del borrado están en
+[la evidencia de este ciclo](2026-10-04-pr-93-demo-acceptance.md).
+El run 37199188358 completa la destrucción de los 114 recursos y comprueba
+ausencia de stack/colecciones y estado vacío. Los 41 estados ajenos capturados
+antes del ciclo quedan intactos; el backend conserva sus protecciones.
+
 Referencias: spec 14, ADR-017 y `docs/runbooks/permanent-demo.md`.
