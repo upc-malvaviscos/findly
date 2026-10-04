@@ -15,6 +15,11 @@ La preparación del despliegue añade aislamiento OIDC/estado/buckets y un lími
 de permisos obligatorio para las funciones de producción. SES/DKIM/MAIL FROM,
 SPF/DMARC, acceso regional y certificado emitido se comprueban antes del plan;
 el smoke HTTPS posterior no sustituye las pruebas reales de entregabilidad.
+El operador temporal y el workflow de aceptación de #98 están preparados para
+fixtures sintéticas, recuperación durable, DLQ y feedback, con limpieza propia
+y permisos de seis horas. La recepción/apertura requiere confirmación de ambos
+proveedores antes de revocar los enlaces. Su implementación local no completa
+estos criterios de AWS ni acredita un crash original durante el envío.
 
 ## Objetivo
 
