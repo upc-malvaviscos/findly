@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  MAX_ENROLLMENT_ERROR_REPORTS,
   createRegistration,
   getEvent,
   getRegistrationStatus,
+  reportEnrollmentError,
+  resetEnrollmentErrorReports,
 } from '../../src/web/realApi';
 
 function jsonResponse(body: unknown, status = 200) {
@@ -143,5 +146,63 @@ describe('real API adapter', () => {
     await expect(
       getRegistrationStatus('reg-1', 'synthetic-token'),
     ).rejects.toThrow('UNKNOWN_STATUS');
+  });
+});
+
+describe('client enrollment error reports (ADR-018)', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/');
+    resetEnrollmentErrorReports();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('posts only the stage and a closed code to the telemetry route', () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    reportEnrollmentError('upload', new Error('UPLOAD_FAILED_403'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.example.com/telemetry/enrollment-errors');
+    expect(init).toMatchObject({ method: 'POST', keepalive: true });
+    expect(JSON.parse(init.body as string)).toEqual({
+      stage: 'upload',
+      code: 'UPLOAD_HTTP_4XX',
+    });
+  });
+
+  it('never sends free-text error messages', () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    reportEnrollmentError('registration', new Error('user@example.com failed'));
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.body).toBe(
+      JSON.stringify({ stage: 'registration', code: 'UNKNOWN' }),
+    );
+  });
+
+  it('caps reports per session and never throws when telemetry fails', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    for (let index = 0; index < MAX_ENROLLMENT_ERROR_REPORTS + 5; index += 1)
+      expect(() =>
+        reportEnrollmentError('polling', new Error('NETWORK_ERROR')),
+      ).not.toThrow();
+    await Promise.resolve();
+    expect(fetchMock).toHaveBeenCalledTimes(MAX_ENROLLMENT_ERROR_REPORTS);
+  });
+
+  it('does nothing without a configured backend', () => {
+    vi.stubEnv('VITE_API_BASE_URL', '');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    reportEnrollmentError('upload', new Error('UPLOAD_FAILED'));
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

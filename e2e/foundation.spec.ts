@@ -6,6 +6,7 @@ const UPLOAD_URL = 'https://s3.findly.test/selfies/reg-e2e';
 /** HTTP mock that follows the real backend contract (spec 18); synthetic data only. */
 async function mockBackend(page: Page) {
   let statusReads = 0;
+  const telemetryReports: unknown[] = [];
   await page.route(`${API}/**`, async (route) => {
     const request = route.request();
     const { pathname } = new URL(request.url());
@@ -64,6 +65,13 @@ async function mockBackend(page: Page) {
         status: statusReads >= 2 ? 'ENROLLED' : 'PROCESSING',
       });
     }
+    if (pathname === '/telemetry/enrollment-errors') {
+      telemetryReports.push(request.postDataJSON());
+      return route.fulfill({
+        status: 204,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      });
+    }
     if (pathname === '/gallery')
       return json({
         eventId: 'demo-2026',
@@ -89,10 +97,12 @@ async function mockBackend(page: Page) {
       headers: { 'Access-Control-Allow-Origin': '*' },
     });
   });
+  return telemetryReports;
 }
 
+let telemetryReports: unknown[] = [];
 test.beforeEach(async ({ page }) => {
-  await mockBackend(page);
+  telemetryReports = await mockBackend(page);
 });
 
 test('renders the public enrollment page', async ({ page }) => {
@@ -123,6 +133,38 @@ test('completes the public selfie enrollment flow', async ({ page }) => {
   await expect(page.getByText('Registro completado')).toBeVisible({
     timeout: 10000,
   });
+});
+
+test('reports a failed selfie upload as a stage and code only (ADR-018)', async ({
+  page,
+}) => {
+  // Registered after the default handler, so it takes precedence: S3 refuses
+  // the signed PUT as it would for an expired or tampered URL.
+  await page.route(UPLOAD_URL, (route) =>
+    route.fulfill({
+      status: 403,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    }),
+  );
+  await page.goto('/?event=demo-2026');
+  await page.getByLabel(/Email para tu galería/).fill('ada@example.com');
+  await page.getByLabel(/tratamiento biométrico/).check();
+  await page.getByLabel(/términos de privacidad/).check();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'selfie.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from('synthetic selfie'),
+  });
+  await page.getByRole('button', { name: 'Enviar mi selfie' }).click();
+  await expect(
+    page.getByText('No hemos podido completar la subida.', { exact: false }),
+  ).toBeVisible();
+  await expect
+    .poll(() => telemetryReports)
+    .toEqual([{ stage: 'upload', code: 'UPLOAD_HTTP_4XX' }]);
+  expect(JSON.stringify(telemetryReports)).not.toMatch(
+    /ada@example|reg-e2e|synthetic-e2e-token|s3\.findly/,
+  );
 });
 
 test('protects the organizer area and supports logout', async ({ page }) => {
