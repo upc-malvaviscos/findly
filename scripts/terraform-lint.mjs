@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 // shell loop in package.json so it also runs under cmd.exe on Windows.
 const roots = [
   'bootstrap',
+  'email-identity',
   'environments/sandbox',
   'environments/demo',
   'environments/production',

@@ -9,7 +9,7 @@ export interface EventsResponse {
 }
 
 export interface RegistrationRequest {
-  email?: string;
+  email: string;
   consentBiometrics: true;
   consentTerms: true;
 }
@@ -69,4 +69,16 @@ export interface PhotoUploadResponse {
     uploadUrl: string;
     expiresInSeconds: 300;
   }>;
+}
+
+export interface GalleryEmailOperation {
+  operationId: string;
+  status: 'RUNNING' | 'COMPLETED' | 'STALLED';
+  accepted: number;
+  skipped: number;
+  missingEmail: number;
+  failed: number;
+  uncertain: number;
+  bounced: number;
+  complained: number;
 }

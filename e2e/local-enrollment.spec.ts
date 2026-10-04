@@ -27,7 +27,13 @@ test('Floci public registration capability and erasure use actual local handlers
   expect(denied.status()).toBe(400);
   const enrolled = await request.post(
     `${api}/events/${eventId}/registrations`,
-    { data: { consentBiometrics: true, consentTerms: true } },
+    {
+      data: {
+        email: 'synthetic@example.com',
+        consentBiometrics: true,
+        consentTerms: true,
+      },
+    },
   );
   expect(enrolled.status()).toBe(201);
   const { registrationId, galleryToken, expiresInSeconds } =

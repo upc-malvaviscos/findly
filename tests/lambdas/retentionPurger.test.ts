@@ -48,6 +48,12 @@ beforeEach(() => {
 
 const recentDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
 
+function mockEmptyEmailState() {
+  for (const prefix of ['TOKEN#', 'EMAIL#'])
+    dynamoMock
+      .on(QueryCommand, { ExpressionAttributeValues: { ':prefix': prefix } })
+      .resolves({ Items: [] });
+}
 describe('retentionPurger lambda', () => {
   it('purges nothing when no events are expired', async () => {
     dynamoMock.on(QueryCommand, { IndexName: 'GSI2' }).resolves({
@@ -201,13 +207,17 @@ describe('retentionPurger lambda', () => {
       });
     dynamoMock
       .on(QueryCommand, { ExpressionAttributeValues: { ':pk': 'REG#reg-new' } })
-      .resolvesOnce({
-        Items: [{ PK: 'REG#reg-new', SK: 'MATCH#1' }],
-        LastEvaluatedKey: { PK: 'REG#reg-new', SK: 'MATCH#1' },
-      })
-      .resolvesOnce({ Items: [{ PK: 'REG#reg-new', SK: 'MATCH#2' }] });
+      .callsFake((input) =>
+        input.ExclusiveStartKey
+          ? { Items: [{ PK: 'REG#reg-new', SK: 'MATCH#2' }] }
+          : {
+              Items: [{ PK: 'REG#reg-new', SK: 'MATCH#1' }],
+              LastEvaluatedKey: { PK: 'REG#reg-new', SK: 'MATCH#1' },
+            },
+      );
     rekognitionMock.on(DeleteCollectionCommand).resolves({});
     s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+    mockEmptyEmailState();
     await retentionPurger();
     const keys = dynamoMock
       .commandCalls(DeleteCommand)

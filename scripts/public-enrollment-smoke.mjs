@@ -40,7 +40,11 @@ export async function runPublicEnrollmentSmoke({
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ consentBiometrics: true, consentTerms: true }),
+      body: JSON.stringify({
+        email: 'synthetic@example.com',
+        consentBiometrics: true,
+        consentTerms: true,
+      }),
     },
   );
   if (

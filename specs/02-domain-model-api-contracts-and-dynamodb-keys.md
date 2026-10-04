@@ -52,7 +52,7 @@ DynamoDB TTL no puede eliminarlo antes de la limpieza externa.
 
 ### 1. Registro Público (`POST /events/{eventId}/registrations`)
 
-- **Request Body**: `{ email?: string; consentBiometrics: true; consentTerms: true; }`
+- **Request Body**: `{ email: string; consentBiometrics: true; consentTerms: true; }`
 - **Response (201 Created)**: `{ registrationId: string; galleryToken: string; uploadUrl: string; expiresInSeconds: number; }`
 
 ### 0. Descubrimiento de eventos públicos (`GET /events`)
@@ -159,3 +159,19 @@ sin TTL se crean en una única transacción. El locator conserva IDs faciales
 conocidos; ListFaces paginado recupera la ventana IndexFaces → persistencia.
 Polling no devuelve estado de inscripciones marcadas para borrado.
 Véanse ADR-013, ADR-014 y ADR-015; los tests del SDK no sustituyen la verificación S3 403/412.
+
+## Envíos de galería (spec 20, ADR-019)
+
+Email obligatorio en nuevas inscripciones; registros antiguos mantienen email
+opcional y sus galerías. Operaciones manuales: `EVENT#id/EMAIL#uuid`, con
+contadores agregados, revisión y checkpoint. Estado individual:
+`REG#id/EMAIL#uuid`, sin email ni URL. Relación inversa de capacidades:
+`REG#id/TOKEN#hash`, sin TTL hasta limpieza explícita. Tokens emitidos por correo
+conservan la menor expiración evento/inscripción y requieren inscripción vigente
+al abrirse. DELETE y purga revocan los nuevos tokens y limpian estado individual.
+
+POST `/admin/events/{eventId}/gallery-emails` acepta `{ operationId: UUID }` y
+responde 202. GET de esa ruta con `/{operationId}` muestra RUNNING, COMPLETED o
+STALLED (sin avance durante diez minutos) y contadores sin destinatarios.
+Cognito/JWT protege ambas rutas; el módulo se habilita explícitamente por entorno.
+La issue #49 sigue abierta; el acuerdo de #86 no cierra su análisis global.

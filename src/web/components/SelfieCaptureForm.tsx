@@ -30,7 +30,7 @@ function describeStatus(
     case 'PROCESSING':
       return 'Estamos comprobando tu selfie. Esto tardará solo unos instantes.';
     case 'ENROLLED':
-      return 'Tu selfie está lista. Te enviaremos el enlace a tu galería privada por email.';
+      return 'Tu selfie está lista. Puedes abrir tu galería. El organizador podrá enviarte el enlace por email cuando haya fotografías.';
     case 'FAILED':
       return (
         failureReason ??
@@ -61,7 +61,7 @@ export function SelfieCaptureForm({ eventId }: Props) {
     const nextErrors: FieldErrors = {};
     const email = values.email.trim();
     const parsed = enrollmentFormSchema.safeParse({
-      email: email === '' ? undefined : email,
+      email,
       consentBiometrics: values.consentBiometrics,
       consentTerms: values.consentTerms,
     });
@@ -86,7 +86,7 @@ export function SelfieCaptureForm({ eventId }: Props) {
     setProgress(0);
     try {
       const registration = await createRegistration(eventId, {
-        email: email === '' ? undefined : email,
+        email,
         consentBiometrics: true,
         consentTerms: true,
       });
@@ -145,9 +145,10 @@ export function SelfieCaptureForm({ eventId }: Props) {
         </div>
         <div className="form-grid">
           <label className="field">
-            <span>Email para tu galería (opcional)</span>
+            <span>Email para tu galería</span>
             <input
               type="email"
+              required
               value={values.email}
               onChange={(event) =>
                 setValues({ ...values, email: event.target.value })

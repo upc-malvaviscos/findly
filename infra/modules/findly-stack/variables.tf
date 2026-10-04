@@ -82,3 +82,23 @@ variable "web_certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "email_identity_arn" {
+  description = "Verified SES identity in eu-west-1; empty disables gallery email. Provision identity separately from environment teardown."
+  type        = string
+  default     = ""
+}
+variable "email_from_address" {
+  description = "Approved gallery sender."
+  type        = string
+  default     = ""
+}
+variable "email_gallery_origin" {
+  description = "Own HTTPS origin with a working /gallery route. Verify before enabling email."
+  type        = string
+  default     = "https://findly.barcelona"
+  validation {
+    condition     = can(regex("^https://[a-zA-Z0-9.-]+$", var.email_gallery_origin))
+    error_message = "Gallery origin must be an HTTPS origin without a path."
+  }
+}

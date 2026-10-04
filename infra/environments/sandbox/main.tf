@@ -35,6 +35,9 @@ provider "aws" {
 }
 
 module "findly" {
+  email_identity_arn   = var.email_identity_arn
+  email_from_address   = var.email_from_address
+  email_gallery_origin = var.email_gallery_origin
   enable_web           = var.enable_web
   web_bucket_name      = var.web_bucket_name
   web_domain_name      = var.web_domain_name

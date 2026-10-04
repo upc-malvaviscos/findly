@@ -69,7 +69,7 @@ describe('isolated Terraform validation', () => {
       return ok;
     });
     validateTerraform({ repository: repo, run });
-    expect(run).toHaveBeenCalledTimes(10);
+    expect(run).toHaveBeenCalledTimes(terraformRoots.length * 2);
     directories.forEach((path) => expect(existsSync(path)).toBe(false));
     for (const root of terraformRoots) {
       expect(

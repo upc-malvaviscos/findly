@@ -13,6 +13,7 @@ import {
   MATCH_SK_PREFIX,
   photoKey,
   registrationPartitionKey,
+  registrationKey,
 } from '../shared/lib/dynamoKeys';
 import {
   withRequestLog,
@@ -104,13 +105,17 @@ async function serveGallery(
       new GetCommand({
         TableName: tableName,
         Key: galleryTokenKey(tokenHash),
-        ProjectionExpression: 'registrationId, eventId, expiresAt',
+        ProjectionExpression:
+          'registrationId, eventId, expiresAt, requireRegistration',
         ConsistentRead: true,
       }),
     )
   ).Item as
     | Partial<
-        Pick<GalleryTokenEntity, 'registrationId' | 'eventId' | 'expiresAt'>
+        Pick<
+          GalleryTokenEntity,
+          'registrationId' | 'eventId' | 'expiresAt' | 'requireRegistration'
+        >
       >
     | undefined;
 
@@ -125,6 +130,20 @@ async function serveGallery(
   request.annotate({ eventId });
   if (Date.parse(expiresAt) <= Date.now())
     return fail(410, 'GALLERY_EXPIRED', 'Gallery link has expired.');
+
+  if (tokenRecord.requireRegistration) {
+    const registration = (
+      await dynamo.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: registrationKey(eventId, registrationId),
+          ConsistentRead: true,
+        }),
+      )
+    ).Item;
+    if (!registration || registration.erasureRequestedAt)
+      return fail(404, 'GALLERY_NOT_FOUND', 'Gallery not found.');
+  }
 
   const matches = (
     await dynamo.send(

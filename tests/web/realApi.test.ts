@@ -70,7 +70,7 @@ describe('real API adapter', () => {
     vi.stubGlobal('fetch', fetchMock);
     await expect(
       createRegistration('demo-2026', {
-        email: 'ada@example.com',
+        email: 'synthetic@example.com',
         consentBiometrics: true,
         consentTerms: true,
       }),
@@ -79,6 +79,7 @@ describe('real API adapter', () => {
     expect(url).toBe('https://api.example.com/events/demo-2026/registrations');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toMatchObject({
+      email: 'synthetic@example.com',
       consentBiometrics: true,
       consentTerms: true,
     });
@@ -98,6 +99,7 @@ describe('real API adapter', () => {
     );
     await expect(
       createRegistration('demo-2026', {
+        email: 'synthetic@example.com',
         consentBiometrics: true,
         consentTerms: true,
       }),

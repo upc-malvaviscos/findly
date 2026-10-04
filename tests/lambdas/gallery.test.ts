@@ -204,3 +204,52 @@ describe('gallery structured logging', () => {
     expect(logs.lines.join('')).not.toContain('secret-token');
   });
 });
+
+describe('emailed gallery capabilities', () => {
+  it.each([undefined, { erasureRequestedAt: 'synthetic' }])(
+    'rejects capability after registration removal or revocation (%j)',
+    async (registration) => {
+      dynamoMock.on(GetCommand).callsFake((input) =>
+        input.Key?.PK.startsWith('TOKEN#')
+          ? {
+              Item: {
+                registrationId: 'synthetic-reg',
+                eventId: 'synthetic-event',
+                expiresAt: '2099-01-01T00:00:00Z',
+                requireRegistration: true,
+              },
+            }
+          : { Item: registration },
+      );
+      const result = await gallery({
+        queryStringParameters: { token: 'synthetic-email-token' },
+      });
+      expect(result.statusCode).toBe(404);
+      expect(dynamoMock.commandCalls(QueryCommand)).toHaveLength(0);
+    },
+  );
+  it('opens a current emailed capability without requiring the original token', async () => {
+    dynamoMock.on(GetCommand).callsFake((input) =>
+      input.Key?.PK.startsWith('TOKEN#')
+        ? {
+            Item: {
+              registrationId: 'synthetic-reg',
+              eventId: 'synthetic-event',
+              expiresAt: '2099-01-01T00:00:00Z',
+              requireRegistration: true,
+            },
+          }
+        : input.Key?.SK.startsWith('REG#')
+          ? { Item: { registrationId: 'synthetic-reg' } }
+          : { Item: { name: 'Synthetic' } },
+    );
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    expect(
+      (
+        await gallery({
+          queryStringParameters: { token: 'synthetic-email-token' },
+        })
+      ).statusCode,
+    ).toBe(200);
+  });
+});

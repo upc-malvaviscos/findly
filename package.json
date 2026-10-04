@@ -42,13 +42,16 @@
     "sync:check": "node scripts/check-documentation-sync.mjs",
     "harness:check": "node scripts/check-local-validation-environment.mjs",
     "harness:check:e2e": "node scripts/check-local-validation-environment.mjs --e2e",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run terraform:format && npm run terraform:validate && npm run terraform:test:hosting && npm run security && npm run sync:check",
-    "prepare": "husky"
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run terraform:format && npm run terraform:validate && npm run terraform:test:hosting && npm run terraform:test:email && npm run security && npm run sync:check",
+    "prepare": "husky",
+    "terraform:test:email": "node scripts/test-gallery-email-infra.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1131.0",
     "@aws-sdk/client-rekognition": "^3.1142.0",
     "@aws-sdk/client-s3": "^3.1141.0",
+    "@aws-sdk/client-sesv2": "^3.1146.0",
+    "@aws-sdk/client-sqs": "^3.1146.0",
     "@aws-sdk/lib-dynamodb": "^3.1126.0",
     "@aws-sdk/s3-request-presigner": "^3.1131.0",
     "@vitejs/plugin-react": "6.1.1",

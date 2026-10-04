@@ -40,6 +40,12 @@ function request(registrationId: string, token: string) {
   };
 }
 
+function mockEmptyEmailState() {
+  for (const prefix of ['TOKEN#', 'EMAIL#'])
+    dynamoMock
+      .on(QueryCommand, { ExpressionAttributeValues: { ':prefix': prefix } })
+      .resolves({ Items: [] });
+}
 describe('deleteRegistration lambda', () => {
   it('rejects requests missing the registrationId or the token header', async () => {
     const missingId = await deleteRegistration({
@@ -57,6 +63,7 @@ describe('deleteRegistration lambda', () => {
 
   it('returns not found without revealing the token when the token is unknown', async () => {
     dynamoMock.on(GetCommand).resolves({});
+    mockEmptyEmailState();
     const result = await deleteRegistration(request('reg-1', 'secret-token'));
     expect(result.statusCode).toBe(404);
     expect(result.body).not.toContain('secret-token');
@@ -66,6 +73,7 @@ describe('deleteRegistration lambda', () => {
     dynamoMock
       .on(GetCommand)
       .resolves({ Item: { registrationId: 'reg-other', eventId: 'evt-1' } });
+    mockEmptyEmailState();
     const result = await deleteRegistration(request('reg-1', 'token'));
     expect(result.statusCode).toBe(404);
   });
@@ -90,6 +98,7 @@ describe('deleteRegistration lambda', () => {
     rekognitionMock.on(DeleteFacesCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
 
+    mockEmptyEmailState();
     const result = await deleteRegistration(request('reg-1', 'token'));
 
     expect(result.statusCode).toBe(204);
@@ -128,20 +137,26 @@ describe('deleteRegistration lambda', () => {
     const cursor = { PK: 'REG#reg-1', SK: 'MATCH#photo-1' };
     dynamoMock
       .on(QueryCommand)
-      .resolvesOnce({
-        Items: [{ photoId: 'photo-1' }],
-        LastEvaluatedKey: cursor,
-      })
-      .resolvesOnce({ Items: [{ photoId: 'photo-2' }] });
+      .callsFake((input) =>
+        input.ExclusiveStartKey
+          ? { Items: [{ photoId: 'photo-2' }] }
+          : { Items: [{ photoId: 'photo-1' }], LastEvaluatedKey: cursor },
+      );
     dynamoMock.on(DeleteCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
+    mockEmptyEmailState();
     const result = await deleteRegistration({
       pathParameters: { registrationId: 'reg-1' },
       headers: { 'X-Gallery-Token': 'token' },
     });
     expect(result.statusCode).toBe(204);
     expect(
-      dynamoMock.commandCalls(QueryCommand)[1]?.args[0].input.ExclusiveStartKey,
+      dynamoMock
+        .commandCalls(QueryCommand)
+        .filter(
+          (call) =>
+            call.args[0].input.ExpressionAttributeValues?.[':sk'] === 'MATCH#',
+        )[1]?.args[0].input.ExclusiveStartKey,
     ).toEqual(cursor);
     expect(
       dynamoMock
@@ -366,6 +381,7 @@ describe('deleteRegistration lambda', () => {
     dynamoMock.on(DeleteCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
 
+    mockEmptyEmailState();
     const result = await deleteRegistration(request('reg-1', 'token'));
 
     expect(result.statusCode).toBe(204);
@@ -387,6 +403,7 @@ describe('deleteRegistration lambda', () => {
     noSuchKey.name = 'NoSuchKey';
     s3Mock.on(DeleteObjectCommand).rejects(noSuchKey);
 
+    mockEmptyEmailState();
     const result = await deleteRegistration(request('reg-1', 'token'));
 
     expect(result.statusCode).toBe(204);
@@ -446,6 +463,7 @@ describe('deleteRegistration structured logging', () => {
     rekognitionMock.on(DeleteFacesCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
 
+    mockEmptyEmailState();
     const result = await deleteRegistration({
       ...request('reg-1', 'gallery-token-secret'),
       requestContext: { requestId: 'apigw-req-1' },
@@ -477,6 +495,7 @@ describe('deleteRegistration structured logging', () => {
 
   it('returns the correlation ID as requestId so a client report can be traced', async () => {
     dynamoMock.on(GetCommand).resolves({});
+    mockEmptyEmailState();
     const result = await deleteRegistration(
       {
         ...request('reg-1', 'secret-token'),

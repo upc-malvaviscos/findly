@@ -1,6 +1,7 @@
 import { apiClient, apiUrl } from './apiClient';
 import { executionMode } from './executionMode';
 import type {
+  GalleryEmailOperation,
   AdminEvent,
   AdminEventsResponse,
   CreateAdminEventRequest,
@@ -66,5 +67,56 @@ export async function requestPhotoUploads(
       `/admin/events/${encodeURIComponent(eventId)}/photos/uploads`,
     ),
     { method: 'POST', body: JSON.stringify(request), token },
+  );
+}
+
+const mockEmailOperations = new Map<string, GalleryEmailOperation>();
+export async function requestGalleryEmail(
+  token: string,
+  eventId: string,
+  operationId: string,
+): Promise<GalleryEmailOperation> {
+  if (executionMode === 'mock') {
+    const key = `${eventId}/${operationId}`;
+    const existing = mockEmailOperations.get(key);
+    if (existing) return existing;
+    const operation: GalleryEmailOperation = {
+      operationId,
+      status: 'COMPLETED',
+      accepted: 0,
+      skipped: 0,
+      missingEmail: 0,
+      failed: 0,
+      uncertain: 0,
+      bounced: 0,
+      complained: 0,
+    };
+    mockEmailOperations.set(key, operation);
+    return operation;
+  }
+  return apiClient(
+    apiUrl(
+      requiredApiBaseUrl(),
+      `/admin/events/${encodeURIComponent(eventId)}/gallery-emails`,
+    ),
+    { token, method: 'POST', body: JSON.stringify({ operationId }) },
+  );
+}
+export async function getGalleryEmailStatus(
+  token: string,
+  eventId: string,
+  operationId: string,
+): Promise<GalleryEmailOperation> {
+  if (executionMode === 'mock') {
+    const existing = mockEmailOperations.get(`${eventId}/${operationId}`);
+    if (!existing) throw new Error('EMAIL_OPERATION_NOT_FOUND');
+    return existing;
+  }
+  return apiClient(
+    apiUrl(
+      requiredApiBaseUrl(),
+      `/admin/events/${encodeURIComponent(eventId)}/gallery-emails/${encodeURIComponent(operationId)}`,
+    ),
+    { token },
   );
 }

@@ -13,9 +13,13 @@ ADR-003). Findly minimiza por diseño lo que persiste de una selfie:
   opaco, no un vector ni una imagen.
 - **Nunca se almacena**: el vector de _embedding_ facial en DynamoDB, ni
   copias adicionales de la selfie fuera del bucket privado.
-- El correo del asistente es **opcional** (`RegistrationRequest.email?`); la
-  galería y el derecho al olvido funcionan enteramente con el token opaco,
-  sin necesitarlo.
+- El correo es obligatorio en nuevas inscripciones (spec 20, ADR-019).
+  Registros anteriores sin email conservan galería/borrado por token y se
+  omiten del envío. Los tokens adicionales se guardan sólo como hash, tienen
+  referencias inversas durables y se revocan al borrar o purgar la inscripción.
+  La integración SES queda desactivada hasta configurar identidad/origen.
+  SES conserva supresión regional de rebotes/quejas; revisar su tratamiento
+  de privacidad como almacén externo, sin copiar emails a estados de envío.
 
 ## Autenticación: dos planos distintos
 
