@@ -26,12 +26,13 @@ module "uploads_bucket" {
 }
 
 module "api_gateway" {
-  source              = "../api-gateway"
-  frontend_domain_url = local.frontend_origin
-  project             = var.project
-  environment         = var.environment
-  cost_center         = var.cost_center
-  data_class          = var.data_class
+  source               = "../api-gateway"
+  frontend_domain_url  = local.frontend_origin
+  throttled_route_keys = [module.public_enrollment.telemetry_route_key]
+  project              = var.project
+  environment          = var.environment
+  cost_center          = var.cost_center
+  data_class           = var.data_class
 }
 
 module "cognito" {

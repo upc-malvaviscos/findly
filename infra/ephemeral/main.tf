@@ -52,12 +52,13 @@ module "uploads_bucket" {
 }
 
 module "api_gateway" {
-  source              = "../modules/api-gateway"
-  frontend_domain_url = var.frontend_domain_url
-  project             = "findly"
-  environment         = local.environment
-  cost_center         = "findly-ci"
-  data_class          = "synthetic"
+  source               = "../modules/api-gateway"
+  frontend_domain_url  = var.frontend_domain_url
+  throttled_route_keys = [module.public_enrollment.telemetry_route_key]
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
 }
 
 module "cognito" {

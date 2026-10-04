@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import type {
+  ClientEnrollmentErrorCode,
+  EnrollmentErrorStage,
+} from '../../shared/lib/enrollmentErrorTelemetry';
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR';
 
@@ -22,6 +26,8 @@ export type LogFields = {
   photoCount?: number;
   recordCount?: number;
   failedCount?: number;
+  stage?: EnrollmentErrorStage;
+  clientErrorCode?: ClientEnrollmentErrorCode;
 };
 
 /** The parts of the Lambda context and API Gateway request we correlate on. */
@@ -52,6 +58,8 @@ const ALLOWED_FIELDS = [
   'photoCount',
   'recordCount',
   'failedCount',
+  'stage',
+  'clientErrorCode',
 ] as const satisfies readonly (keyof LogFields)[];
 
 // Identifiers and error names only ever contain these characters; anything

@@ -17,6 +17,7 @@ import {
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { selfieObjectKey } from '../shared/lib/s3Keys';
 import { enrollmentFormSchema } from '../shared/lib/validations';
+import { clientEnrollmentErrorSchema } from '../shared/lib/enrollmentErrorTelemetry';
 import { createPresignedUploadUrl } from './lib/presignedUpload';
 import { withRequestLog, type LambdaContextLike } from './lib/logger';
 import type {
@@ -235,6 +236,50 @@ export async function getPublicRegistrationStatus(
       )
         return fail(404, 'REGISTRATION_NOT_FOUND');
       return json(200, { registrationId, status: registration.status });
+    },
+  );
+}
+
+// Two enum values fit comfortably; anything larger is not a valid report.
+const MAX_CLIENT_ERROR_BODY_BYTES = 256;
+/**
+ * Records one client-observed enrollment failure (ADR-018) as a log line that
+ * the ClientEnrollmentErrors metric filter counts. It reads no headers and
+ * touches no data store: only the two validated enum values are logged.
+ */
+export async function reportClientEnrollmentError(
+  event: HttpEvent,
+  context?: LambdaContextLike,
+) {
+  return withRequestLog(
+    'client_enrollment_error_report',
+    {
+      requestId: event.requestContext?.requestId,
+      awsRequestId: context?.awsRequestId,
+    },
+    async (request) => {
+      const raw = event.body ?? '';
+      let body: unknown;
+      try {
+        body =
+          Buffer.byteLength(raw, 'utf8') <= MAX_CLIENT_ERROR_BODY_BYTES
+            ? JSON.parse(raw)
+            : undefined;
+      } catch {
+        body = undefined;
+      }
+      const parsed = clientEnrollmentErrorSchema.safeParse(body);
+      if (!parsed.success)
+        return json(400, {
+          code: 'INVALID_REQUEST',
+          message: 'INVALID_REQUEST',
+          requestId: request.correlationId,
+        });
+      request.info('client_enrollment_error', {
+        stage: parsed.data.stage,
+        clientErrorCode: parsed.data.code,
+      });
+      return { statusCode: 204, headers: {}, body: '' };
     },
   );
 }

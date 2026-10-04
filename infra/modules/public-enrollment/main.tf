@@ -13,6 +13,14 @@ locals {
     event    = { handler = "publicEvents.getPublicEvent", artifact = var.public_events_artifact_path, route = "GET /events/{eventId}" }
     register = { handler = "publicEnrollment.createPublicRegistration", artifact = var.public_enrollment_artifact_path, route = "POST /events/{eventId}/registrations" }
     status   = { handler = "publicEnrollment.getPublicRegistrationStatus", artifact = var.public_enrollment_artifact_path, route = "GET /registrations/{registrationId}/status" }
+    # ADR-018: client-observed enrollment failures; only writes its own logs.
+    telemetry = { handler = "publicEnrollment.reportClientEnrollmentError", artifact = var.public_enrollment_artifact_path, route = "POST /telemetry/enrollment-errors" }
+  }
+  data_actions = {
+    events   = { actions = ["dynamodb:Query"], resource = "${var.table_arn}/index/GSI2" }
+    event    = { actions = ["dynamodb:GetItem"], resource = var.table_arn }
+    register = { actions = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:ConditionCheckItem"], resource = var.table_arn }
+    status   = { actions = ["dynamodb:GetItem"], resource = var.table_arn }
   }
 }
 resource "aws_cloudwatch_log_group" "public" {
@@ -31,9 +39,10 @@ resource "aws_iam_role_policy" "public" {
   for_each = local.handlers
   role     = aws_iam_role.public[each.key].id
   policy = jsonencode({ Version = "2012-10-17", Statement = concat([
-    { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.public[each.key].arn}:*" },
-    { Effect = "Allow", Action = each.key == "register" ? ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:ConditionCheckItem"] : each.key == "events" ? ["dynamodb:Query"] : ["dynamodb:GetItem"], Resource = each.key == "events" ? "${var.table_arn}/index/GSI2" : var.table_arn }
-  ], each.key == "register" ? [{ Effect = "Allow", Action = ["s3:PutObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" }] : []) })
+    { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.public[each.key].arn}:*" }
+    ], contains(keys(local.data_actions), each.key) ? [
+    { Effect = "Allow", Action = local.data_actions[each.key].actions, Resource = local.data_actions[each.key].resource }
+  ] : [], each.key == "register" ? [{ Effect = "Allow", Action = ["s3:PutObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" }] : []) })
 }
 resource "aws_lambda_function" "public" {
   for_each         = local.handlers
@@ -83,5 +92,19 @@ resource "aws_cloudwatch_log_metric_filter" "public_errors" {
     namespace     = "Findly/${var.environment}"
     value         = "1"
     default_value = "0"
+  }
+}
+
+# ADR-018: one series per enrollment stage; the log line carries only the two
+# validated enums, so the dimension space is fixed at three values.
+resource "aws_cloudwatch_log_metric_filter" "client_errors" {
+  name           = "${local.prefix}-client-enrollment-errors"
+  log_group_name = aws_cloudwatch_log_group.public["telemetry"].name
+  pattern        = "{ $.event = \"client_enrollment_error\" }"
+  metric_transformation {
+    name       = "ClientEnrollmentErrors"
+    namespace  = "Findly/${var.environment}"
+    value      = "1"
+    dimensions = { Stage = "$.stage" }
   }
 }
