@@ -49,6 +49,7 @@ jobs:
       - run: npm run build:lambdas
       - run: npm run package:lambdas
       - run: npm run terraform:test:hosting
+      - run: npm run terraform:test:email
       - run: npm run lint:terraform
 
   security-and-sync:

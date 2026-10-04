@@ -1,3 +1,4 @@
+import { GalleryEmailSender } from './GalleryEmailSender';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/auth';
 import { BulkPhotoUploader } from './BulkPhotoUploader';
@@ -135,10 +136,17 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
           <p>No hay eventos todavía. Crea el primero para subir fotografías.</p>
         ) : null}
         {selectedEventId ? (
-          <BulkPhotoUploader
-            eventId={selectedEventId}
-            token={session?.idToken ?? ''}
-          />
+          <>
+            <GalleryEmailSender
+              key={selectedEventId}
+              eventId={selectedEventId}
+              token={session?.idToken ?? ''}
+            />
+            <BulkPhotoUploader
+              eventId={selectedEventId}
+              token={session?.idToken ?? ''}
+            />
+          </>
         ) : null}
       </section>
     </main>

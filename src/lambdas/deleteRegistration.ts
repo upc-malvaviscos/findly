@@ -1,3 +1,4 @@
+import { eraseEmailState } from './lib/emailCleanup';
 import { createHash } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -292,6 +293,8 @@ async function eraseRegistration(
     if (!isMissingResourceError(deleteSelfieError)) throw deleteSelfieError;
   }
 
+  await eraseEmailState(dynamo, tableName, registrationId);
+
   let matchesDeleted = 0;
   let exclusiveStartKey: Record<string, unknown> | undefined;
   do {
@@ -341,6 +344,14 @@ async function eraseRegistration(
       Key: galleryTokenKey(tokenHash),
     }),
   );
+  if (locator?.tokenHash && locator.tokenHash !== tokenHash) {
+    await dynamo.send(
+      new DeleteCommand({
+        TableName: tableName,
+        Key: galleryTokenKey(locator.tokenHash),
+      }),
+    );
+  }
 
   if (locator) {
     await dynamo.send(

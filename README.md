@@ -4,7 +4,7 @@ Findly es el proyecto final del Postgrado en Cloud Computing Architecture de la 
 
 ## Alcance del MVP
 
-El MVP usa únicamente imágenes sintéticas o autorizadas y consentimiento biométrico explícito. Excluye vigilancia o vídeo en tiempo real, tratamiento de datos de menores, alta disponibilidad o despliegue multirregión, RDS, EC2, VPC, NAT, EKS, notificaciones masivas por correo/SMS y otros servicios persistentes de coste fijo.
+El MVP usa únicamente imágenes sintéticas o autorizadas y consentimiento biométrico explícito. Excluye vigilancia o vídeo en tiempo real, tratamiento de datos de menores, alta disponibilidad o despliegue multirregión, RDS, EC2, VPC, NAT, EKS, campañas de correo, SMS y envíos ajenos a galerías del evento y otros servicios persistentes de coste fijo.
 
 ## Flujo del MVP
 
@@ -12,6 +12,7 @@ El MVP usa únicamente imágenes sintéticas o autorizadas y consentimiento biom
 2. Una Lambda indexa el rostro en Amazon Rekognition y actualiza el estado de inscripción.
 3. El organizador autenticado carga fotos del evento; una Lambda busca coincidencias.
 4. Findly crea una galería temporal con URLs S3 prefirmadas y permite retirar los datos.
+5. Con SES configurado, el organizador confirma el envío manual de enlaces a participantes elegibles.
 
 ## Cómo ver la aplicación funcionando
 
@@ -50,6 +51,13 @@ flowchart LR
   M --> R
   E --> D
   M --> D
+  O -->|Confirmación manual, opcional| API
+  API --> EQ[SQS FIFO de correo, opcional]
+  EQ --> EM[Lambda de correo]
+  EM --> D
+  EM --> SES[Amazon SES]
+  SES --> EF[SNS y SQS de rebotes y quejas]
+  EF --> D
   EB[EventBridge] --> X[Lambda retención]
   X --> S
   X --> D
@@ -169,3 +177,19 @@ colecciones separadas por entorno
 Los identificadores de rostro de limpieza siguen siendo datos sensibles.
 Los ADRs describen compatibilidad, reintentos y límites; la validación AWS y
 la migración de colecciones antiguas requieren evidencia propia.
+
+## Envío manual de galerías (issue #86)
+
+Las nuevas inscripciones requieren email. El organizador puede solicitar un
+correo individual a los participantes vigentes con fotos mediante un botón por
+evento y confirmación; el matching no envía correo automáticamente. Se muestra
+progreso, omisiones, aceptación SES (no entrega), fallos e incertidumbre.
+Inscripciones antiguas sin email conservan sus galerías.
+
+El módulo de correo se habilita por entorno con identidad SES verificada,
+remitente y origen HTTPS propio. Está desactivado por defecto; SES/DNS Acens y
+entregabilidad real quedan pendientes. Diseño aprobado en
+[ADR-019](docs/adr/ADR-019-manual-gallery-email-capabilities.md), configuración en
+[runbook SES](docs/runbooks/gallery-email-ses-acens.md) y pruebas/pendientes en
+[evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 permanece
+abierta.

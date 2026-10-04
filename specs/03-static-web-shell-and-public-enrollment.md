@@ -78,3 +78,11 @@ certificado predeterminado. Sigue HTTPS/OAC/bucket privado; la política mínima
 TLS la fija AWS en TLSv1. El requisito TLSv1.2_2021 se conserva con dominio
 propio y fuera de demo. No marcar el criterio estricto como demostrado con
 el certificado predeterminado. Véase ADR-016.
+
+## Email y comunicación al participante (spec 20)
+
+Email obligatorio en nuevas solicitudes; ausencia, vacío y formato inválido se
+rechazan antes de crear la carga. La confirmación de inscripción muestra el
+acceso a galería y explica que el organizador puede enviar el enlace por email
+cuando haya fotos; no promete envío automático. Inscripciones históricas sin
+email conservan sus galerías. Ver ADR-019 y evidencia #86.

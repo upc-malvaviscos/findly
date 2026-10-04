@@ -44,6 +44,7 @@ export type MatchEntity = {
 };
 
 export type GalleryTokenEntity = {
+  requireRegistration?: boolean;
   tokenHash: string;
   registrationId: string;
   eventId: string;

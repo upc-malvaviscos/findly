@@ -23,6 +23,7 @@ describe('enrollment error counts', () => {
     vi.mocked(real.getRegistrationStatus).mockRejectedValue(failure);
     await expect(
       createRegistration('event', {
+        email: 'synthetic@example.com',
         consentBiometrics: true,
         consentTerms: true,
       }),

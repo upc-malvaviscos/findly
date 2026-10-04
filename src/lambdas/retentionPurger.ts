@@ -1,3 +1,4 @@
+import { eraseEmailState } from './lib/emailCleanup';
 import {
   DeleteCollectionCommand,
   DeleteFacesCommand,
@@ -172,6 +173,7 @@ async function deleteEventRecords(eventId: string): Promise<boolean> {
           )
             throw markError;
         }
+        await eraseEmailState(dynamo, tableName, item.registrationId);
         let matchCursor: Record<string, unknown> | undefined;
         do {
           const matches = await dynamo.send(
@@ -304,6 +306,7 @@ async function reconcileErasedLocator(
   }
   for (const Key of [legacyKey, currentKey])
     await s3.send(new DeleteObjectCommand({ Bucket: uploadsBucket, Key }));
+  await eraseEmailState(dynamo, tableName, registrationId);
   let matchCursor: Record<string, unknown> | undefined;
   do {
     const page = await dynamo.send(

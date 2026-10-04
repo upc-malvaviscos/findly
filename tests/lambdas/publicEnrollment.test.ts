@@ -22,7 +22,11 @@ import { captureLogs } from './lib/logCapture';
 const db = mockClient(DynamoDBDocumentClient);
 const request = {
   pathParameters: { eventId: 'demo' },
-  body: JSON.stringify({ consentBiometrics: true, consentTerms: true }),
+  body: JSON.stringify({
+    email: 'synthetic@example.com',
+    consentBiometrics: true,
+    consentTerms: true,
+  }),
 };
 beforeEach(() => {
   vi.unstubAllEnvs();
@@ -49,6 +53,21 @@ describe('public enrollment', () => {
       ).toBe(400);
     expect(db.calls()).toHaveLength(0);
   });
+  it.each([undefined, '', '   ', 'invalid'])(
+    'rejects invalid email %s before any AWS call',
+    async (email) => {
+      const result = await createPublicRegistration({
+        ...request,
+        body: JSON.stringify({
+          email,
+          consentBiometrics: true,
+          consentTerms: true,
+        }),
+      });
+      expect(result.statusCode).toBe(400);
+      expect(db.calls()).toHaveLength(0);
+    },
+  );
   it('issues an opaque capability and atomically persists only its hash', async () => {
     vi.stubEnv('FINDLY_COLLECTION_NAMESPACE', 'findly-pr-71');
     vi.stubEnv('AWS_LAMBDA_FUNCTION_NAME', 'findly-pr-71-public-register');

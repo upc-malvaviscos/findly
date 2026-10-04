@@ -225,6 +225,58 @@
         }
       ],
       "documentation": ["docs/README.md", "README.md"]
+    },
+    {
+      "id": "REQ-MANUAL-GALLERY-EMAIL",
+      "description": "Email obligatorio, envío manual idempotente y revocación de capacidades adicionales.",
+      "issues": [86],
+      "spec": "specs/20-gallery-email-notifications-with-ses.md",
+      "implementation": [
+        "src/lambdas/galleryEmail.ts",
+        "src/lambdas/galleryEmailFeedback.ts",
+        "src/lambdas/lib/emailCleanup.ts",
+        "src/web/components/admin/GalleryEmailSender.tsx",
+        "src/shared/lib/validations.ts",
+        "infra/modules/gallery-email/main.tf"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/galleryEmail.test.ts",
+            "tests/lambdas/galleryEmailFeedback.test.ts",
+            "tests/lambdas/lib/emailCleanup.test.ts",
+            "tests/web/galleryEmailSender.test.tsx"
+          ]
+        },
+        {
+          "command": "test:e2e",
+          "environment": "unit",
+          "files": ["e2e/foundation.spec.ts"]
+        },
+        {
+          "command": "terraform:test:email",
+          "environment": "static",
+          "files": ["infra/modules/gallery-email/tests/contracts.tftest.hcl"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-86-gallery-email.md",
+          "environment": "unit"
+        },
+        {
+          "file": "docs/evidence/issue-86-gallery-email.md",
+          "environment": "static"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-019-manual-gallery-email-capabilities.md",
+        "docs/runbooks/gallery-email-ses-acens.md",
+        "README.md",
+        "docs/paper/06-seguridad-privacidad-y-gobierno.md"
+      ]
     }
   ]
 }

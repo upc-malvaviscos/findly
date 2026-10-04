@@ -172,3 +172,25 @@ module "selfie_indexer" {
   cost_center          = var.cost_center
   data_class           = var.data_class
 }
+
+module "gallery_email" {
+  count                  = var.email_identity_arn != "" ? 1 : 0
+  source                 = "../gallery-email"
+  project                = var.project
+  environment            = var.environment
+  cost_center            = var.cost_center
+  data_class             = var.data_class
+  table_name             = module.dynamodb.table_name
+  table_arn              = module.dynamodb.table_arn
+  uploads_bucket_name    = module.uploads_bucket.bucket_name
+  uploads_bucket_arn     = module.uploads_bucket.bucket_arn
+  api_id                 = module.api_gateway.api_id
+  api_execution_arn      = module.api_gateway.execution_arn
+  authorizer_id          = module.admin_api.authorizer_id
+  identity_arn           = var.email_identity_arn
+  from_address           = var.email_from_address
+  gallery_origin         = var.email_gallery_origin
+  artifact_path          = "${path.module}/../../../artifacts/lambdas/galleryEmail.zip"
+  feedback_artifact_path = "${path.module}/../../../artifacts/lambdas/galleryEmailFeedback.zip"
+  alarm_actions          = [module.monitoring.alerts_topic_arn]
+}

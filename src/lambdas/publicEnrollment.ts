@@ -109,7 +109,7 @@ export async function createPublicRegistration(
         consentTimestamp: new Date().toISOString(),
         selfieS3Key: key,
         ttl,
-        ...(parsed.data.email ? { email: parsed.data.email } : {}),
+        email: parsed.data.email,
       };
       const token: GalleryTokenEntity = {
         eventId,

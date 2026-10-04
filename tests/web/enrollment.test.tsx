@@ -72,6 +72,9 @@ describe('SelfieCaptureForm', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
     expect(create).not.toHaveBeenCalled();
 
+    fireEvent.change(screen.getByLabelText(/Email para tu galería/), {
+      target: { value: 'synthetic@example.com' },
+    });
     acceptConsent();
     fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
@@ -81,7 +84,7 @@ describe('SelfieCaptureForm', () => {
     });
   });
 
-  it('validates email format only when one is provided', () => {
+  it('rejects an invalid email before uploading', () => {
     render(<SelfieCaptureForm eventId="demo-2026" />);
     fireEvent.change(screen.getByLabelText(/Email para tu galería/), {
       target: { value: 'not-an-email' },
@@ -129,17 +132,17 @@ describe('SelfieCaptureForm', () => {
       () => expect(screen.getByText('Registro completado')).toBeInTheDocument(),
       { timeout: 5000 },
     );
-    expect(screen.getByText(/Te enviaremos el enlace/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/El organizador podrá enviarte/),
+    ).toBeInTheDocument();
   });
 
-  it('completes the mocked upload without an email, since it is optional', async () => {
+  it('requires email before creating an upload', async () => {
     render(<SelfieCaptureForm eventId="demo-2026" />);
     acceptConsent();
     attachSelfie();
     fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
-    await waitFor(
-      () => expect(screen.getByText('Registro completado')).toBeInTheDocument(),
-      { timeout: 5000 },
-    );
+    expect(await screen.findByText('Introduce tu email.')).toBeInTheDocument();
+    expect(screen.queryByText('Registro completado')).not.toBeInTheDocument();
   });
 });

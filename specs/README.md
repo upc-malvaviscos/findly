@@ -10,3 +10,7 @@ Los tickets son publicables como issues. Cada uno debe enlazar PR, prueba, evide
 | Calidad    | QA y memoria     | 00, 16, 17, 19     |
 
 **Definición de terminado:** criterios de aceptación superados, pruebas automatizadas actualizadas, observabilidad, seguridad/FinOps y evidencia documental revisadas; la implementación, la spec y la issue GitHub deben indicar el mismo estado verificable.
+
+## Ampliación de correo transaccional
+
+- [20 - Email obligatorio y envío manual de galerías](20-gallery-email-notifications-with-ses.md): issue #86, ADR-019; código y pruebas locales, configuración SES/DNS y aceptación AWS pendientes.

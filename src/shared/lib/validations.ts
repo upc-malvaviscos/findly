@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 export const enrollmentFormSchema = z.object({
-  email: z.string().trim().email('Introduce un email válido.').optional(),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Introduce tu email.')
+    .email('Introduce un email válido.'),
   consentBiometrics: z.literal(true, {
     error: 'Necesitamos tu consentimiento para tratar tu imagen.',
   }),

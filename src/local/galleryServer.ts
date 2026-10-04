@@ -1,3 +1,7 @@
+import {
+  requestGalleryEmail,
+  getGalleryEmailStatus,
+} from '../lambdas/galleryEmail';
 import { createServer } from 'node:http';
 import { listPublicEvents, getPublicEvent } from '../lambdas/publicEvents';
 import {
@@ -133,6 +137,34 @@ const server = createServer(async (request, response) => {
   if (request.method === 'POST' && url.pathname === '/admin/events') {
     const result = await createAdminEvent({ body });
     response.writeHead(result.statusCode, result.headers).end(result.body);
+    return;
+  }
+  const emailMatch = url.pathname.match(
+    /^\/admin\/events\/([^/]+)\/gallery-emails(?:\/([^/]+))?$/,
+  );
+  if (emailMatch && (request.method === 'POST' || request.method === 'GET')) {
+    const input = {
+      body,
+      pathParameters: {
+        eventId: decodeURIComponent(emailMatch[1]),
+        operationId: emailMatch[2]
+          ? decodeURIComponent(emailMatch[2])
+          : undefined,
+      },
+      requestContext: {
+        authorizer: { jwt: { claims: { sub: 'local-organizer' } } },
+      },
+    };
+    const result =
+      request.method === 'POST'
+        ? await requestGalleryEmail(input)
+        : await getGalleryEmailStatus(input);
+    response
+      .writeHead(result.statusCode, {
+        ...result.headers,
+        'access-control-allow-origin': process.env.CORS_ORIGIN ?? '*',
+      })
+      .end(result.body);
     return;
   }
   const uploadMatch = url.pathname.match(
