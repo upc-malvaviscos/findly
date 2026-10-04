@@ -9,11 +9,13 @@ y ADR-020: `www.findly.barcelona`
 para web/galerías, DNS en Acens, identidad SES compartida y certificado ACM
 separado. El bootstrap manual por OIDC sólo prepara estos recursos. No acredita
 salida del sandbox, permisos del stack, recepción ni apertura; estos criterios
-permanecen pendientes. Producción se despliega tras configurar el correo.
+permanecen pendientes. El responsable autorizó publicar web/backend sin correo
+el 2026-10-05; el envío se activa explícitamente cuando SES esté listo.
 Evidencia: [configuración SES y producción](../docs/evidence/issue-98-ses-production.md).
 La preparación del despliegue añade aislamiento OIDC/estado/buckets y un límite
 de permisos obligatorio para las funciones de producción. SES/DKIM/MAIL FROM,
-SPF/DMARC, acceso regional y certificado emitido se comprueban antes del plan;
+SPF/DMARC y acceso regional se comprueban antes del plan al activar el correo.
+El certificado emitido se exige también para desplegar sin correo;
 el smoke HTTPS posterior no sustituye las pruebas reales de entregabilidad.
 El operador temporal y el workflow de aceptación de #98 están preparados para
 fixtures sintéticas, recuperación durable, DLQ y feedback, con limpieza propia

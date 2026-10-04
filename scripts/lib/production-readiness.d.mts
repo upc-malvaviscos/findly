@@ -1,11 +1,14 @@
+export function productionEmailEnabled(
+  config: Record<string, string | undefined>,
+): boolean;
 export function requireProductionReadiness(input: {
-  account: {
+  account?: {
     ProductionAccessEnabled?: boolean;
     SendingEnabled?: boolean;
     EnforcementStatus?: string;
     SendQuota?: { MaxSendRate?: number; Max24HourSend?: number };
   };
-  identity: {
+  identity?: {
     VerifiedForSendingStatus?: boolean;
     DkimAttributes?: { Status?: string; SigningEnabled?: boolean };
     MailFromAttributes?: {

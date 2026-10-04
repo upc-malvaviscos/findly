@@ -107,15 +107,20 @@ Configurar variables públicas en environment production: cuenta/bucket de
 estado, `AWS_DEPLOY_ROLE_ARN`, buckets únicos production, dominio
 `www.findly.barcelona`, certificado ACM emitido y las variables de correo SES.
 Sólo main está permitida; originales y reejecutores deben ser responsables
-autorizados. El workflow verifica SES/DKIM/MAIL FROM, cuota/acceso regional,
-SPF/DMARC públicos y certificado antes de planificar producción.
+autorizados. El workflow verifica siempre el certificado antes de planificar producción.
+`enable_production_email=false` permite publicar web/backend con identidad y
+remitente vacíos, sin recursos ni rutas de envío. Sólo con
+`enable_production_email=true` exige además SES/DKIM/MAIL FROM, cuota/acceso
+regional y SPF/DMARC públicos.
 
-Después de configurar correo, ejecutar Deployment para production con
+Ejecutar Deployment para production con `enable_production_email=false`,
 `prepare_production_bindings=true` y `apply=true`. Revisar los IDs exactos de
 API/OAC mediante el configurador de roles: exige propiedad de API/distribución,
 origen S3 de producción y OAC vinculado. Configurar CNAME `www` al nombre real
 CloudFront que devuelva ese entorno, conservando CNAME de validación ACM.
 Ejecutar el despliegue completo con `prepare_production_bindings=false`.
+Activar posteriormente el correo mediante otro despliegue con
+`enable_production_email=true`, sólo después de la validación y aprobación SES.
 El smoke verifica HTTPS y ruta SPA `/gallery`, sin probar todavía recepción
 ni abrir una galería privada; éstos requieren las pruebas autorizadas de #98.
 

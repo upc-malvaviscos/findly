@@ -186,6 +186,11 @@ evento y confirmación; el matching no envía correo automáticamente. Se muestr
 progreso, omisiones, aceptación SES (no entrega), fallos e incertidumbre.
 Inscripciones antiguas sin email conservan sus galerías.
 
+Producción permite publicar web y backend con `enable_production_email=false`.
+Para activar el envío, ejecutar el despliegue con `enable_production_email=true`
+tras verificar SES; el build recibe `VITE_GALLERY_EMAIL_ENABLED` con el mismo
+valor y oculta el control de envío cuando está deshabilitado.
+
 El módulo de correo se habilita por entorno con identidad SES verificada,
 remitente y origen HTTPS propio. Está desactivado por defecto; SES/DNS Acens y
 entregabilidad real quedan pendientes. Diseño aprobado en

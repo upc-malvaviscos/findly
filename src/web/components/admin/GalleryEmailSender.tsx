@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { getGalleryEmailStatus, requestGalleryEmail } from '../../adminApi';
+import { isGalleryEmailEnabled } from '../../galleryEmailConfiguration';
 import type { GalleryEmailOperation } from '../../../shared/types/api';
 
-export function GalleryEmailSender({
+export function GalleryEmailSender(props: { eventId: string; token: string }) {
+  return isGalleryEmailEnabled() ? (
+    <EnabledGalleryEmailSender {...props} />
+  ) : (
+    <section aria-labelledby="gallery-email-title">
+      <h3 id="gallery-email-title">Enviar galerías por email</h3>
+      <p>El envío por email aún no está disponible.</p>
+    </section>
+  );
+}
+
+function EnabledGalleryEmailSender({
   eventId,
   token,
 }: {
