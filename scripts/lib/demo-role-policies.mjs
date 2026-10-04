@@ -587,19 +587,6 @@ function environmentRolePolicies(config, bindings, environment) {
         resources,
       ),
     );
-    // CreateStage separately checks TagResource on the exact API's stages path.
-    edgeDeploy.push(
-      statement(
-        ['apigateway:TagResource'],
-        `arn:aws:apigateway:${region}::/apis/${bindings.apiId}/stages`,
-        {
-          StringEquals: {
-            ...requestTags.StringEquals,
-            'aws:RequestedRegion': region,
-          },
-        },
-      ),
-    );
     edgeDestroy.push(statement(['apigateway:DELETE'], resources));
   }
   if (bindings.oacId) {
