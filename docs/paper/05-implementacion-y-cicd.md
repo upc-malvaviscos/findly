@@ -5,7 +5,9 @@ de ADR-020: identidad SES y certificado de `www.findly.barcelona` en estados
 independientes, rol OIDC limitado y environment production restringido a main.
 Este bootstrap no equivale al despliegue del stack ni a entregabilidad real;
 los resultados y pendientes constan en la evidencia de #98. La publicación
-de producción queda condicionada a configurar el correo.
+de producción se separó del correo por autorización del 2026-10-05: la SPA y
+el backend pueden publicarse con envío deshabilitado; su activación explícita
+conserva los controles SES.
 Su rol de despliegue exige un límite de permisos en los roles de ejecución,
 separado de las políticas específicas de cada función. Los gates previos
 comprueban correo autenticado, acceso regional SES y certificado; el smoke
@@ -58,7 +60,7 @@ Terraform consumen ese stack o son independientes:
 | `infra/bootstrap`               | Crea el bucket S3 de estado (versionado, SSE-S3, TLS-only)         | Local (se aplica una única vez, manualmente)                       |
 | `infra/environments/sandbox`    | Entorno de desarrollo compartido                                   | S3 remoto, clave `findly/sandbox/terraform.tfstate`                |
 | `infra/environments/demo`       | Entorno de demostración                                            | S3 remoto, clave `findly/demo/terraform.tfstate`                   |
-| `infra/environments/production` | Producción preparada; despliegue pendiente de SES                  | S3 remoto, clave `findly/production/terraform.tfstate`             |
+| `infra/environments/production` | Producción preparada; correo activado por separado                 | S3 remoto, clave `findly/production/terraform.tfstate`             |
 | `infra/ephemeral`               | Un stack completo por número de pull request, aislado y desechable | S3 remoto, clave `ephemeral/pr-{numero}/terraform.tfstate`         |
 | `infra/email-identity`          | Identidad SES compartida eu-west-1                                 | S3 remoto, clave `findly/shared/email-identity/terraform.tfstate`  |
 | `infra/web-certificate`         | Certificado ACM para CloudFront us-east-1                          | S3 remoto, clave `findly/shared/web-certificate/terraform.tfstate` |

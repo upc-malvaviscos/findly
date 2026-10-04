@@ -8,6 +8,10 @@ on:
         required: true
         type: choice
         options: [sandbox, demo, production]
+      enable_production_email:
+        description: Enable production email only after all SES and DNS checks pass
+        type: boolean
+        default: false
       apply:
         description: Apply the reviewed infrastructure and publish the SPA
         type: boolean
@@ -90,8 +94,9 @@ jobs:
       TF_VAR_uploads_bucket_name: ${{ vars.FINDLY_UPLOADS_BUCKET_NAME }}
       TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
       TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
-      TF_VAR_email_identity_arn: ${{ inputs.environment == 'production' && vars.FINDLY_EMAIL_IDENTITY_ARN || '' }}
-      TF_VAR_email_from_address: ${{ inputs.environment == 'production' && vars.FINDLY_EMAIL_FROM_ADDRESS || '' }}
+      ENABLE_PRODUCTION_EMAIL: ${{ inputs.environment == 'production' && inputs.enable_production_email }}
+      TF_VAR_email_identity_arn: ${{ inputs.environment == 'production' && inputs.enable_production_email && vars.FINDLY_EMAIL_IDENTITY_ARN || '' }}
+      TF_VAR_email_from_address: ${{ inputs.environment == 'production' && inputs.enable_production_email && vars.FINDLY_EMAIL_FROM_ADDRESS || '' }}
       TF_VAR_email_gallery_origin: ${{ vars.FINDLY_EMAIL_GALLERY_ORIGIN || 'https://www.findly.barcelona' }}
     steps:
       - uses: actions/checkout@v6
@@ -132,7 +137,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: findly-deploy-${{ inputs.environment }}
           allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
-      - name: Require verified production email and HTTPS certificate
+      - name: Require approved production HTTPS and optional email readiness
         if: ${{ inputs.environment == 'production' }}
         run: node scripts/check-production-readiness.mjs
       - name: Install and build Lambda artifacts before planning
@@ -184,6 +189,7 @@ jobs:
           export VITE_FINDLY_EXECUTION_MODE=aws
           VITE_API_BASE_URL="$(terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" output -raw api_endpoint)"
           export VITE_API_BASE_URL
+          export VITE_GALLERY_EMAIL_ENABLED="$ENABLE_PRODUCTION_EMAIL"
           VITE_COGNITO_USER_POOL_ID="$(terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" output -raw cognito_user_pool_id)"
           export VITE_COGNITO_USER_POOL_ID
           VITE_COGNITO_CLIENT_ID="$(terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" output -raw cognito_client_id)"

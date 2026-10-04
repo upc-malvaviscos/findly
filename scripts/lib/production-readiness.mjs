@@ -1,11 +1,55 @@
 import assert from 'node:assert/strict';
 
+export function productionEmailEnabled(config) {
+  assert(
+    [undefined, 'true', 'false'].includes(config.ENABLE_PRODUCTION_EMAIL),
+    'Invalid production email selection',
+  );
+  const enabled =
+    config.ENABLE_PRODUCTION_EMAIL === 'true' ||
+    (config.ENABLE_PRODUCTION_EMAIL === undefined &&
+      Boolean(config.TF_VAR_email_identity_arn));
+  if (!enabled) {
+    assert.equal(
+      config.TF_VAR_email_identity_arn ?? '',
+      '',
+      'Disabled email must not configure an identity',
+    );
+    assert.equal(
+      config.TF_VAR_email_from_address ?? '',
+      '',
+      'Disabled email must not configure a sender',
+    );
+  } else {
+    assert(
+      config.TF_VAR_email_identity_arn,
+      'Enabled email requires the reviewed identity',
+    );
+    assert(
+      config.TF_VAR_email_from_address,
+      'Enabled email requires the reviewed sender',
+    );
+  }
+  return enabled;
+}
+
 export function requireProductionReadiness({
   account,
   identity,
   certificate,
   config,
 }) {
+  assert.equal(certificate.Status, 'ISSUED', 'HTTPS certificate is pending');
+  assert.equal(certificate.DomainName, 'www.findly.barcelona');
+  assert.equal(config.TF_VAR_web_domain_name, 'www.findly.barcelona');
+  assert.match(
+    config.TF_VAR_web_certificate_arn ?? '',
+    new RegExp(
+      `^arn:aws:acm:us-east-1:${config.FINDLY_AWS_ACCOUNT_ID}:certificate/[a-f0-9-]+$`,
+    ),
+  );
+  if (!productionEmailEnabled(config)) return;
+  assert(account && identity, 'Enabled email requires SES verification');
   assert.equal(
     account.ProductionAccessEnabled,
     true,
@@ -47,9 +91,6 @@ export function requireProductionReadiness({
     identity.MailFromAttributes?.BehaviorOnMxFailure,
     'REJECT_MESSAGE',
   );
-  assert.equal(certificate.Status, 'ISSUED', 'HTTPS certificate is pending');
-  assert.equal(certificate.DomainName, 'www.findly.barcelona');
-  assert.equal(config.TF_VAR_web_domain_name, 'www.findly.barcelona');
   assert.equal(config.TF_VAR_email_from_address, 'info@findly.barcelona');
   assert.equal(
     config.TF_VAR_email_gallery_origin,
@@ -58,11 +99,5 @@ export function requireProductionReadiness({
   assert.equal(
     config.TF_VAR_email_identity_arn,
     `arn:aws:ses:eu-west-1:${config.FINDLY_AWS_ACCOUNT_ID}:identity/findly.barcelona`,
-  );
-  assert.match(
-    config.TF_VAR_web_certificate_arn ?? '',
-    new RegExp(
-      `^arn:aws:acm:us-east-1:${config.FINDLY_AWS_ACCOUNT_ID}:certificate/[a-f0-9-]+$`,
-    ),
   );
 }

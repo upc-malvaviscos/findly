@@ -294,7 +294,8 @@
         "src/lambdas/lib/emailCleanup.ts",
         "src/web/components/admin/GalleryEmailSender.tsx",
         "src/shared/lib/validations.ts",
-        "infra/modules/gallery-email/main.tf"
+        "infra/modules/gallery-email/main.tf",
+        "src/web/galleryEmailConfiguration.ts"
       ],
       "verification": [
         {

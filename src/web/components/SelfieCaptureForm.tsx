@@ -4,6 +4,7 @@ import {
   getRegistrationStatus,
   uploadFileToS3,
 } from '../api';
+import { isGalleryEmailEnabled } from '../galleryEmailConfiguration';
 import { pollRegistrationStatus } from '../pollRegistrationStatus';
 import { ensureJpegFile } from '../imageConversion';
 import type { RegistrationStatus } from '../types';
@@ -30,7 +31,9 @@ function describeStatus(
     case 'PROCESSING':
       return 'Estamos comprobando tu selfie. Esto tardará solo unos instantes.';
     case 'ENROLLED':
-      return 'Tu selfie está lista. Puedes abrir tu galería. El organizador podrá enviarte el enlace por email cuando haya fotografías.';
+      return isGalleryEmailEnabled()
+        ? 'Tu selfie está lista. Puedes abrir tu galería. El organizador podrá enviarte el enlace por email cuando haya fotografías.'
+        : 'Tu selfie está lista. Puedes abrir tu galería. Guarda su enlace para volver a consultar tus fotografías; el envío por email aún no está disponible.';
     case 'FAILED':
       return (
         failureReason ??

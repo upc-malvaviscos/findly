@@ -35,6 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 function confirm() {
   fireEvent.click(screen.getByRole('button', { name: 'Enviar galerías' }));
@@ -144,4 +145,17 @@ it('discards a late status response after unmounting', async () => {
     await vi.advanceTimersByTimeAsync(4000);
   });
   expect(getGalleryEmailStatus).toHaveBeenCalledTimes(1);
+});
+
+it('shows unavailable email without an actionable send control or API request', () => {
+  vi.stubEnv('VITE_GALLERY_EMAIL_ENABLED', 'false');
+  render(<GalleryEmailSender eventId="synthetic" token="synthetic-token" />);
+  expect(
+    screen.getByText('El envío por email aún no está disponible.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Enviar galerías' }),
+  ).not.toBeInTheDocument();
+  expect(requestGalleryEmail).not.toHaveBeenCalled();
+  expect(getGalleryEmailStatus).not.toHaveBeenCalled();
 });

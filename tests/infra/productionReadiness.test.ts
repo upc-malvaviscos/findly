@@ -31,6 +31,74 @@ const valid = {
 };
 
 describe('production email and HTTPS readiness', () => {
+  const disabled = {
+    certificate: valid.certificate,
+    config: {
+      ...valid.config,
+      ENABLE_PRODUCTION_EMAIL: 'false',
+      TF_VAR_email_identity_arn: '',
+      TF_VAR_email_from_address: '',
+    },
+  };
+  it('allows the approved HTTPS deployment without SES credentials or mailbox DNS readiness', () => {
+    expect(() => requireProductionReadiness(disabled)).not.toThrow();
+  });
+  it.each([
+    { Status: 'PENDING_VALIDATION' },
+    { DomainName: 'foreign.example' },
+  ])(
+    'requires the approved issued certificate even with email disabled: %j',
+    (certificate) => {
+      expect(() =>
+        requireProductionReadiness({
+          ...disabled,
+          certificate: { ...disabled.certificate, ...certificate },
+        }),
+      ).toThrow();
+    },
+  );
+  it('rejects a foreign web domain when email is disabled', () => {
+    expect(() =>
+      requireProductionReadiness({
+        ...disabled,
+        config: {
+          ...disabled.config,
+          TF_VAR_web_domain_name: 'foreign.example',
+        },
+      }),
+    ).toThrow();
+  });
+  it.each([
+    { TF_VAR_email_identity_arn: valid.config.TF_VAR_email_identity_arn },
+    { TF_VAR_email_from_address: valid.config.TF_VAR_email_from_address },
+  ])(
+    'rejects email resources accidentally configured in disabled mode: %j',
+    (changes) => {
+      expect(() =>
+        requireProductionReadiness({
+          ...disabled,
+          config: { ...disabled.config, ...changes },
+        }),
+      ).toThrow();
+    },
+  );
+  it('never downgrades explicit email enablement when its configuration is missing', () => {
+    expect(() =>
+      requireProductionReadiness({
+        ...disabled,
+        config: { ...disabled.config, ENABLE_PRODUCTION_EMAIL: 'true' },
+      }),
+    ).toThrow();
+  });
+  it('retains every SES gate after explicit email enablement', () => {
+    expect(() =>
+      requireProductionReadiness({
+        ...valid,
+        account: { ...valid.account, ProductionAccessEnabled: false },
+        config: { ...valid.config, ENABLE_PRODUCTION_EMAIL: 'true' },
+      }),
+    ).toThrow();
+  });
   it('accepts verified regional email and the approved certificate', () => {
     expect(() => requireProductionReadiness(valid)).not.toThrow();
   });

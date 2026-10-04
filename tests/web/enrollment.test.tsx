@@ -16,6 +16,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   resetMockState();
+  vi.unstubAllEnvs();
 });
 
 function acceptConsent() {
@@ -145,4 +146,22 @@ describe('SelfieCaptureForm', () => {
     expect(await screen.findByText('Introduce tu email.')).toBeInTheDocument();
     expect(screen.queryByText('Registro completado')).not.toBeInTheDocument();
   });
+});
+
+it('keeps gallery access after enrollment without promising disabled email', async () => {
+  vi.stubEnv('VITE_GALLERY_EMAIL_ENABLED', 'false');
+  render(<SelfieCaptureForm eventId="demo-2026" />);
+  fillValidForm();
+  fireEvent.submit(screen.getByRole('button', { name: 'Enviar mi selfie' }));
+  await waitFor(
+    () => expect(screen.getByText('Registro completado')).toBeInTheDocument(),
+    { timeout: 5000 },
+  );
+  expect(screen.getByText(/Guarda su enlace/)).toBeInTheDocument();
+  expect(
+    screen.queryByText(/El organizador podrá enviarte/),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Abrir mi galería' }),
+  ).toHaveAttribute('href', expect.stringMatching(/^\/gallery\?token=.+/));
 });

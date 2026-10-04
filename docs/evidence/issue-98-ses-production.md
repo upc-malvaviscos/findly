@@ -19,7 +19,8 @@ limitados con la sesión administrativa existente. #49 permanece abierta.
   en `ns11.servicio-online.net`. Los tres CNAME DKIM, MX/TXT MAIL FROM y
   CNAME ACM están guardados en Acens y comprobados sin recursión en los
   tres servidores autoritativos. Algunas respuestas negativas previas continúan
-  en caché; SES todavía informa PENDING para DKIM/MAIL FROM.
+  en caché. La comprobación posterior confirmó identidad verificada y DKIM
+  SUCCESS; MAIL FROM sigue PENDING.
 - Entorno GitHub `production` creado, limitado a la rama `main`; variables
   públicas de cuenta, bucket existente y rol compartido configuradas.
 - Rol `findly-shared-config` creado y corregido a confianza GitHub OIDC exacta.
@@ -41,8 +42,8 @@ La revisión de normas y spec corrigió el permiso de etiquetas ACM para exigir
 propiedad previa además de las etiquetas solicitadas. La creación compuesta ACM con estas restricciones se ejecutó correctamente
 desde GitHub en el bootstrap real.
 
-Pendientes: completar propagación DNS y validación SES/DKIM/MAIL FROM, certificado
-emitido, salida del sandbox, rol y despliegue de producción, origen HTTPS,
+Pendientes: validación MAIL FROM,
+salida del sandbox, despliegue de producción, origen HTTPS,
 recuperación/checkpoint/DLQ, feedback y supresión reales, borrado/caducidad,
 recepción/apertura y cabeceras en ambos proveedores. No cerrar #98 ni #86.
 
@@ -61,7 +62,12 @@ roles con límite, rechazo sin él/con límite ajeno, imposibilidad de quitarlo 
 modificarlo, protección del desplegador, aislamiento de estado y ausencia de
 permisos de envío directo en el rol de despliegue.
 
-El workflow preparado bloquea producción mientras SES/ACM/DNS no estén listos.
+El workflow original bloqueaba producción mientras SES/ACM/DNS no estaban listos.
+La ampliación autorizada el 2026-10-05 separa web/backend de correo: certificado
+obligatorio siempre, requisitos SES completos sólo al activar envío mediante
+`enable_production_email=true`; por defecto la identidad y el remitente se pasan
+vacíos y no se crean recursos ni rutas de correo. El despliegue real sigue
+pendiente; esta preparación no demuestra publicación.
 Las pruebas de esas condiciones, los roles y el wiring Terraform se validan
 localmente; sus resultados se detallan en la validación al final de este documento. Estos controles
 no acreditan creación del stack ni entrega; el rol AWS sí está configurado.
@@ -74,7 +80,11 @@ checks, incluido provision-test-destroy AWS (run 37230626594). GitHub registró
 el workflow y el bootstrap desde main terminó correctamente:
 [run 37232209363](https://github.com/upc-malvaviscos/findly/actions/runs/37232209363).
 Creó identidad SES eu-west-1 y certificado ACM us-east-1 con el rol compartido;
-no se aplicó Terraform con raíz. El certificado sigue pendiente de validación.
+no se aplicó Terraform con raíz. El certificado ya está ISSUED y su ARN se configuró en GitHub production.
+También se configuraron identidad verificada y remitente; su presencia no activa
+el correo sin el input explícito del despliegue.
+PR #101 integrada con todos los checks; el run 37235420505 pasó recorrido AWS
+y destroy. El workflow de aceptación de correo quedó registrado y activo.
 
 La revisión corrigió etiquetado de CloudFront, Cognito y API Gateway en
 producción: modificar etiquetas exige propiedad existente. El permiso
@@ -145,3 +155,18 @@ de revocación, conserva fixtures si falla la desactivación del evento y aplica
 un presupuesto de limpieza con reserva para finalizar el organizador temporal.
 El preflight preparado exige 401 sin JWT para lectura y envío administrativos.
 Estas comprobaciones aún requieren su ejecución contra producción.
+
+## Publicación independiente del correo — 2026-10-05
+
+El responsable autorizó publicar todo lo que no dependa de MAIL FROM.
+El workflow separa `enable_production_email=false` de la validación HTTPS
+obligatoria. Terraform omite el módulo de correo; el build AWS oculta el envío
+y conserva acceso a las galerías. La activación explícita mantiene todos los
+controles SES/DNS y exige identidad/remitente configurados. Se corrigió también
+el dominio faltante en el workflow de aceptación, que exige correo habilitado.
+
+Validación local completa: 555 pruebas unitarias, lint/typecheck/build, siete
+raíces Terraform y contratos, auditoría sin vulnerabilidades y trazabilidad.
+Las 21 pruebas de navegador pasan en Chromium, Firefox y WebKit.
+La fixture activa explícitamente sus rutas de correo simulado.
+Estos resultados no acreditan el despliegue ni entrega real de correo.

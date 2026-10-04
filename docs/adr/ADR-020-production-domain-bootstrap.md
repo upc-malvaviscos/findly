@@ -50,9 +50,9 @@ roles sin ese límite, retirarlo, modificarlo ni modificar su propio rol.
 Demo y CI efímero conservan su configuración vigente.
 
 El workflow rechaza rama, actor original, actor de reejecución, backend, cuenta
-o buckets distintos antes de credenciales. Tras OIDC comprueba identidad SES,
-DKIM, MAIL FROM, SPF/DMARC públicos, salida del sandbox, estado de envío/cuotas
-y certificado ACM emitido. Después de publicar comprueba HTTPS y `/gallery`.
+o buckets distintos antes de credenciales. Tras OIDC comprueba siempre el certificado ACM emitido. La activación explícita
+del correo comprueba además identidad SES, DKIM, MAIL FROM, SPF/DMARC públicos,
+salida del sandbox y estado de envío/cuotas. Después de publicar comprueba HTTPS y `/gallery`.
 Esto no sustituye recuperación/feedback ni recepción/apertura de un enlace real.
 
 ## Secuencia y límites
@@ -65,7 +65,11 @@ Esto no sustituye recuperación/feedback ni recepción/apertura de un enlace rea
 5. Probar recuperación/feedback AWS y recepción/apertura en los dos buzones
    autorizados, sin publicar sus direcciones ni enlaces privados.
 
-El paso 4 requiere correo configurado. La issue #98 y #86 permanecen abiertas
+Ampliación aprobada el 2026-10-05: publicar web y backend sin esperar al correo.
+`enable_production_email=false` es el valor predeterminado del despliegue; pasa
+identidad y remitente vacíos a Terraform, que omite recursos y rutas de envío.
+El paso 4 puede ejecutarse así antes del paso 3. La activación posterior con
+`enable_production_email=true` conserva todas las comprobaciones SES anteriores. La issue #98 y #86 permanecen abiertas
 hasta verificar todos sus criterios; #49 permanece abierta por instrucción del
 responsable. Los tests locales, el bootstrap y la integración de código no
 acreditan recepción real. Mantener privacidad, consentimiento, revocación,
