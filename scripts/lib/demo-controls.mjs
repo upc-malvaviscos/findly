@@ -81,7 +81,7 @@ const allowedAddresses = JSON.parse(
 );
 const indexedAddresses = new Map([
   ['admin_api', ['list_events', 'create_event', 'create_uploads']],
-  ['public_enrollment', ['events', 'event', 'register', 'status']],
+  ['public_enrollment', ['events', 'event', 'register', 'status', 'telemetry']],
 ]);
 
 function validateAddress(resource) {

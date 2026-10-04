@@ -75,5 +75,22 @@ handlers y ahora imprime sus nombres pendientes, sin datos de asistentes.
 No se amplían tiempos ni se excluye la nueva Lambda. La consulta de las cinco
 series permanece en el smoke de demo, independiente del CI efímero.
 
-La validación remota de esta corrección se registrará con el siguiente run de
-la PR; no se presenta el fallo anterior como aceptación AWS correcta.
+El run [37195275576](https://github.com/upc-malvaviscos/findly/actions/runs/37195275576)
+pasó la aceptación efímera sobre `43bf378`: reportes de las tres etapas (204),
+rechazo de campos extra (400), logs de las 13 Lambdas y destrucción de los 111
+recursos. PR #93 quedó integrada en `main@1d5eb821`. Esta evidencia no sustituye
+la consulta de las cinco series en la demo permanente.
+
+## Seguimiento del ciclo demo tras PR #93
+
+El control de destrucción conservaba sólo cuatro claves del módulo público y
+rechazaba la nueva función `telemetry` como `Unexpected indexed resource`.
+Se incorpora esa clave sin ampliar direcciones, cuentas, regiones ni actores
+permitidos. La regresión en `tests/infra/demo-controls.test.ts` comprueba todos
+los handlers declarados en el módulo Terraform y rechaza una clave desconocida.
+
+La revisión administrativa de los roles compara las políticas activas con las
+generadas: añade exclusivamente la función/rol de telemetría al inventario y
+`cloudwatch:GetMetricData` en deploy, limitado a `eu-west-1`. La demo tenía
+estado vacío antes del ciclo. La aceptación de métricas y el borrado posterior
+siguen pendientes hasta registrar los nuevos runs AWS.

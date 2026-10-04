@@ -22,6 +22,12 @@ los 106 recursos originales mediante lecturas AWS. La entrega es PR #92.
 La preparación
 inicial de bindings sólo prepara API/web para autorizar sus IDs reales.
 
+El inventario de destrucción incluye también el handler público `telemetry`
+de ADR-018. `tests/infra/demo-controls.test.ts` contrasta los handlers declarados
+por Terraform con el control de borrado y conserva el rechazo de claves
+desconocidas. La aceptación AWS posterior a PR #93 se registra por separado en
+la evidencia de issue #22; los planes y tests locales no acreditan el borrado.
+
 ## Estado y decisiones
 
 Ampliación aprobada el 2026-10-03 de la issue #15 existente. Los workflows

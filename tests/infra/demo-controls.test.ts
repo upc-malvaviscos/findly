@@ -115,6 +115,47 @@ describe('demo authorization before credentials', () => {
 });
 
 describe('demo destruction inventory', () => {
+  const publicFunction = (key: string) => ({
+    address: `module.findly.module.public_enrollment.aws_lambda_function.public["${key}"]`,
+    mode: 'managed',
+    type: 'aws_lambda_function',
+    change: {
+      actions: ['delete'],
+      before: {
+        id: `findly-demo-public-${key}`,
+        function_name: `findly-demo-public-${key}`,
+        timeout: 30,
+      },
+      after: null,
+    },
+  });
+  it('accepts every public handler declared by the deployed Terraform module', () => {
+    const module = readFileSync(
+      'infra/modules/public-enrollment/main.tf',
+      'utf8',
+    );
+    const handlers = [...module.matchAll(/^\s+(\w+)\s*=\s*\{ handler =/gm)]
+      .map((match) => match[1])
+      .filter((handler): handler is string => handler !== undefined);
+    expect(handlers).toContain('telemetry');
+    const resources = handlers.map(publicFunction);
+    expect(
+      validateDestroyPlan({ resource_changes: resources }, config).functions,
+    ).toEqual(
+      resources.map((resource) => ({
+        name: resource.change.before.function_name,
+        timeout: resource.change.before.timeout,
+      })),
+    );
+  });
+  it('still rejects an undeclared public handler', () => {
+    expect(() =>
+      validateDestroyPlan(
+        { resource_changes: [publicFunction('unknown')] },
+        config,
+      ),
+    ).toThrow('Unexpected indexed resource');
+  });
   it('protects operational roles even if a corrupted stack address references them', () => {
     expect(() =>
       validateDestroyPlan(
