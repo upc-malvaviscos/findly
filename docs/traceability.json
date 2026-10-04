@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "requirements": [
+    {
+      "id": "REQ-SCRIPTS-RELIABILITY",
+      "description": "Aislar validación Terraform y comunicar limpieza incompleta sin falsos positivos.",
+      "issues": [2],
+      "spec": "specs/01-repository-foundation-and-development-standards.md",
+      "implementation": [
+        "scripts/terraform-validate.mjs",
+        "scripts/lib/terraform-validation.mjs",
+        "scripts/check-documentation-sync.mjs",
+        "scripts/lib/documentation-traceability.mjs",
+        "scripts/test-aws-sandbox.mjs",
+        "scripts/aws-sandbox.mjs",
+        "scripts/lib/sandbox-cleanup.mjs"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/infra/terraformValidation.test.ts",
+            "tests/infra/documentationTraceability.test.ts",
+            "tests/infra/sandboxCleanup.test.ts",
+            "tests/infra/sandboxScripts.test.ts"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/2026-10-04-permanent-script-fixes.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "AGENTS.md",
+        "docs/local-validation-harness.md",
+        "docs/execution-modes.md",
+        "docs/testing-strategy.md",
+        "docs/paper/05-implementacion-y-cicd.md",
+        "docs/adr/ADR-001-vite-react-over-nextjs.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "REQ-ADMIN-AUTH",
+      "description": "Administración protegida por Cognito y rechazo de acceso sin autenticar.",
+      "issues": [5],
+      "spec": "specs/04-admin-event-management-and-cognito-authorization.md",
+      "implementation": [
+        "src/lambdas/adminEvents.ts",
+        "src/web/realApi.ts",
+        "infra/modules/admin-api/main.tf"
+      ],
+      "verification": [
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/test-aws-sandbox.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-05-admin-cognito.md",
+          "environment": "aws"
+        }
+      ],
+      "documentation": ["docs/adr/ADR-001-vite-react-over-nextjs.md"]
+    },
+    {
+      "id": "REQ-VALIDATION-PLANES",
+      "description": "Separar los contratos comprobados en mocks, Floci y AWS.",
+      "issues": [17],
+      "spec": "specs/16-unit-contract-integration-and-e2e-validation.md",
+      "implementation": [
+        "vitest.config.ts",
+        "playwright.config.ts",
+        "playwright.local.config.ts"
+      ],
+      "verification": [
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/test-aws-sandbox.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-51-54-local-execution-modes.md",
+          "environment": "aws"
+        }
+      ],
+      "documentation": [
+        "docs/testing-strategy.md",
+        "specs/19-local-execution-modes-and-verification-matrix.md"
+      ]
+    },
+    {
+      "id": "REQ-LOCAL-MODES",
+      "description": "Modos locales explícitos y sandbox con estado separado.",
+      "issues": [51, 52, 53, 54],
+      "spec": "specs/19-local-execution-modes-and-verification-matrix.md",
+      "implementation": [
+        "scripts/dev-floci.mjs",
+        "scripts/aws-sandbox.mjs",
+        "src/web/api.ts"
+      ],
+      "verification": [
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/test-aws-sandbox.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-51-54-local-execution-modes.md",
+          "environment": "aws"
+        }
+      ],
+      "documentation": ["docs/execution-modes.md", "docs/testing-strategy.md"]
+    },
+    {
+      "id": "REQ-REMOTE-STATE",
+      "description": "Estado remoto por entorno y aislamiento frente a validación local.",
+      "issues": [11],
+      "spec": "specs/10-terraform-bootstrap-remote-state-and-environments.md",
+      "implementation": [
+        "infra/bootstrap/main.tf",
+        "infra/environments/sandbox/main.tf",
+        "infra/environments/demo/main.tf",
+        "infra/environments/production/main.tf"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": ["tests/infra/terraformEnvironments.test.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-11-terraform-remote-state.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-009-terraform-remote-state-and-environment-isolation.md"
+      ]
+    },
+    {
+      "id": "REQ-OBSERVABILITY",
+      "description": "Logs y alertas operativas con límites de evidencia FinOps declarados.",
+      "issues": [13],
+      "spec": "specs/12-observability-alerts-and-finops-controls.md",
+      "implementation": [
+        "infra/modules/monitoring/main.tf",
+        "src/lambdas/lib/logger.ts"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": ["tests/infra/observability.test.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-13-observability-finops.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/paper/07-finops-observabilidad-y-sostenibilidad.md"
+      ]
+    },
+    {
+      "id": "REQ-ERASURE-RETENTION",
+      "description": "Borrado y purga recuperables sin confundir TTL con limpieza externa.",
+      "issues": [10],
+      "spec": "specs/09-consent-audit-data-retention-and-right-to-erasure.md",
+      "implementation": [
+        "src/lambdas/deleteRegistration.ts",
+        "src/lambdas/retentionPurger.ts"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/deleteRegistration.test.ts",
+            "tests/lambdas/retentionPurger.test.ts"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-70-erasure-retention.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": ["docs/adr/ADR-013-durable-registration-cleanup.md"]
+    },
+    {
+      "id": "REQ-PAPER-RUNBOOK",
+      "description": "Memoria y runbook trazados a evidencia y al stack vigente.",
+      "issues": [18],
+      "spec": "specs/17-paper-evidence-adr-and-demo-runbook.md",
+      "implementation": [
+        "docs/paper/05-implementacion-y-cicd.md",
+        "docs/runbooks/demo-runbook.md"
+      ],
+      "verification": [
+        {
+          "command": "sync:check",
+          "environment": "static",
+          "files": ["scripts/check-documentation-sync.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-18-paper-runbook.md",
+          "environment": "static"
+        }
+      ],
+      "documentation": ["docs/README.md", "README.md"]
+    }
+  ]
+}

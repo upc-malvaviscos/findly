@@ -58,3 +58,15 @@ Un fallo de hook es una señal de corrección o instalación pendiente. No se us
 `--no-verify` para eludirlo. Si el repositorio base tiene una infracción ajena,
 repórtala con el archivo y el comando que falló; no la ocultes ni declares el
 trabajo validado.
+
+## Trazabilidad y aislamiento de validadores
+
+`terraform:validate` usa una copia temporal, lockfiles readonly y datos propios.
+No modifica los overrides ni el backend inicializado del checkout.
+
+`docs/traceability.json` mantiene requisitos con identificador estable, issues,
+specs, implementación, comandos de verificación y evidencias con su entorno.
+Cada spec y evidencia declara su identificador mediante un comentario
+`requirement`. Al añadir o cambiar requisitos, actualiza esas relaciones.
+`sync:check` rechaza referencias rotas o comandos inexistentes; la presencia de
+un informe no demuestra su contenido ni una nueva ejecución en AWS.

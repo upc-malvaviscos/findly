@@ -59,3 +59,7 @@ no es cobertura global ni de ramas. La configuración auditada reporta
 cobertura sin imponer umbral: el gate automático se sigue en #70.
 Las pruebas SDK mock, Playwright interceptado y Floci conservan su nivel
 de evidencia; no acreditan los recorridos AWS pendientes en #22/#45/#46/#47.
+
+<!-- requirement: REQ-VALIDATION-PLANES -->
+
+Trazabilidad `REQ-VALIDATION-PLANES`: [#17](https://github.com/upc-malvaviscos/findly/issues/17) · [evidencia](../docs/evidence/issue-51-54-local-execution-modes.md).

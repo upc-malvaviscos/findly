@@ -160,3 +160,5 @@ resolver.
   están y ambos lo superan.
 - No se abre ADR nuevo: esta entrega es documentación de trazabilidad, no una
   decisión arquitectónica.
+
+<!-- requirement: REQ-PAPER-RUNBOOK -->

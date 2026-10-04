@@ -88,3 +88,7 @@ final. Las colecciones legacy sin origen confirmado requieren migración.
 La evidencia local cubre REG desaparecido por TTL, caras no persistidas,
 reconciliación de subidas tardías, paginación y conservación de referencias
 en errores. No sustituye las pruebas AWS ni acredita ejecución del cron real.
+
+<!-- requirement: REQ-ERASURE-RETENTION -->
+
+Trazabilidad `REQ-ERASURE-RETENTION`: [#10](https://github.com/upc-malvaviscos/findly/issues/10) · [evidencia](../docs/evidence/issue-70-erasure-retention.md).

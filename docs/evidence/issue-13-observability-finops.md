@@ -187,3 +187,5 @@ Esto completa el criterio de métricas de #22, fuera del alcance original de
 PR #64. No se aplica ni prueba Budgets, ni se confirma o recibe correo. #13
 permanece abierta por esos criterios; las cinco series no prueban las métricas
 de latencia/p95 de negocio ni los access logs pendientes.
+
+<!-- requirement: REQ-OBSERVABILITY -->
