@@ -63,6 +63,7 @@
   "module.findly.module.public_enrollment.aws_apigatewayv2_route.public",
   "module.findly.module.public_enrollment.aws_lambda_permission.public",
   "module.findly.module.public_enrollment.aws_cloudwatch_log_metric_filter.public_errors",
+  "module.findly.module.public_enrollment.aws_cloudwatch_log_metric_filter.client_errors",
   "module.findly.module.selfie_indexer.aws_cloudwatch_log_group.selfie",
   "module.findly.module.selfie_indexer.aws_iam_role.selfie",
   "module.findly.module.selfie_indexer.aws_iam_role_policy.selfie",
