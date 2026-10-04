@@ -30,6 +30,13 @@ y un código de una lista cerrada. La métrica `ClientEnrollmentErrors` los cuen
 con la dimensión `Stage`. La ruta tiene throttling propio, y el cliente envía como
 mucho 20 reportes por sesión.
 
+El despliegue de demo del 2026-10-04 (run 37198156959) verificó las cinco
+series desde la SPA publicada con datos sintéticos, además de inscripción,
+subida, matching y galería. El ciclo manual, las lecturas de IAM/logs y sus
+límites se registran en
+`docs/evidence/2026-10-04-pr-93-demo-acceptance.md`. Esta comprobación no
+acredita una alerta real de Budgets ni la recepción de correo.
+
 La cola de fotos tiene una DLQ con una alarma que se activa con un mensaje o más.
 La alarma y el presupuesto publican en un único topic SNS, que reenvía a un correo
 configurado en el despliegue (nunca versionado) una vez que su destinatario

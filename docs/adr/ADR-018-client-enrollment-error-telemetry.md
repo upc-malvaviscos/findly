@@ -82,3 +82,13 @@ INVALID_REQUEST`, sin registrar el reporte:
   tres contadores.
 - **Mantener sólo los contadores de sesión:** no cumple el criterio de la spec
   18 en `demo`.
+
+## Verificación desplegada
+
+El run [37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959)
+verifica el contrato desde la SPA publicada con CORS nativo y confirma las
+cinco series en `Findly/demo`. Lecturas AWS independientes comprueban el rol
+limitado a logs, retención de 14 días, throttling, dimensión Stage y tres
+reportes válidos sin los campos sensibles revisados. El detalle del ciclo
+autorizado y sus límites consta en
+[la evidencia de PR #93](../evidence/2026-10-04-pr-93-demo-acceptance.md).

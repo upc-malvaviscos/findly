@@ -174,3 +174,16 @@ localmente con `core.autocrlf=input`, sin cambios en Git.
   los access logs de API Gateway. Se proponen como issue de seguimiento.
 - No se abre ADR: son decisiones de implementación acotadas por las specs 00, 10
   y 12; el registro está en la nota de implementación de la spec 12.
+
+## Métricas de inscripción en demo — 2026-10-04
+
+El run [37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959)
+acredita las cinco series de errores de spec 18/ADR-018 en `Findly/demo`.
+La Lambda de telemetría tiene sólo permisos de escritura en su grupo de logs,
+retención 14 días y dimensiones sin identificadores de asistentes.
+[Evidencia del ciclo](2026-10-04-pr-93-demo-acceptance.md).
+
+Esto completa el criterio de métricas de #22, fuera del alcance original de
+PR #64. No se aplica ni prueba Budgets, ni se confirma o recibe correo. #13
+permanece abierta por esos criterios; las cinco series no prueban las métricas
+de latencia/p95 de negocio ni los access logs pendientes.

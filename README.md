@@ -152,7 +152,12 @@ La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyu
 
 La [auditoría de cierres #70](docs/evidence/issue-checklist-audit.md) distingue
 frontend simulado, Floci y evidencia AWS. Las issues #6, #8, #10, #13 y #22
-permanecen abiertas por criterios desplegados pendientes. `npm run verify`
+conservan su historial de verificación; #6 y #8 ya se cerraron con evidencia
+AWS. La demo publicada y las cinco series de errores de #22 se verificaron
+en el [run 37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959).
+El ciclo manual y la conservación del backend están documentados en
+[la evidencia posterior a PR #93](docs/evidence/2026-10-04-pr-93-demo-acceptance.md).
+Las issues #10 y #13 mantienen sus criterios propios pendientes. `npm run verify`
 valida gates locales; Playwright se ejecuta con `npm run test:e2e` y
 `npm run test:e2e:local`. Un merge o una suite mock verde no acredita demo AWS.
 

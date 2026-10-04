@@ -74,3 +74,12 @@ ausencia del inventario original y backend/estados ajenos intactos mediante
 lecturas AWS. El run 37153651572 repitió destroy desde main con estado vacío y
 pasó, acreditando recuperación e idempotencia. La entrega se sigue en PR #92/#15.
 Véase `docs/evidence/issue-15-permanent-demo.md` para pruebas y recuperación.
+
+El run 37198156959 repitió la publicación y el recorrido con las cinco series
+de métricas de ADR-018. PR #94 corrige el inventario de borrado para incluir
+`telemetry`, conservando los controles de propiedad. El ciclo posterior y las
+lecturas de IAM/logs/CloudWatch constan en
+`docs/evidence/2026-10-04-pr-93-demo-acceptance.md`.
+El run 37199188358 eliminó los 114 recursos y datos de esa demo, verificó su
+ausencia y conservó el backend. Una lectura administrativa posterior comprobó
+también los 41 estados ajenos sin cambios.
