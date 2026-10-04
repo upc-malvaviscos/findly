@@ -6,6 +6,7 @@ vi.mock('../../src/web/realApi', () => ({
   createRegistration: vi.fn(),
   uploadFileToS3: vi.fn(),
   getRegistrationStatus: vi.fn(),
+  reportEnrollmentError: vi.fn(),
 }));
 import * as real from '../../src/web/realApi';
 import {
@@ -41,6 +42,13 @@ describe('enrollment error counts', () => {
       upload: 1,
       polling: 1,
     });
+    // Only the stage and the thrown error reach the reporter: never the URL,
+    // registration ID, token or request payload of the failed call.
+    expect(vi.mocked(real.reportEnrollmentError).mock.calls).toEqual([
+      ['registration', failure],
+      ['upload', failure],
+      ['polling', failure],
+    ]);
     const snapshot = getEnrollmentErrorCounts();
     expect(Object.keys(snapshot)).toEqual([
       'registration',
@@ -54,5 +62,6 @@ describe('enrollment error counts', () => {
     });
     await getRegistrationStatus('synthetic-id', 'synthetic-token');
     expect(getEnrollmentErrorCounts().polling).toBe(1);
+    expect(real.reportEnrollmentError).toHaveBeenCalledTimes(3);
   });
 });

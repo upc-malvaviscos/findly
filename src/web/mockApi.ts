@@ -55,3 +55,6 @@ export async function getRegistrationStatus(
   await wait(80);
   return nextMockStatus(registrationId);
 }
+
+/** Mock mode has no backend: client error reports stay in memory only. */
+export function reportEnrollmentError(): void {}

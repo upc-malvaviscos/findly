@@ -1,4 +1,10 @@
 import { apiClient, apiUrl } from './apiClient';
+import {
+  CLIENT_ENROLLMENT_ERROR_PATH,
+  toClientEnrollmentErrorCode,
+  type ClientEnrollmentError,
+  type EnrollmentErrorStage,
+} from '../shared/lib/enrollmentErrorTelemetry';
 import { uploadFileToS3 } from './s3Uploader';
 import type {
   Event,
@@ -137,4 +143,43 @@ export async function getRegistrationStatus(
         ? payload.failureReason
         : undefined,
   };
+}
+
+// A page that keeps failing (offline, retries in a loop) must not turn into a
+// stream of telemetry requests: a session reports at most this many errors.
+export const MAX_ENROLLMENT_ERROR_REPORTS = 20;
+let enrollmentErrorReports = 0;
+
+/** Test hook: a fresh page starts with an empty report budget. */
+export function resetEnrollmentErrorReports(): void {
+  enrollmentErrorReports = 0;
+}
+
+/**
+ * Sends a stage and a closed error code to the telemetry endpoint (ADR-018).
+ * Fire-and-forget: it never awaits in the enrollment flow, never throws and
+ * never includes event, registration, token, URL or message data.
+ */
+export function reportEnrollmentError(
+  stage: EnrollmentErrorStage,
+  error: unknown,
+): void {
+  if (enrollmentErrorReports >= MAX_ENROLLMENT_ERROR_REPORTS) return;
+  const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (!configured) return;
+  enrollmentErrorReports += 1;
+  const report: ClientEnrollmentError = {
+    stage,
+    code: toClientEnrollmentErrorCode(error),
+  };
+  try {
+    void fetch(apiUrl(configured, CLIENT_ENROLLMENT_ERROR_PATH), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+      keepalive: true,
+    }).catch(() => undefined);
+  } catch {
+    // Telemetry must never affect the enrollment flow.
+  }
 }
