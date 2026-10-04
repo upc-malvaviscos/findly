@@ -96,9 +96,21 @@ verificó además la SPA de demo publicada mediante HTTPS/OAC, con configuració
 AWS real, inscripción pública y matching desde navegador sin interceptar
 respuestas y con datos sintéticos. Véase la evidencia de issue #15.
 
-Pendiente, sin cerrar la issue #22: completar la exposición y verificación de
-métricas de error de registro/subida/polling en demo. Los contadores de cliente
-en memoria no acreditan todavía ese criterio operativo completo.
+Métricas de error (ADR-018, rama `feature/issue-22-enrollment-error-metrics`).
+Implementado y validado en local:
+
+- `POST /telemetry/enrollment-errors` recibe del cliente `{ stage, code }` con
+  enums cerrados.
+- El metric filter `ClientEnrollmentErrors` lleva la dimensión `Stage`
+  (registration/upload/polling), y convive con `RegistrationErrors` y
+  `PollingErrors` del servidor.
+- La ruta tiene throttling propio y la Lambda sólo puede escribir en sus logs.
+- El smoke de demo provoca errores sintéticos y comprueba las cinco series
+  mediante `GetMetricData`.
+
+Pendiente, sin cerrar la issue #22: ejecutar el despliegue de demo con el smoke
+ampliado y registrar el run como evidencia AWS. Las pruebas unitarias, E2E y de
+plan no acreditan el entorno desplegado.
 
 ## Contrato público actualizado (issue #70)
 
@@ -115,8 +127,8 @@ polling sólo en memoria y falla si falta configuración AWS. RegistrationErrors
 y PollingErrors se derivan de logs mediante filtros CloudWatch sin dimensiones
 personales. El cliente expone contadores en memoria de errores de registro,
 subida y polling (`getEnrollmentErrorCounts`), sin IDs, URLs ni payloads.
-No existe un endpoint de telemetría nuevo ni se acredita persistencia de esos
-contadores de cliente.
+Esa entrega no incluía un endpoint de telemetría. ADR-018 lo añade
+posteriormente para persistir los errores observados por el cliente.
 
 ## Selfies inmutables y recuperación (issue #70)
 

@@ -139,17 +139,18 @@ vez; el capítulo 6 detalla cómo se reconcilian los fallos parciales.
 
 ### Contratos de API (HTTP)
 
-| Ruta                                          | Handler                                        | Auth                             |
-| --------------------------------------------- | ---------------------------------------------- | -------------------------------- |
-| `GET /events`                                 | `publicEvents.listPublicEvents`                | Pública                          |
-| `GET /events/{eventId}`                       | `publicEvents.getPublicEvent`                  | Pública                          |
-| `POST /events/{eventId}/registrations`        | `publicEnrollment.createPublicRegistration`    | Pública                          |
-| `GET /registrations/{registrationId}/status`  | `publicEnrollment.getPublicRegistrationStatus` | Token de galería                 |
-| `DELETE /registrations/{registrationId}`      | `deleteRegistration`                           | Token de galería                 |
-| `GET /gallery`                                | `gallery`                                      | Token de galería (query `token`) |
-| `GET /admin/events`                           | `adminEvents.listAdminEvents`                  | JWT Cognito                      |
-| `POST /admin/events`                          | `adminEvents.createAdminEvent`                 | JWT Cognito                      |
-| `POST /admin/events/{eventId}/photos/uploads` | `adminEvents.createPhotoUploads`               | JWT Cognito                      |
+| Ruta                                          | Handler                                        | Auth                              |
+| --------------------------------------------- | ---------------------------------------------- | --------------------------------- |
+| `GET /events`                                 | `publicEvents.listPublicEvents`                | Pública                           |
+| `GET /events/{eventId}`                       | `publicEvents.getPublicEvent`                  | Pública                           |
+| `POST /events/{eventId}/registrations`        | `publicEnrollment.createPublicRegistration`    | Pública                           |
+| `GET /registrations/{registrationId}/status`  | `publicEnrollment.getPublicRegistrationStatus` | Token de galería                  |
+| `POST /telemetry/enrollment-errors`           | `publicEnrollment.reportClientEnrollmentError` | Pública, con throttling (ADR-018) |
+| `DELETE /registrations/{registrationId}`      | `deleteRegistration`                           | Token de galería                  |
+| `GET /gallery`                                | `gallery`                                      | Token de galería (query `token`)  |
+| `GET /admin/events`                           | `adminEvents.listAdminEvents`                  | JWT Cognito                       |
+| `POST /admin/events`                          | `adminEvents.createAdminEvent`                 | JWT Cognito                       |
+| `POST /admin/events/{eventId}/photos/uploads` | `adminEvents.createPhotoUploads`               | JWT Cognito                       |
 
 Contratos exactos en `src/shared/types/api.ts`. Ningún error expone datos
 internos: toda respuesta de error sigue `{ code, message, requestId }`

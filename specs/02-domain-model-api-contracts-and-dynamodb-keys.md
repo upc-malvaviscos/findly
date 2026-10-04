@@ -66,6 +66,15 @@ DynamoDB TTL no puede eliminarlo antes de la limpieza externa.
 
 - **Response (200 OK)**: `{ registrationId: string; status: 'UPLOAD_PENDING' | 'PROCESSING' | 'ENROLLED' | 'FAILED'; failureReason?: string; }`
 
+### 2b. Telemetría de errores de inscripción (`POST /telemetry/enrollment-errors`)
+
+- Pública y con throttling propio en el stage. Request:
+  `{ stage: 'registration' | 'upload' | 'polling'; code: ClientEnrollmentErrorCode; }`.
+  Los enums y su normalización se definen en
+  `src/shared/lib/enrollmentErrorTelemetry.ts` (ADR-018).
+- **Response (204 No Content)**. Cualquier campo adicional, valor desconocido
+  o cuerpo de más de 256 bytes devuelve `400 INVALID_REQUEST` y no se registra.
+
 ### 3. Galería Privada (`GET /gallery?token={token}`)
 
 - **Response (200 OK)**: `{ eventId: string; eventName: string; registrationId: string; photos: Array<{ photoId: string; url: string; matchedAt: string; }>; expiresAt: string; }`

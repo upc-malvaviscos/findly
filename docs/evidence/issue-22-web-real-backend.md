@@ -24,6 +24,39 @@ galería privada. Sin interceptar respuestas ni usar datos personales reales.
 El detalle del ciclo permanente se registra en
 [evidencia de issue #15](issue-15-permanent-demo.md).
 
-La issue #22 permanece abierta por su criterio de métricas: RegistrationErrors
-y PollingErrors existen en CloudWatch; los contadores de cliente de las tres
-etapas son sólo de sesión y no acreditan la exposición operativa completa.
+## Métricas de error de registro, subida y polling — 2026-10-04
+
+Implementación según [ADR-018](../adr/ADR-018-client-enrollment-error-telemetry.md)
+en la rama `feature/issue-22-enrollment-error-metrics`.
+
+| Criterio                                                 | Prueba                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Contrato `{ stage, code }` cerrado y normalización       | `tests/shared/enrollmentErrorTelemetry.test.ts`                    |
+| Lambda: 204, 400 sin registrar, logs sin identificadores | `tests/lambdas/publicEnrollment.test.ts`                           |
+| Cliente: reporte por etapa, tope por sesión, sin PII     | `tests/web/enrollmentMetrics.test.ts`, `tests/web/realApi.test.ts` |
+| Metric filters, ruta, rol sin datos y throttling         | `tests/infra/observability.test.ts`                                |
+| Rol de demo: `GetMetricData` regional sólo en deploy     | `tests/infra/demo-role-policies.test.ts`                           |
+| Comprobación de las cinco series en el smoke             | `tests/infra/enrollmentErrorMetrics.test.ts`                       |
+| Fallo de PUT reportado como `upload`/`UPLOAD_HTTP_4XX`   | `e2e/foundation.spec.ts` (backend HTTP simulado, tres navegadores) |
+| Métricas en demo desplegada                              | Pendiente: deploy de demo con `scripts/test-demo.mjs` ampliado     |
+
+Validación local del 2026-10-04:
+
+- `npm run lint`, `npm run typecheck` y `npm run test` (352 pruebas en 43
+  archivos, con los umbrales de cobertura) pasan.
+- `npm run build`, `terraform:format` y `terraform:test:hosting` pasan. Este
+  último incluye el plan mock completo de demo, con la ruta y el stage
+  enlazados.
+- `npm run security` y `npm run sync:check` pasan.
+- `npm run test:e2e` pasa: 15 pruebas.
+- `terraform validate` pasa en las cinco raíces, con `TF_DATA_DIR` aislado,
+  porque el `.terraform` local de sandbox apunta a un backend remoto ajeno.
+- `npm run test:e2e:local` (Floci) no se ejecutó porque Docker no estaba
+  disponible.
+
+Ninguna de estas pruebas es evidencia de AWS. La issue #22 permanece abierta
+hasta ejecutar el deploy de demo con el smoke ampliado. Ese smoke provoca un
+registro inválido, un polling con un token ajeno y un reporte por etapa desde el
+origen publicado. Después comprueba con `GetMetricData` que `RegistrationErrors`,
+`PollingErrors` y `ClientEnrollmentErrors` (registration/upload/polling) tienen
+al menos un dato. Tras el smoke se ejecuta la destrucción autorizada de la demo.
