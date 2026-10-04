@@ -107,6 +107,10 @@ Implementado y validado en local:
 - La ruta tiene throttling propio y la Lambda sólo puede escribir en sus logs.
 - El smoke de demo provoca errores sintéticos y comprueba las cinco series
   mediante `GetMetricData`.
+- El recorrido AWS efímero invoca la nueva Lambda de telemetría desde Chromium
+  con CORS nativo: tres reportes válidos (204) y rechazo de campos extra (400),
+  antes de exigir logs de todos los handlers. No sustituye la prueba de métricas
+  de demo.
 
 Pendiente, sin cerrar la issue #22: ejecutar el despliegue de demo con el smoke
 ampliado y registrar el run como evidencia AWS. Las pruebas unitarias, E2E y de

@@ -60,3 +60,20 @@ registro inválido, un polling con un token ajeno y un reporte por etapa desde e
 origen publicado. Después comprueba con `GetMetricData` que `RegistrationErrors`,
 `PollingErrors` y `ClientEnrollmentErrors` (registration/upload/polling) tienen
 al menos un dato. Tras el smoke se ejecuta la destrucción autorizada de la demo.
+
+## Corrección de aceptación efímera de PR #93 — 2026-10-04
+
+El run [37191895190](https://github.com/upc-malvaviscos/findly/actions/runs/37191895190)
+falló en `deployed-observability.mjs`: faltaban logs de una Lambda durante los
+12 minutos del probe. El recorrido no invocaba `public-telemetry`, añadida por
+ADR-018 y incluida automáticamente en la lista de handlers. Inscripción,
+matching, galería, DLQ, alarma y SNS pasaron; la destrucción posterior también.
+
+`deployed-issue-70-acceptance.mjs` incorpora reportes sintéticos de las tres
+etapas desde Chromium con CORS nativo y exige 204; un campo adicional exige 400. El probe de observabilidad conserva la exigencia de logs de todos los
+handlers y ahora imprime sus nombres pendientes, sin datos de asistentes.
+No se amplían tiempos ni se excluye la nueva Lambda. La consulta de las cinco
+series permanece en el smoke de demo, independiente del CI efímero.
+
+La validación remota de esta corrección se registrará con el siguiente run de
+la PR; no se presenta el fallo anterior como aceptación AWS correcta.

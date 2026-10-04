@@ -215,7 +215,7 @@ while (Date.now() < deadline) {
   }
   if (Date.now() >= nextProgressAt) {
     console.log(
-      `Observability progress: ${pendingLogs.size} Lambda log groups pending; alarm observed=${alarmObserved}; SNS delivery observed=${deliveryObserved}; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed.`,
+      `Observability progress: ${pendingLogs.size} Lambda log groups pending (${[...pendingLogs].join(', ')}); alarm observed=${alarmObserved}; SNS delivery observed=${deliveryObserved}; ${Math.floor((Date.now() - startedAt) / 1000)}s elapsed.`,
     );
     nextProgressAt = Date.now() + 30000;
   }
