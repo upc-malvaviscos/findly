@@ -3,8 +3,8 @@
 <!-- requirement: REQ-MANUAL-GALLERY-EMAIL -->
 
 Fecha: 2026-10-04. Entornos: unitario/SDK simulado, navegador/HTTP simulado,
-Floci y validación estática Terraform. No se ha aplicado AWS, configurado DNS
-ni enviado correo real en esta sesión. Diseño aprobado en ADR-019; dominio
+Floci y validación estática Terraform. Esta evidencia local no incluye despliegue
+AWS, configuración DNS ni envío real. Diseño aprobado en ADR-019; dominio
 `findly.barcelona`, remitente `info@findly.barcelona`, DNS Acens. #49 abierta.
 
 ## Alcance implementado
@@ -45,8 +45,11 @@ ni se habilita email en AWS efímero de PR.
 - `npm run test:e2e`: 21 pruebas pasan en Chromium/Firefox/WebKit; HTTP
   simulado, incluyendo email requerido, confirmación, reintento y reenvío.
 - `npm run typecheck` y `npm run lint:code`: pasan.
-- `npm run test:floci:integration`: 21 pruebas pasan; inscripción, matching,
+- `npm run test:e2e:local`: 21 pruebas pasan; inscripción, matching,
   galería y borrado contra Floci. Floci no verifica SES.
+- `npm run test:floci:integration`: 14 pruebas pasan contra DynamoDB/S3 Floci;
+  Rekognition simulado. Corregidos los datos de inscripción de esta suite para
+  aportar el email requerido después del fallo inicial del check remoto.
 - `npm run terraform:validate`: los seis roots pasan; no se ejecuta `apply`.
 - Pruebas Terraform con proveedor simulado: ocho casos de hosting y cuatro
   contratos de email pasan, incluyendo JWT, FIFO y rechazo de configuración
@@ -55,6 +58,10 @@ ni se habilita email en AWS efímero de PR.
   Lambda, Terraform, seguridad y trazabilidad). Se reutiliza el paquete local
   completo de AWS 6.66.0 con comprobación contra el lockfile.
 - `npm audit --omit=dev`: cero vulnerabilidades de producción.
+
+La PR #97 está lista para revisión por autorización del responsable. Sus checks
+incluyen AWS efímero con email desactivado; consultar el resultado remoto en la
+PR. Ese flujo no sustituye las pruebas SES/recepción pendientes.
 
 ## Límites y cierre
 

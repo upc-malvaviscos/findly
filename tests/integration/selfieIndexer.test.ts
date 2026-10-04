@@ -232,7 +232,11 @@ describe('SelfieIndexer — Floci DynamoDB/S3, mocked Rekognition, explicit S3 e
       );
       const response = await publicEnrollment.createPublicRegistration({
         pathParameters: { eventId },
-        body: JSON.stringify({ consentBiometrics: true, consentTerms: true }),
+        body: JSON.stringify({
+          email: 'synthetic@example.com',
+          consentBiometrics: true,
+          consentTerms: true,
+        }),
       });
       expect(response.statusCode).toBe(201);
       const grant = JSON.parse(response.body) as {
