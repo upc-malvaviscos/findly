@@ -78,6 +78,9 @@ describe('production administrator invitation (mocked AWS only)', () => {
     { username: 'unexpected user' },
     { username: ' exact-user ' },
     { email: 'invalid' },
+    { email: '.synthetic@example.invalid' },
+    { email: 'synthetic.@example.invalid' },
+    { email: 'synthetic..organizer@example.invalid' },
     { email: 'synthetic@example.invalid\nheader' },
   ])('rejects invalid input before reaching AWS: %j', async (invalid) => {
     await expect(
