@@ -19,6 +19,20 @@ const documents = productionDeploymentPolicies({
 const policies = partitionManagedPolicies(documents.deploy).map((policy) =>
   JSON.stringify(policy),
 );
+const boundDocuments = productionDeploymentPolicies(
+  {
+    account,
+    region: 'eu-west-1',
+    stateBucket: `findly-terraform-state-${account}`,
+    uploadsBucket: `findly-production-uploads-${account}-eu-west-1`,
+    webBucket: `findly-production-web-${account}-eu-west-1`,
+  },
+  { apiId: 'reviewfixture' },
+);
+const stageException = boundDocuments.deploy.edge.Statement.filter(
+  (statement) => [statement.Action].flat().includes('apigateway:*'),
+);
+assert.equal(stageException.length, 1);
 const runtime = `arn:aws:iam::${account}:role/findly-production-gallery-email-worker`;
 const cases = [
   [
@@ -126,6 +140,50 @@ for (const [action, resource, context, expected] of cases) {
 }
 console.log(
   `AWS IAM Simulator verified ${cases.length} production deploy policy boundaries without creating a role or deploying resources.`,
+);
+const stageCollection =
+  'arn:aws:apigateway:eu-west-1::/apis/reviewfixture/stages';
+const stageCases = [
+  [stageCollection, requestTags, 'allowed'],
+  [stageCollection, {}, 'implicitDeny'],
+  [
+    stageCollection,
+    { ...requestTags, 'aws:RequestedRegion': 'us-east-1' },
+    'implicitDeny',
+  ],
+  [
+    stageCollection,
+    { ...requestTags, 'aws:RequestTag/Environment': 'demo' },
+    'implicitDeny',
+  ],
+  [
+    'arn:aws:apigateway:eu-west-1::/apis/foreign/stages',
+    requestTags,
+    'implicitDeny',
+  ],
+  [`${stageCollection}/$default`, requestTags, 'implicitDeny'],
+];
+for (const [resource, context, expected] of stageCases) {
+  const result = aws('iam', 'simulate-custom-policy', {
+    PolicyInputList: [
+      JSON.stringify({ Version: '2012-10-17', Statement: stageException }),
+    ],
+    ActionNames: ['apigateway:POST'],
+    ResourceArns: [resource],
+    ContextEntries: Object.entries(context).map(([ContextKeyName, value]) => ({
+      ContextKeyName,
+      ContextKeyValues: [value],
+      ContextKeyType: 'string',
+    })),
+  });
+  assert.equal(
+    result.EvaluationResults[0].EvalDecision,
+    expected,
+    'Unexpected stage collection exception permission',
+  );
+}
+console.log(
+  `AWS IAM Simulator verified ${stageCases.length} isolated stage exception cases; V2 tag-on-create still requires deployed evidence.`,
 );
 // The current SNS reference scopes GetSubscriptionAttributes to its topic:
 // https://docs.aws.amazon.com/service-authorization/latest/reference/list_sns.html

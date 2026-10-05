@@ -29,6 +29,31 @@ describe('production role isolation', () => {
       'apigateway:TagResource',
     );
   });
+  it('limits the approved V2 tagging exception to the bound stage collection and required request context', () => {
+    const bound = productionDeploymentPolicies(config, {
+      apiId: 'production123',
+    });
+    const exceptions = bound.deploy.edge.Statement.filter((statement) =>
+      [statement.Action].flat().includes('apigateway:*'),
+    );
+    expect(exceptions).toEqual([
+      {
+        Effect: 'Allow',
+        Action: ['apigateway:*'],
+        Resource: 'arn:aws:apigateway:eu-west-1::/apis/production123/stages',
+        Condition: {
+          StringEquals: {
+            'aws:RequestTag/Project': 'findly',
+            'aws:RequestTag/Environment': 'production',
+            'aws:RequestTag/ManagedBy': 'Terraform',
+            'aws:RequestTag/CostCenter': 'findly',
+            'aws:RequestedRegion': 'eu-west-1',
+          },
+        },
+      },
+    ]);
+    expect(JSON.stringify(documents.deploy)).not.toContain('apigateway:*');
+  });
   it('authorizes SNS subscription refresh using its parent feedback topic', () => {
     const reads = documents.deploy.core.Statement.filter(
       (statement) =>

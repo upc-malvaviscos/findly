@@ -587,6 +587,22 @@ function environmentRolePolicies(config, bindings, environment) {
         resources,
       ),
     );
+    if (environment === 'production') {
+      // V2 tag-on-create checks an internal action absent from the IAM catalog.
+      // The approved exception covers only this API's stage collection.
+      edgeDeploy.push(
+        statement(
+          ['apigateway:*'],
+          `arn:aws:apigateway:${region}::/apis/${bindings.apiId}/stages`,
+          {
+            StringEquals: {
+              ...requestTags.StringEquals,
+              'aws:RequestedRegion': region,
+            },
+          },
+        ),
+      );
+    }
     edgeDestroy.push(statement(['apigateway:DELETE'], resources));
   }
   if (bindings.oacId) {
