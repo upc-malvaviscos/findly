@@ -57,6 +57,13 @@ para elegir contraseña definitiva y mantiene secretos sólo en memoria. Las
 pruebas cubren cancelación, caducidad y peticiones antiguas que terminan después
 de un nuevo login. Los errores mostrados no revelan datos de la respuesta AWS.
 La herramienta invita únicamente con `--send`; el modo predeterminado valida.
-Las 49 pruebas focales pasaron; typecheck, ESLint y validación Terraform local
+Las 52 pruebas focales pasaron; typecheck, ESLint y validación Terraform local
 pasaron. Playwright verificó 24 casos en Chromium, Firefox y WebKit, incluido
 el primer acceso con Cognito simulado. La aceptación remota sigue pendiente.
+
+La primera validación completa de la rama (pre-push) pasó con 600 pruebas,
+lint, typecheck, build, siete raíces Terraform, contratos, auditoría sin
+vulnerabilidades y trazabilidad. La revisión independiente de estándares y del
+plan no encontró bloqueantes. Se reforzó después el rechazo de correos con
+puntos iniciales/finales o consecutivos, con tres casos adicionales; el siguiente
+pre-push vuelve a comprobar la versión final antes de publicarla.

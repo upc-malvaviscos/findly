@@ -16,6 +16,9 @@ export function validateInvitationInput({ account, poolId, username, email }) {
   if (
     typeof email !== 'string' ||
     email.length > 254 ||
+    email.startsWith('.') ||
+    email.split('@')[0].endsWith('.') ||
+    email.split('@')[0].includes('..') ||
     !/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(
       email,
     )
