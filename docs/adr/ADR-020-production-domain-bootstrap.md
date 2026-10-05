@@ -75,6 +75,24 @@ responsable. Los tests locales, el bootstrap y la integración de código no
 acreditan recepción real. Mantener privacidad, consentimiento, revocación,
 retención y supresión de ADR-019. Sin servicios de coste fijo ni DNS en Route53.
 
+## Excepción acotada de creación de etapas V2
+
+Ampliación aprobada el 2026-10-05 después del fallo de `CreateStage` en el
+run 37241808637: el rol de producción permite `apigateway:*` exclusivamente
+sobre la colección `/apis/<api-id-verificado>/stages`, sin comodín de recursos.
+Exige eu-west-1 y las cuatro etiquetas solicitadas de propiedad/gestión.
+No incluye etapas individuales, APIs ajenas ni modifica demo, confianza OIDC
+o el límite de los roles de aplicación.
+
+La autorización interna V2 informa `apigateway:TagResource`, aunque el catálogo
+IAM y Access Analyzer rechazan ese nombre literal. El comodín acotado evita
+introducir una acción inválida; amplía acciones sólo para esa colección y su
+contexto aprobado. La validación conserva todos los findings, comprueba
+aislamiento y condiciones mediante Simulator y exige evidencia real de la
+creación etiquetada. Si no resuelve el fallo, no se amplía el alcance de nuevo
+sin revisión y aprobación. Antecedente V2 reproducido por un mantenedor AWS:
+[Amplify #889](https://github.com/aws-amplify/amplify-studio/issues/889#issuecomment-1485862057).
+
 ## Operador de aceptación temporal
 
 Ampliación aprobada el 2026-10-04: un rol OIDC separado ejecuta únicamente las

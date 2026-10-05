@@ -229,3 +229,18 @@ producción deshabilitado. El éxito del workflow sólo acredita envío de la
 solicitud. La API Support no permitió consultar el motivo: requiere suscripción
 Premium Support; el motivo debe consultarse en la consola/correspondencia de AWS.
 No se ha reenviado la solicitud ni habilitado el envío de la aplicación.
+
+### Corrección de autorización V2 aprobada
+
+El responsable aprobó la excepción acotada de ADR-020: `apigateway:*` sobre la
+colección de etapas de la API vinculada, con región y cuatro RequestTags
+obligatorias. No incluye etapas individuales ni APIs ajenas, y demo conserva
+los permisos anteriores. La acción literal inválida se retira del builder.
+
+`npm run verify` pasó con 556 pruebas; AWS Access Analyzer no encontró errores
+ni advertencias en las cinco políticas y boundary (dos sugerencias heredadas).
+Confianza OIDC y boundary son idénticos a los previamente revisados. IAM
+Simulator pasó 19 casos generales y seis casos aislados de la excepción:
+propia colección/contexto permitido; falta de etiquetas, entorno/región
+incorrectos, API ajena y ARN de etapa individual rechazados. Estos casos no
+acreditan la autorización interna V2; se requiere el siguiente despliegue OIDC.
