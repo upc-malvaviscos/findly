@@ -19,7 +19,9 @@ de permisos de negocio. Invita únicamente a organizadores autorizados.
   y el ID del pool de producción revisados. La región es `eu-west-1`.
 - El pool debe tener nombre, ARN y etiquetas de producción Terraform correctos,
   altas únicamente administrativas y correo `COGNITO_DEFAULT`. La invitación
-  usa el correo gestionado por Cognito, independiente del envío de galerías SES.
+  usa el mensaje estándar y el correo gestionado por Cognito, independiente del
+  envío de galerías SES. No se configura una plantilla personalizada ni una
+  identidad SES para estas invitaciones.
   Sus límites de envío pueden impedir una invitación; no se afirma entrega
   desde la respuesta de la API.
 - Ejecuta desde el repositorio con Node 24 y sus dependencias instaladas. No
@@ -45,7 +47,10 @@ Tras obtener autorización explícita para el destinatario y el envío real:
 node scripts/invite-admin.mjs --send
 ```
 
-Cognito genera la contraseña temporal y solicita su entrega por correo. La
+Cognito genera la contraseña temporal y solicita su entrega mediante su mensaje
+estándar. El enlace de Findly se comunica por separado al destinatario autorizado:
+`https://www.findly.barcelona/admin/login`. La herramienta muestra ese enlace
+público como ayuda para el operador; no envía un segundo mensaje. La
 herramienta no establece una contraseña, no devuelve datos de contacto ni la
 respuesta del usuario, no marca `email_verified` y no añade grupos. Conserva
 las cuentas existentes: un nombre ya existente falla sin modificarlo ni

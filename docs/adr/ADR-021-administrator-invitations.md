@@ -4,9 +4,11 @@
 
 Las cuentas del pool de organizadores conceden acceso administrativo completo;
 por tanto, el pool sólo admite altas administrativas y no autorregistro.
-Terraform gestiona pool, cliente, política y plantilla del entorno, conservando
-las cuentas existentes. Los nombres de producción son estables; el número de PR
-identifica únicamente stacks sintéticos temporales según ADR-008.
+Terraform gestiona pool, cliente y política, conservando las cuentas existentes.
+Se utiliza la invitación estándar de Cognito, sin plantilla personalizada. El
+operador comunica por separado el enlace de acceso del entorno. Los nombres de
+producción son estables; el número de PR identifica únicamente stacks sintéticos
+temporales según ADR-008.
 
 Un operador con sesión AWS temporal no raíz ejecuta una herramienta que valida
 cuenta, región y pool antes de solicitar una invitación con envío explícito.
@@ -23,9 +25,12 @@ La política actual exige 12 caracteres y la contraseña temporal dura siete dí
 
 ## Límites de aceptación
 
-Las invitaciones usan el envío predeterminado de Cognito, independiente del
-correo de galerías SES. No se cambia el remitente de Cognito a la identidad SES
-de Findly en esta decisión. La aceptación AWS usa `SUPPRESS` y datos sintéticos;
+Las invitaciones usan el mensaje y envío predeterminados de Cognito
+(`COGNITO_DEFAULT`), independientes del correo de galerías SES. AWS rechazó en
+la primera aceptación la plantilla personalizada con esta modalidad de envío;
+la corrección aprobada es conservar el mensaje estándar y comunicar el enlace
+al login por separado. No se amplían permisos IAM ni se cambia el remitente de
+Cognito a la identidad SES de Findly en esta decisión. La aceptación AWS usa `SUPPRESS` y datos sintéticos;
 comprueba autenticación, rechazo de autorregistro y limpieza, no entrega real.
 
 Se conserva la administración completa para todas las cuentas autorizadas; no

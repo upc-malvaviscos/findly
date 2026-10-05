@@ -26,13 +26,3 @@ variable "data_class" {
   type        = string
   default     = "biometric"
 }
-
-variable "admin_login_url" {
-  description = "Environment-specific administrator login URL included in Cognito invitations."
-  type        = string
-
-  validation {
-    condition     = can(regex("^https?://[^/?#]+/admin/login$", var.admin_login_url))
-    error_message = "Administrator login URL must use HTTP(S) and end in /admin/login."
-  }
-}

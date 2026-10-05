@@ -47,7 +47,7 @@ if (
     });
     console.log(
       result.sent
-        ? 'Cognito accepted the invitation. Delivery is not verified.'
+        ? 'Cognito accepted the invitation. Delivery is not verified. Share the login URL separately: https://www.findly.barcelona/admin/login'
         : 'Production identity and pool validated. No invitation sent.',
     );
   } catch {
