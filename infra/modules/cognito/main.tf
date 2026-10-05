@@ -22,11 +22,6 @@ resource "aws_cognito_user_pool" "organizers" {
 
   admin_create_user_config {
     allow_admin_create_user_only = true
-
-    invite_message_template {
-      email_subject = "Findly: acceso de administración"
-      email_message = "Has recibido una invitación para administrar Findly. Usuario: {username}. Contraseña temporal: {####}. Accede a ${var.admin_login_url} y elige tu contraseña definitiva. Si no esperabas esta invitación, contacta con el organizador."
-    }
   }
 
   password_policy {

@@ -183,7 +183,9 @@ auditar qué recursos tratan datos sensibles sin inspeccionar su contenido.
 ADR-021 configura el pool de organizadores para altas administrativas exclusivas.
 El operador solicita una invitación con una sesión temporal no raíz; Cognito
 produce la contraseña temporal y la SPA completa `NEW_PASSWORD_REQUIRED`.
-Terraform conserva infraestructura y plantilla, sin cuentas o contraseñas.
+Terraform conserva infraestructura y política, sin cuentas o contraseñas. Las
+invitaciones usan el mensaje estándar de Cognito; el operador comunica el
+enlace al login por separado, sin configurar envío SES ni ampliar IAM.
 El challenge y el token permanecen en memoria; cancelación y caducidad invalidan
 respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige
 limpieza, por lo que no acredita recepción de correo real. El despliegue de esta

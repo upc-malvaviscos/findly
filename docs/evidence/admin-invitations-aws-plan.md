@@ -3,11 +3,13 @@
 <!-- requirement: REQ-ADMIN-AUTH -->
 <!-- requirement: REQ-ADMIN-INVITATIONS -->
 
-## Configuración reproducible
+## Configuración reproducible, pendiente de aceptación AWS
 
-Terraform configura `allow_admin_create_user_only = true` sobre el pool existente,
-con una plantilla de invitación que conserva `{username}` y `{####}` y apunta a
-`/admin/login` en el origen del entorno. Mantiene el nombre y el cliente del pool,
+La configuración de Terraform propone `allow_admin_create_user_only = true`
+sobre el pool existente, sin plantilla personalizada ni configuración SES:
+Cognito utiliza su invitación estándar. El operador comunica la URL pública de
+`/admin/login` por separado; la herramienta la muestra tras una solicitud de envío
+aceptada. Mantiene el nombre y el cliente del pool,
 la política de contraseña de 12 caracteres y exige completar el cambio de
 contraseña temporal dentro de siete días. El cliente fija una sesión de challenge
 de tres minutos. Las cuentas y contraseñas personales
@@ -66,4 +68,28 @@ lint, typecheck, build, siete raíces Terraform, contratos, auditoría sin
 vulnerabilidades y trazabilidad. La revisión independiente de estándares y del
 plan no encontró bloqueantes. Se reforzó después el rechazo de correos con
 puntos iniciales/finales o consecutivos, con tres casos adicionales; el siguiente
-pre-push vuelve a comprobar la versión final antes de publicarla.
+pre-push comprobó la versión publicada con 603 pruebas y las demás verificaciones
+anteriores correctas.
+
+## Ejecución AWS fallida de #106
+
+La [ejecución 37319226155](https://github.com/upc-malvaviscos/findly/actions/runs/37319226155)
+del commit `27fcfbfd1d4bb9f3ea19e5d5f3dbd8f2c4a78723` falló al crear el pool
+temporal: Cognito rechazó `adminCreateUserConfig.inviteMessageTemplate.sMSMessage`
+vacío, con `InvalidParameterException` y longitud mínima de seis caracteres.
+La prueba de invitaciones no llegó a ejecutarse. El paso final de destrucción
+terminó correctamente el 5 de octubre de 2026 a las 13:52:58 UTC e informó de
+105 recursos destruidos. No se enviaron invitaciones ni se modificó producción.
+
+Además, la [documentación oficial de la plantilla](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-cognito-userpool-invitemessagetemplate.html)
+limita `EmailMessage` y `EmailSubject` personalizados a
+`EmailSendingAccount=DEVELOPER`. La configuración propuesta usa
+`COGNITO_DEFAULT`; esa combinación requiere revisar el plan. Esta restricción
+procede de la documentación, no del error observado en la ejecución.
+
+El responsable aprobó la invitación estándar de Cognito con la URL de acceso
+comunicada por separado. Se retiraron la plantilla y su variable de URL;
+no se configura ni habilita SMS, no se amplía IAM y no se conecta Cognito a SES.
+Las 34 pruebas focales de infraestructura y herramienta pasan con este cambio.
+La aceptación AWS y el cambio de producción permanecen pendientes; #105 y #106
+siguen abiertas y la fusión automática está desactivada.

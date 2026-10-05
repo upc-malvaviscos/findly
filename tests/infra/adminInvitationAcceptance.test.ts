@@ -136,11 +136,10 @@ describe('synthetic invitation AWS runner safeguards (mocked)', () => {
 
 describe('Terraform invitation configuration contract', () => {
   const source = readFileSync('infra/modules/cognito/main.tf', 'utf8');
-  it('disables self-registration and retains Cognito invitation placeholders', () => {
+  it('disables self-registration and uses the standard Cognito invitation', () => {
     expect(source).toContain('allow_admin_create_user_only = true');
-    expect(source).toContain('{username}');
-    expect(source).toContain('{####}');
-    expect(source).toContain('${var.admin_login_url}');
+    expect(source).not.toContain('invite_message_template');
+    expect(source).not.toContain('email_configuration');
     expect(source).toMatch(/temporary_password_validity_days\s*= 7/);
     expect(source).toMatch(/auth_session_validity\s*= 3/);
     expect(source).not.toContain('sms_message');

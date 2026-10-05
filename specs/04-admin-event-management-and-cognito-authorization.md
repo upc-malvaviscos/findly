@@ -99,7 +99,9 @@ Issue: [#105](https://github.com/upc-malvaviscos/findly/issues/105).
 
 El pool sólo permite altas administrativas (`allow_admin_create_user_only`).
 Terraform gestiona configuración y cliente, conserva los usuarios existentes y
-la plantilla incluye el login del entorno. No contiene cuentas ni contraseñas.
+utiliza la invitación estándar de Cognito sin plantilla personalizada. El enlace
+al login del entorno se comunica por separado; la herramienta muestra la URL
+pública al operador sin enviar otro mensaje. No contiene cuentas ni contraseñas.
 La contraseña temporal caduca en siete días y el challenge en tres minutos.
 
 La herramienta del operador lee usuario/correo por stdin, valida cuenta, región,
