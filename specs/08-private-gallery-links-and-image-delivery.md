@@ -1,5 +1,10 @@
 # 08 - Galería privada y entrega de imágenes
 
+<!-- requirement: REQ-GALLERY-REFRESH-DIAGNOSTICS -->
+
+Seguimiento del refresco y diagnóstico:
+[issue #107](https://github.com/upc-malvaviscos/findly/issues/107).
+
 ## Objetivo
 
 Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el rostro del asistente registrado, utilizando enlaces con tokens opacos temporales y entrega de imágenes a través de URLs `GET` prefirmadas de Amazon S3 en una SPA React + Vite.
@@ -24,6 +29,9 @@ Proporcionar acceso seguro y exclusivo a las fotografías donde ha coincidido el
 - Componentes: `GalleryPage`, `GalleryGrid`, `ImageLightbox`, `DownloadButton`, `RightToErasureButton`.
 - Estados de UI: `LOADING`, `SUCCESS`, `EMPTY`, `EXPIRED`, `NOT_FOUND`.
 - Refresco de URLs: Mecanismo automático en cliente que solicita nuevas URLs antes de cumplir los 4 minutos.
+  La respuesta también actualiza EMPTY/SUCCESS para mostrar coincidencias
+  posteriores; un refresco pendiente no abandona ERASED tras el borrado.
+  Regresión y diagnóstico: [#107](../docs/evidence/issue-107-gallery-refresh.md).
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 

@@ -32,7 +32,15 @@ export function GalleryPage({ token }: { token: string }) {
       () => {
         void refreshGallery(token)
           .then((result) => {
-            if (active) setGallery(result);
+            if (!active) return;
+            setGallery(result);
+            setState((current) =>
+              current === 'ERASED'
+                ? current
+                : result.photos.length === 0
+                  ? 'EMPTY'
+                  : 'SUCCESS',
+            );
           })
           .catch(() => undefined);
       },

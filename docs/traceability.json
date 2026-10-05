@@ -2,6 +2,41 @@
   "version": 1,
   "requirements": [
     {
+      "id": "REQ-GALLERY-REFRESH-DIAGNOSTICS",
+      "description": "Mostrar coincidencias posteriores al refresco y diagnosticar procesamiento sin datos privados.",
+      "issues": [107],
+      "spec": "specs/08-private-gallery-links-and-image-delivery.md",
+      "implementation": [
+        "src/web/components/gallery/GalleryPage.tsx",
+        "scripts/diagnose-matching.mjs"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/web/gallery.test.tsx",
+            "tests/infra/matchingDiagnostics.test.ts"
+          ]
+        },
+        {
+          "command": "test:e2e",
+          "environment": "unit",
+          "files": ["e2e/foundation.spec.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-107-gallery-refresh.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/runbooks/matching-troubleshooting.md",
+        "docs/runbooks/aws-deployment-guide.md"
+      ]
+    },
+    {
       "id": "REQ-PRODUCTION-DOMAIN",
       "description": "Preparar identidad SES, HTTPS y despliegue de producción por OIDC con límites runtime y verificaciones previas.",
       "issues": [98],

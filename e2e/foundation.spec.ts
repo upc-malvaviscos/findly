@@ -202,6 +202,47 @@ test('renders a private gallery from a simulated token', async ({ page }) => {
   ).toHaveCount(2);
 });
 
+test('shows new matches when an initially empty gallery refreshes', async ({
+  page,
+}) => {
+  let reads = 0;
+  await page.route(`${API}/gallery?**`, (route) => {
+    reads += 1;
+    return route.fulfill({
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({
+        eventId: 'event-synthetic',
+        eventName: 'Synthetic event',
+        registrationId: 'registration-synthetic',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        photos:
+          reads === 1
+            ? []
+            : [
+                {
+                  photoId: 'photo-synthetic',
+                  url: `${API}/photos/synthetic.jpg`,
+                  matchedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+      }),
+    });
+  });
+  await page.clock.install();
+  await page.goto('/gallery?token=synthetic-refresh-token');
+  await expect(
+    page.getByRole('heading', { name: 'Aún no hay fotos.' }),
+  ).toBeVisible();
+  await page.clock.fastForward(4 * 60 * 1000);
+  await expect(
+    page.getByRole('img', { name: 'Fotografía del evento' }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole('heading', { name: 'Aún no hay fotos.' }),
+  ).toHaveCount(0);
+});
+
 test('requires email before requesting a selfie upload', async ({ page }) => {
   let uploads = 0;
   await page.route(`${API}/events/demo-2026/registrations`, (route) => {
