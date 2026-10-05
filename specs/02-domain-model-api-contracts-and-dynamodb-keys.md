@@ -1,5 +1,7 @@
 # 02 - Dominio, contratos de API y diseño DynamoDB Single-Table
 
+<!-- requirement: REQ-DATABASE-DECISION-INVENTORY -->
+
 ## Objetivo
 
 Establecer los contratos de datos compartidos entre frontend y backend (DTOs), esquemas Zod de validación y la arquitectura detallada de la tabla única (Single-Table Design) en Amazon DynamoDB sin ambigüedades.
@@ -175,3 +177,15 @@ responde 202. GET de esa ruta con `/{operationId}` muestra RUNNING, COMPLETED o
 STALLED (sin avance durante diez minutos) y contadores sin destinatarios.
 Cognito/JWT protege ambas rutas; el módulo se habilita explícitamente por entorno.
 La issue #49 sigue abierta; el acuerdo de #86 no cierra su análisis global.
+
+## Revisión del inventario de persistencia — 2026-10-05
+
+El [análisis actualizado de #49](../docs/evidence/issue-49-dynamodb-vs-rds-analysis.md)
+contrasta las 12 issues abiertas de la instantánea con las claves y handlers
+actuales. [#49](https://github.com/upc-malvaviscos/findly/issues/49) conserva la
+decisión abierta: #87 requiere continuación/convergencia y #89 acceso inverso
+foto→matches, barreras de borrado y política de edición/retención por acordar.
+Las alternativas de clave/índice y el esquema PostgreSQL son candidatos,
+no contratos implementados. No se modifica esta spec para autorizarlos.
+La incertidumbre material requiere evidencia comparable; no se ha ejecutado
+un benchmark ni autorizado una migración o recursos AWS nuevos.

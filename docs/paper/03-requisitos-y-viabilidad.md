@@ -57,33 +57,30 @@ La compatibilidad con colecciones creadas antes de ADR-015 (`findly-event-*`,
 sin sufijo de entorno) exige una migración explícita que no se ha ejecutado
 ni se ha planificado con fecha.
 
-## Alternativas de persistencia y motivo para no usar RDS
+## Alternativas de persistencia y decisión abierta
 
-ADR-002 fija DynamoDB on-demand, sin RDS, EC2, NAT ni VPC dedicada, para
-eliminar coste fijo. La issue #49 abrió un análisis formal de esa decisión
-frente a PostgreSQL/RDS para el modelo completo (no sólo el MVP); su resultado
-completo está en `docs/evidence/issue-49-dynamodb-vs-rds-analysis.md`. Resumen
-verificado contra el código en `main`:
+ADR-002 mantiene DynamoDB on-demand sin RDS ni VPC dedicada en la implementación
+vigente. El [análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md)
+se actualizó el 2026-10-05 contra 12 issues abiertas y el código de su
+instantánea. Inscripción, tokens, filtro público, GSI1 y purga están
+implementados; los gaps históricos no justifican la recomendación actual.
 
-- Los patrones de acceso confirmados (evento, inscripción, token, coincidencias
-  por registro, `FaceId`) son finitos y se resuelven por clave o por GSI; los
-  huecos detectados (emisión de token, filtro de eventos públicos por estado,
-  consentimiento versionado) son de implementación, no una consulta que
-  DynamoDB no pueda servir.
-- RDS exigiría VPC con al menos dos zonas de disponibilidad y, para que una
-  Lambda en esa VPC alcance Rekognition, SQS, Secrets Manager o CloudWatch
-  Logs, un NAT Gateway o puntos de enlace de interfaz con coste fijo por hora
-  y AZ — incompatible con ADR-002 y con AGENTS.md.
-- Ninguna de las dos alternativas resuelve de forma atómica el derecho al
-  olvido: S3 y Rekognition quedan siempre fuera de la transacción de base de
-  datos, sea DynamoDB o PostgreSQL.
-- La única ventaja diferencial de RDS (informes y consultas relacionales
-  transversales) no tiene hoy un requisito confirmado en ninguna spec.
+- #87 requiere matching en ambos órdenes y convergencia simultánea; #89 exige
+  consultar todos los matches de una foto y limpiar con barreras durables.
+  Sus contratos incompletos introducen incertidumbre material.
+- DynamoDB puede ampliarse con trabajo durable y acceso inverso, pero hay que
+  comparar índices/referencias, backfill, coste y consistencia de borrado.
+- PostgreSQL aporta relaciones, restricciones y consultas inversas indexadas,
+  incluso sin informes ad hoc. Su candidato requiere migración, conexiones,
+  seguridad de red, backups y prueba de factibilidad en CI. NAT, endpoints y
+  proxy dependen del diseño; no se presuponen necesarios.
+- Ninguna base incluye S3, Rekognition o SES en su transacción. Los efectos
+  externos y los trabajos tardíos requieren recuperación e idempotencia.
 
-**Esta decisión sigue abierta**: el análisis recomienda mantener DynamoDB,
-pero la aprobación explícita de la persona responsable y un ADR que confirme o
-sustituya ADR-002 están pendientes (issue #49). Esta memoria no presenta esa
-recomendación como una decisión tomada.
+**Esta decisión sigue abierta**: mantener el código vigente mientras se decide
+no aprueba DynamoDB para todo el backlog. Las pruebas comparables propuestas
+no se han ejecutado; falta la decisión explícita y un ADR que confirme o
+sustituya ADR-002. No se ha autorizado una migración.
 
 ## Viabilidad de coste
 

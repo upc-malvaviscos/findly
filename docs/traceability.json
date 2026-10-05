@@ -2,6 +2,36 @@
   "version": 1,
   "requirements": [
     {
+      "id": "REQ-DATABASE-DECISION-INVENTORY",
+      "description": "Inventario de issues y comparación documental de persistencia, sin migración ni decisión final.",
+      "issues": [49],
+      "spec": "specs/02-domain-model-api-contracts-and-dynamodb-keys.md",
+      "implementation": ["docs/evidence/issue-49-dynamodb-vs-rds-analysis.md"],
+      "verification": [
+        {
+          "command": "lint:markdown",
+          "environment": "static",
+          "files": ["docs/evidence/issue-49-dynamodb-vs-rds-analysis.md"]
+        },
+        {
+          "command": "sync:check",
+          "environment": "static",
+          "files": ["scripts/check-documentation-sync.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-49-dynamodb-vs-rds-analysis.md",
+          "environment": "static"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-002-serverless-without-rds-or-vpc.md",
+        "docs/paper/03-requisitos-y-viabilidad.md",
+        "docs/paper/09-conclusiones-y-trabajo-futuro.md"
+      ]
+    },
+    {
       "id": "REQ-GALLERY-REFRESH-DIAGNOSTICS",
       "description": "Mostrar coincidencias posteriores al refresco y diagnosticar procesamiento sin datos privados.",
       "issues": [107],
