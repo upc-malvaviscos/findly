@@ -230,6 +230,13 @@ solicitud. La API Support no permitió consultar el motivo: requiere suscripció
 Premium Support; el motivo debe consultarse en la consola/correspondencia de AWS.
 No se ha reenviado la solicitud ni habilitado el envío de la aplicación.
 
+La lectura posterior de la consola Support aclaró el estado: la respuesta
+automática solicita información adicional antes de una decisión final. El caso
+está pendiente de acción del cliente; **DENIED en la API no acredita aquí un
+rechazo definitivo**. Pide URL, tipo de correo, volumen, origen de destinatarios,
+gestión de rebotes/quejas y ejemplo de mensaje. Se prepara una respuesta privada,
+sin buzones ni capacidades, para autorización; todavía no se ha enviado.
+
 ### Corrección de autorización V2 aprobada
 
 El responsable aprobó la excepción acotada de ADR-020: `apigateway:*` sobre la
@@ -275,4 +282,5 @@ La [PR #103](https://github.com/upc-malvaviscos/findly/pull/103) conserva el
 builder reproducible y esta evidencia. Publicación accesible en el dominio,
 recorrido de navegador y cierre del smoke quedan pendientes de DNS; no se
 omiten comprobaciones ni se destruye producción. SES permanece en sandbox
-tras la revisión DENIED; los envíos siguen deshabilitados y #98/#86/#49 abiertas.
+mientras AWS solicita información adicional; los envíos siguen deshabilitados
+y #98/#86/#49 abiertas.
