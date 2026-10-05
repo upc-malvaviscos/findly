@@ -42,10 +42,13 @@ pendiente en la propia evidencia que demuestra el resto del sistema
   colecciones por entorno; las colecciones creadas antes de esa decisión
   (`findly-event-*`, sin sufijo de entorno) no se migran ni se borran
   automáticamente, y esa migración no se ha planificado con fecha.
-- **Decisión DynamoDB frente a RDS abierta.** El análisis de la issue #49
-  recomienda mantener DynamoDB (capítulo 3), pero la aprobación explícita de
-  la persona responsable y un ADR que confirme o sustituya ADR-002 siguen
-  pendientes.
+- **Decisión DynamoDB frente a RDS abierta.** La revisión del 2026-10-05 del
+  [análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md) inventaría
+  las 12 issues abiertas de su instantánea y sustituye los gaps históricos
+  ya resueltos. #87/#89 introducen incertidumbre material de convergencia,
+  acceso inverso foto→matches y borrado concurrente. Mantener la implementación
+  vigente mientras se decide no equivale a aprobar DynamoDB para todo el
+  backlog. Comparación medida, aprobación y ADR final siguen pendientes.
 - **Cobertura de líneas global por debajo del 90 %.** El gate obligatorio de
   cobertura se aplica sólo a `src/lambdas` y `src/shared/lib` (93,78 % y
   100 % respectivamente); la cobertura global del proyecto es del 81,34 % y no
