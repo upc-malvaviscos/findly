@@ -243,4 +243,36 @@ Confianza OIDC y boundary son idénticos a los previamente revisados. IAM
 Simulator pasó 19 casos generales y seis casos aislados de la excepción:
 propia colección/contexto permitido; falta de etiquetas, entorno/región
 incorrectos, API ajena y ARN de etapa individual rechazados. Estos casos no
-acreditan la autorización interna V2; se requiere el siguiente despliegue OIDC.
+acreditan por sí solos la autorización interna V2; ésta se comprobó en el
+despliegue posterior.
+
+### Stack y SPA publicados; DNS público pendiente
+
+La política predeterminada real coincide con la revisada. La actualización IAM
+aprobada se ejecutó con la sesión administrativa; el
+[run OIDC 37274383033](https://github.com/upc-malvaviscos/findly/actions/runs/37274383033)
+aplicó el plan completo sin correo: **1 recurso añadido, 13 modificados y 0
+destruidos**. `Apply` y `Build SPA ... publish` terminaron correctamente. AWS
+confirmó la etapa `$default`, AutoDeploy habilitado y las cinco etiquetas
+obligatorias. La API tiene diez rutas y ninguna ruta de envío de galerías.
+
+El run global terminó **FAILURE** en el smoke público: `www.findly.barcelona`
+todavía resolvía a `217.116.0.191` y respondía 301 hacia el dominio raíz. La
+prueba conserva `redirect: 'error'`, falló en `/` y no llegó a `/gallery`.
+El panel Acens, recargado después de guardar, conserva el CNAME correcto; los
+servidores autoritativos siguen pendientes de publicar ese cambio. El producto
+Tu Web del registrador muestra una web activa en la IP anterior; esto no prueba
+por sí solo que su asociación esté sobrescribiendo el registro.
+
+Comprobación dirigida adicional, manteniendo validación TLS y Host/SNI de
+`www.findly.barcelona`: `curl --resolve` hacia la IP pública resuelta de la
+distribución confirmó 200 y el punto de entrada Findly en `/` y `/gallery`.
+Esto verifica CloudFront/certificado/SPA, **no** resolución DNS pública.
+La API real devolvió 401 sin JWT en `/admin/events`, 200 en `/events` y CORS
+para el origen HTTPS aprobado. No se crearon fixtures ni se enviaron mensajes.
+
+La [PR #103](https://github.com/upc-malvaviscos/findly/pull/103) conserva el
+builder reproducible y esta evidencia. Publicación accesible en el dominio,
+recorrido de navegador y cierre del smoke quedan pendientes de DNS; no se
+omiten comprobaciones ni se destruye producción. SES permanece en sandbox
+tras la revisión DENIED; los envíos siguen deshabilitados y #98/#86/#49 abiertas.
