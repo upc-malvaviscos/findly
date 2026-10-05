@@ -124,9 +124,19 @@ function PublicEnrollment() {
 }
 
 function RoutedApp() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, newPasswordChallenge } = useAuth();
+  const needsNewPassword = Boolean(newPasswordChallenge);
   const [locationPath, setPath] = useState(window.location.pathname);
   const path = locationPath === '/admin' ? '/admin/login' : locationPath;
+  useEffect(() => {
+    let title = 'Encuentra tus fotos';
+    if (path === '/gallery') title = 'Tu galería';
+    else if (path === '/admin/login' || path === '/admin/events') {
+      if (isAuthenticated) title = 'Eventos';
+      else title = needsNewPassword ? 'Elige tu contraseña' : 'Iniciar sesión';
+    }
+    document.title = `${title} · Findly`;
+  }, [path, isAuthenticated, needsNewPassword]);
   const navigate = (nextPath: string) => {
     window.history.pushState({}, '', nextPath);
     setPath(nextPath);
