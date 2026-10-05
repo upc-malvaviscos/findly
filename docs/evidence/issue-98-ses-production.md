@@ -284,3 +284,26 @@ recorrido de navegador y cierre del smoke quedan pendientes de DNS; no se
 omiten comprobaciones ni se destruye producción. SES permanece en sandbox
 mientras AWS solicita información adicional; los envíos siguen deshabilitados
 y #98/#86/#49 abiertas.
+
+## Publicación pública y respuesta SES — 2026-10-05
+
+El responsable autorizó la respuesta preparada a AWS Support. Se envió al caso
+a las 07:21 UTC con descripción del uso transaccional, dos mensajes iniciales
+de prueba, consentimiento, recuperación/feedback pendientes y plantilla sin
+buzones privados ni enlaces reales. La correspondencia visible confirma el
+envío; la autorización de producción SES sigue pendiente.
+
+Acens comenzó a publicar el CNAME de `www` hacia CloudFront. La comprobación
+local sin resolución dirigida pasó en `/` y `/gallery`. Se repitió el despliegue
+por GitHub OIDC con `enable_production_email=false`: el
+[run 37277618279](https://github.com/upc-malvaviscos/findly/actions/runs/37277618279)
+terminó **SUCCESS**, incluyendo apply, publicación SPA y el smoke original de
+HTTPS/galería, sin omitir el rechazo de redirects ni la validación TLS.
+
+El navegador público mostró Findly y la lista vacía de eventos; `/gallery` sin
+token mostró «Galería no encontrada». La portada antigua permanecía en la
+caché de Chrome para `/`; una navegación a la misma portada con query nueva
+mostró la SPA publicada. Estas comprobaciones acreditan publicación pública
+y carga del frontend, no recuperación de una galería privada ni entrega real
+de correo. No se crearon fixtures o usuarios ni se enviaron mensajes de
+galería. El correo sigue deshabilitado y #98/#86/#49 permanecen abiertas.
