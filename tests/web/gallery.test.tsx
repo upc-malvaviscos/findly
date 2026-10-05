@@ -19,6 +19,44 @@ afterEach(() => {
 });
 
 describe('GalleryPage', () => {
+  it('shows matches that arrive after the gallery was initially empty', async () => {
+    vi.useFakeTimers();
+    const initial: GalleryResponse = {
+      eventId: 'event-synthetic',
+      eventName: 'Synthetic event',
+      registrationId: 'registration-synthetic',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      photos: [],
+    };
+    vi.spyOn(galleryApi, 'getGallery').mockResolvedValue(initial);
+    vi.spyOn(galleryApi, 'refreshGallery').mockResolvedValue({
+      ...initial,
+      photos: [
+        {
+          photoId: 'photo-synthetic',
+          url: 'https://example.test/synthetic.jpg',
+          matchedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<GalleryPage token="synthetic-refresh-token" />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Aún no hay fotos.' }),
+    ).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4 * 60 * 1000);
+    });
+    expect(
+      screen.getByRole('img', { name: 'Fotografía del evento' }),
+    ).toHaveAttribute('src', 'https://example.test/synthetic.jpg');
+    expect(
+      screen.queryByRole('heading', { name: 'Aún no hay fotos.' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders matched photos and handles the lightbox', async () => {
     render(<GalleryPage token="demo-gallery" />);
     expect(screen.getByRole('status')).toHaveTextContent('Cargando');
@@ -30,6 +68,57 @@ describe('GalleryPage', () => {
     expect(
       screen.getAllByRole('img', { name: 'Fotografía del evento' }),
     ).toHaveLength(2);
+  });
+
+  it('does not leave the erased state when a pending refresh returns photos', async () => {
+    vi.useFakeTimers();
+    const initial: GalleryResponse = {
+      eventId: 'event-synthetic',
+      eventName: 'Synthetic event',
+      registrationId: 'registration-synthetic',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      photos: [],
+    };
+    vi.spyOn(galleryApi, 'getGallery').mockResolvedValue(initial);
+    let finishRefresh: (response: GalleryResponse) => void = () => {
+      throw new Error('Refresh has not started');
+    };
+    vi.spyOn(galleryApi, 'refreshGallery').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRefresh = resolve;
+        }),
+    );
+    vi.spyOn(galleryApi, 'deleteRegistration').mockResolvedValue();
+    render(<GalleryPage token="synthetic-refresh-token" />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4 * 60 * 1000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar mis datos' }));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Confirmar borrado' }),
+      );
+    });
+    await act(async () => {
+      finishRefresh({
+        ...initial,
+        photos: [
+          {
+            photoId: 'photo-synthetic',
+            url: 'https://example.test/synthetic.jpg',
+            matchedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Tus datos han sido eliminados.' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   it('completes the erasure flow and shows the confirmation state', async () => {
