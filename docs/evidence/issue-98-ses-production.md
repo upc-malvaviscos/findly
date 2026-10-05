@@ -53,7 +53,8 @@ La segunda entrega prepara `findly-production-deploy`, sin destrucción de
 producción, y un límite obligatorio para roles de aplicación/Scheduler.
 El rol y su límite se crearon con la sesión administrativa autorizada, tras
 revisión y validación; los documentos desplegados coinciden con los revisados.
-Ningún recurso del stack se ha desplegado todavía.
+En esa entrega no se habían creado recursos del stack; la ejecución parcial
+posterior se detalla al final de este documento.
 Los permisos demo generados antes/después de parametrizar su builder son
 idénticos. AWS Access Analyzer no encontró errores ni advertencias de seguridad
 en las cinco políticas y el límite; sugirió eliminar dos ARN de logs redundantes
@@ -66,8 +67,8 @@ El workflow original bloqueaba producción mientras SES/ACM/DNS no estaban listo
 La ampliación autorizada el 2026-10-05 separa web/backend de correo: certificado
 obligatorio siempre, requisitos SES completos sólo al activar envío mediante
 `enable_production_email=true`; por defecto la identidad y el remitente se pasan
-vacíos y no se crean recursos ni rutas de correo. El despliegue real sigue
-pendiente; esta preparación no demuestra publicación.
+vacíos y no se crean recursos ni rutas de correo. La publicación completa sigue
+pendiente; los recursos creados después no demuestran disponibilidad de la web.
 Las pruebas de esas condiciones, los roles y el wiring Terraform se validan
 localmente; sus resultados se detallan en la validación al final de este documento. Estos controles
 no acreditan creación del stack ni entrega; el rol AWS sí está configurado.
@@ -89,14 +90,15 @@ y destroy. El workflow de aceptación de correo quedó registrado y activo.
 La revisión corrigió etiquetado de CloudFront, Cognito y API Gateway en
 producción: modificar etiquetas exige propiedad existente. El permiso
 CreateDistribution usa el recurso global requerido por AWS, separado del
-etiquetado. La creación compuesta sigue pendiente de evidencia desplegada.
+etiquetado. La preparación posterior creó CloudFront y el apply completo creó
+Cognito; la creación de la etapa etiquetada de API Gateway falló.
 GetSubscriptionAttributes usa el topic exacto; su lectura desplegada queda
 pendiente, porque IAM Simulator no modela correctamente ese recurso. Los nueve
 casos IAM restantes pasan; no se amplía SNS para satisfacer el simulador.
 
 La solicitud SES transaccional es manual y opcional, verifica primero identidad,
 DKIM y MAIL FROM, y evita solicitudes pendientes repetidas. Describe de forma
-explícita que web, feedback y pruebas de producción aún no están desplegados.
+explícita que feedback y pruebas de correo de producción aún no están desplegados.
 No incluye direcciones de prueba ni activa envíos.
 
 Validación de la segunda entrega: `npm run verify` completado (505 tests,
@@ -170,3 +172,60 @@ raíces Terraform y contratos, auditoría sin vulnerabilidades y trazabilidad.
 Las 21 pruebas de navegador pasan en Chromium, Firefox y WebKit.
 La fixture activa explícitamente sus rutas de correo simulado.
 Estos resultados no acreditan el despliegue ni entrega real de correo.
+
+### Ejecución real por OIDC y bloqueo de publicación
+
+[PR #102](https://github.com/upc-malvaviscos/findly/pull/102) integrada con todos
+los checks verdes, incluido el recorrido AWS y destroy del
+[run 37239409089](https://github.com/upc-malvaviscos/findly/actions/runs/37239409089).
+Main: `89e2219584e5076aedeb336d0b5df29bd3aef142`.
+
+La [preparación 37240940410](https://github.com/upc-malvaviscos/findly/actions/runs/37240940410)
+terminó correctamente: siete recursos creados, entre ellos bucket web privado,
+CloudFront/OAC y API HTTP. CloudFront está Deployed y tiene el alias aprobado
+`www.findly.barcelona`. Tras comprobar propiedad se vincularon los permisos del
+rol a los IDs reales. La sesión administrativa sólo modificó IAM autorizado;
+los recursos se crearon desde GitHub OIDC.
+
+El [despliegue 37241808637](https://github.com/upc-malvaviscos/findly/actions/runs/37241808637)
+usó `enable_production_email=false`. Superó autorización, readiness HTTPS,
+inicialización y plan sin borrados. Terraform registró 48 recursos nuevos antes
+de fallar: Cognito (2), authorizer (1), DynamoDB (1), uploads/protección (4),
+monitoring (2), métrica enrollment (1), gallery reader (7), borrado (7),
+retención (7), selfie indexer (6) y photo matching (10). Este recuento corresponde
+al apply fallido y no al total del stack.
+
+Único error final: `CreateStage($default)` devolvió 403 por
+`apigateway:TagResource` sobre la colección de etapas de la API propia.
+Access Analyzer rechaza ese nombre como acción IAM inválida; las acciones
+HTTP válidas ya figuran en el permiso vinculado. La causa exacta y la corrección
+siguen en investigación: no se acepta una excepción de validación ni se amplían
+permisos a APIs ajenas para ocultar el fallo.
+
+La publicación de la SPA y el smoke HTTPS/galería quedaron **SKIPPED**.
+La sesión de Acens caducó al intentar guardar el CNAME de `www`; no se confirmó
+ese cambio DNS. La sesión administrativa AWS también caducó después del apply.
+Se conservan los recursos y estado parcial; no se ha destruido producción.
+Por tanto, esta evidencia no acredita publicación pública ni envío de correo.
+
+### Renovación de sesiones y DNS — 2026-10-05
+
+El responsable renovó Acens y la sesión administrativa AWS. Se confirmó de nuevo
+CloudFront Deployed con el alias `www.findly.barcelona` y ausencia de etapas en
+la API HTTP; no se ha repetido el despliegue ni modificado IAM adicional.
+Acens confirmó el cambio de `www`: A del aparcamiento sustituido por CNAME
+`d3vjnnmtvn96jb.cloudfront.net`. La tabla muestra el nuevo destino; su propagación
+autoritativa aún requiere comprobación posterior.
+
+![CNAME público de www guardado en Acens](assets/issue-98-acens-www-cname.png)
+
+SES confirmó identidad verificada, DKIM SUCCESS y MAIL FROM **SUCCESS**.
+El acceso de producción sigue deshabilitado. Se inició desde main mediante OIDC
+el [run 37273491552](https://github.com/upc-malvaviscos/findly/actions/runs/37273491552)
+con `apply=false` y `request_production_access=true` para solicitar el acceso
+transaccional previsto en el plan aprobado. El workflow terminó correctamente,
+pero la consulta posterior de SES mostró revisión **DENIED** y acceso de
+producción deshabilitado. El éxito del workflow sólo acredita envío de la
+solicitud. La API Support no permitió consultar el motivo: requiere suscripción
+Premium Support; el motivo debe consultarse en la consola/correspondencia de AWS.
+No se ha reenviado la solicitud ni habilitado el envío de la aplicación.
