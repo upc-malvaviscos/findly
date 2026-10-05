@@ -38,11 +38,14 @@ El archivo `package.json` debe exponer los siguientes comandos unificados:
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
 
-### Títulos de página
+### Títulos de página y vista previa al compartir
 
 La pestaña identifica la pantalla visible y termina en «· Findly». El título
 se actualiza con la ruta y el estado de autenticación: portada, login, elección
 de contraseña, eventos y galería. Nunca incluye tokens ni datos privados.
+El HTML inicial incluye metadatos Open Graph y Twitter con una tarjeta de marca
+PNG de 1200 × 630 píxeles. La imagen y la URL son públicas y constantes; las
+vistas previas nunca muestran fotografías de asistentes ni tokens de galería.
 Seguimiento: [#109](https://github.com/upc-malvaviscos/findly/issues/109) y
 [evidencia](../docs/evidence/issue-109-page-titles.md).
 
