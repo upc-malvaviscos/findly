@@ -13,7 +13,7 @@ describe('local execution authentication', () => {
       LOCAL_ORGANIZER_USERNAME,
       LOCAL_ORGANIZER_PASSWORD,
     );
-    expect(session.idToken).toBe('local-organizer-token');
+    expect(session).toMatchObject({ idToken: 'local-organizer-token' });
     await expect(
       gateway.login(LOCAL_ORGANIZER_USERNAME, 'wrong'),
     ).rejects.toThrow('INVALID_LOCAL_CREDENTIALS');

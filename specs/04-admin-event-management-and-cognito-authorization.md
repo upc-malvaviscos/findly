@@ -21,7 +21,7 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
 
 ### Paso 1: Configurar el Contexto de Autenticación
 
-- En `src/context/AuthProvider.tsx`, crea el contexto React que almacena el ID Token en memoria o `sessionStorage`.
+- En `src/context/AuthProvider.tsx`, crea el contexto React que almacena el ID Token exclusivamente en memoria.
 - Proporciona las funciones `login(username, password)` y `logout()`.
 
 ### Paso 2: Crear el Interceptor de Peticiones API
@@ -37,7 +37,7 @@ Restringir la creación de eventos y la subida masiva de fotografías exclusivam
 ## Errores Comunes a Evitar (Pitfalls)
 
 - ❌ **ERROR**: Almacenar los tokens JWT en `localStorage`.
-  - _Solución_: `localStorage` es vulnerable a ataques XSS. Guarda los tokens en el estado en memoria de React o `sessionStorage`.
+  - _Solución_: `localStorage` es vulnerable a ataques XSS. Guarda los tokens exclusivamente en el estado en memoria de React.
 - ❌ **ERROR**: Lanzar 50 subidas paralelas a S3 sin limitar concurrencia.
   - _Solución_: Saturará el navegador y la red. Controla la concurrencia a máximo 3 cargas activas a la vez.
 
@@ -90,3 +90,34 @@ de aceptación AWS sigue pendiente de ejecución.
 <!-- requirement: REQ-ADMIN-AUTH -->
 
 Trazabilidad `REQ-ADMIN-AUTH`: [#5](https://github.com/upc-malvaviscos/findly/issues/5) · [evidencia](../docs/evidence/issue-05-admin-cognito.md).
+
+## Invitaciones y primer acceso (#105)
+
+Issue: [#105](https://github.com/upc-malvaviscos/findly/issues/105).
+
+<!-- requirement: REQ-ADMIN-INVITATIONS -->
+
+El pool sólo permite altas administrativas (`allow_admin_create_user_only`).
+Terraform gestiona configuración y cliente, conserva los usuarios existentes y
+la plantilla incluye el login del entorno. No contiene cuentas ni contraseñas.
+La contraseña temporal caduca en siete días y el challenge en tres minutos.
+
+La herramienta del operador lee usuario/correo por stdin, valida cuenta, región,
+pool y etiquetas y rechaza raíz o credenciales sin caducidad conocida. Sin
+`--send` sólo valida. Cognito genera la contraseña temporal; no se marcan emails
+verificados ni se reenvían invitaciones automáticamente. Todas las cuentas del
+pool conservan acceso administrativo completo; no se añaden grupos o niveles.
+
+`/admin/login` distingue la sesión autenticada de `NEW_PASSWORD_REQUIRED` y
+permite definir/confirmar la contraseña definitiva. Contraseñas, challenge y
+token viven sólo en memoria. Cancelación, caducidad o respuestas tardías no
+habilitan acceso ni sobrescriben un login posterior.
+
+Pruebas: login normal, primer acceso, política de contraseña, cancelación,
+caducidad, carreras de peticiones y ausencia de almacenamiento persistente. La
+aceptación AWS crea cuentas sintéticas con `SUPPRESS`, completa el challenge,
+rechaza `SignUp` y exige limpieza/destroy. No prueba entrega real.
+
+Véanse el [runbook](../docs/runbooks/admin-invitations.md) y la
+[evidencia](../docs/evidence/admin-invitations-aws-plan.md). La implementación
+local no acredita despliegue de producción ni invitación recibida.

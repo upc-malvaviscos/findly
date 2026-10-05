@@ -177,3 +177,14 @@ auditar qué recursos tratan datos sensibles sin inspeccionar su contenido.
 - **La migración de colecciones Rekognition heredadas sigue pendiente**: las
   creadas antes de ADR-015 (`findly-event-{eventId}`, sin sufijo de entorno)
   no se borran ni se migran automáticamente al desplegar el cambio.
+
+## Altas administrativas por invitación (#105)
+
+ADR-021 configura el pool de organizadores para altas administrativas exclusivas.
+El operador solicita una invitación con una sesión temporal no raíz; Cognito
+produce la contraseña temporal y la SPA completa `NEW_PASSWORD_REQUIRED`.
+Terraform conserva infraestructura y plantilla, sin cuentas o contraseñas.
+El challenge y el token permanecen en memoria; cancelación y caducidad invalidan
+respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige
+limpieza, por lo que no acredita recepción de correo real. El despliegue de esta
+ampliación y su aceptación se registran por separado en la evidencia de #105.

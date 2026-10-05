@@ -62,12 +62,13 @@ module "api_gateway" {
 }
 
 module "cognito" {
-  source         = "../modules/cognito"
-  user_pool_name = "findly-${local.environment}-organizers"
-  project        = "findly"
-  environment    = local.environment
-  cost_center    = "findly-ci"
-  data_class     = "synthetic"
+  admin_login_url = "${var.frontend_domain_url}/admin/login"
+  source          = "../modules/cognito"
+  user_pool_name  = "findly-${local.environment}-organizers"
+  project         = "findly"
+  environment     = local.environment
+  cost_center     = "findly-ci"
+  data_class      = "synthetic"
 }
 
 module "admin_api" {
