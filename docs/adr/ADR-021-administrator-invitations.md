@@ -26,11 +26,12 @@ La política actual exige 12 caracteres y la contraseña temporal dura siete dí
 ## Límites de aceptación
 
 Las invitaciones usan el mensaje y envío predeterminados de Cognito
-(`COGNITO_DEFAULT`), independientes del correo de galerías SES. AWS rechazó en
-la primera aceptación la plantilla personalizada con esta modalidad de envío;
-la corrección aprobada es conservar el mensaje estándar y comunicar el enlace
-al login por separado. No se amplían permisos IAM ni se cambia el remitente de
-Cognito a la identidad SES de Findly en esta decisión. La aceptación AWS usa `SUPPRESS` y datos sintéticos;
+(`COGNITO_DEFAULT`), independientes del correo de galerías SES. La primera
+aceptación falló por un campo SMS vacío en la plantilla; además, la documentación
+de AWS exige SES para personalizar el correo. La corrección aprobada conserva el
+mensaje estándar y comunica el enlace al login por separado, sin configurar SMS.
+No se amplían permisos IAM ni se cambia el remitente de Cognito a la identidad
+SES de Findly. La aceptación AWS usa `SUPPRESS` y datos sintéticos;
 comprueba autenticación, rechazo de autorregistro y limpieza, no entrega real.
 
 Se conserva la administración completa para todas las cuentas autorizadas; no
