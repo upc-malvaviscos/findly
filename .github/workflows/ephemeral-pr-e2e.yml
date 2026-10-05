@@ -116,6 +116,10 @@ jobs:
           ' <<< "$bucket_encryption" > /dev/null
       - name: Install Chromium for deployed browser verification
         run: npm exec -- playwright install --with-deps chromium
+      - name: Verify suppressed administrator invitation and reject self-registration
+        run: |
+          terraform -chdir=infra/ephemeral output -json > "$RUNNER_TEMP/admin-invitation-outputs.json"
+          node scripts/check-admin-invitation-aws.mjs "$RUNNER_TEMP/admin-invitation-outputs.json"
       - name: Run the deployed AWS organizer happy path
         run: |
           echo '::notice::Preparing a synthetic Cognito organizer for deployed AWS acceptance'

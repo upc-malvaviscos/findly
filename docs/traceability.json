@@ -335,6 +335,50 @@
         "README.md",
         "docs/paper/06-seguridad-privacidad-y-gobierno.md"
       ]
+    },
+    {
+      "id": "REQ-ADMIN-INVITATIONS",
+      "description": "Altas administrativas por invitación y primer acceso Cognito sin contraseñas en Terraform o almacenamiento persistente.",
+      "issues": [105],
+      "spec": "specs/04-admin-event-management-and-cognito-authorization.md",
+      "implementation": [
+        "infra/modules/cognito/main.tf",
+        "src/web/cognitoGateway.ts",
+        "src/web/context/AuthProvider.tsx",
+        "src/web/components/admin/AdminLogin.tsx",
+        "scripts/invite-admin.mjs",
+        "scripts/lib/admin-invitations.mjs",
+        "scripts/check-admin-invitation-aws.mjs",
+        ".github/workflows/ephemeral-pr-e2e.yml"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/web/auth.test.tsx",
+            "tests/web/cognitoGateway.test.ts",
+            "tests/infra/admin-invitations.test.ts",
+            "tests/infra/adminInvitationAcceptance.test.ts"
+          ]
+        },
+        {
+          "command": "test:e2e",
+          "environment": "unit",
+          "files": ["e2e/admin-invitation.spec.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/admin-invitations-aws-plan.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/runbooks/admin-invitations.md",
+        "README.md",
+        "docs/adr/ADR-021-administrator-invitations.md"
+      ]
     }
   ]
 }

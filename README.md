@@ -114,6 +114,12 @@ nombres, no valores sensibles. La raíz Terraform expone los tres valores de
 Cognito que se inyectan durante la compilación. Sin ellos, el acceso
 administrativo falla de forma segura.
 
+Las altas se realizan por invitación de Cognito; el pool no permite autorregistro.
+El primer acceso con contraseña temporal pide elegir una definitiva. La
+[herramienta de invitación](docs/runbooks/admin-invitations.md) valida el destino
+y requiere una sesión AWS temporal no raíz; no almacena usuarios ni contraseñas
+en Terraform.
+
 Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter` y `DataClass`. Los datos de demostración tienen retención configurable, el valor inicial es siete días y los buckets nunca permiten acceso público.
 
 ## Siguiente paso

@@ -8,6 +8,7 @@
     "npm": ">=11"
   },
   "scripts": {
+    "admin:invite": "node scripts/invite-admin.mjs",
     "dev": "vite",
     "dev:mocks": "VITE_FINDLY_EXECUTION_MODE=mock npm run dev",
     "dev:floci": "node scripts/dev-floci.mjs",
