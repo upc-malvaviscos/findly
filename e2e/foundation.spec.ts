@@ -107,6 +107,7 @@ test.beforeEach(async ({ page }) => {
 
 test('renders the public enrollment page', async ({ page }) => {
   await page.goto('/');
+  await expect(page).toHaveTitle('Encuentra tus fotos · Findly');
 
   await expect(page.locator('.brand')).toBeVisible();
   await expect(
@@ -177,16 +178,19 @@ test('protects the organizer area and supports logout', async ({ page }) => {
     }),
   );
   await page.goto('/admin/events');
+  await expect(page).toHaveTitle('Iniciar sesión · Findly');
   await expect(
     page.getByRole('heading', { name: 'Iniciar sesión.' }),
   ).toBeVisible();
   await page.getByLabel('Usuario').fill('organizer');
   await page.getByLabel('Contraseña').fill('password');
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page).toHaveTitle('Eventos · Findly');
   await expect(
     page.getByRole('heading', { name: 'Tus eventos' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(page).toHaveTitle('Iniciar sesión · Findly');
   await expect(
     page.getByRole('heading', { name: 'Iniciar sesión.' }),
   ).toBeVisible();
@@ -194,6 +198,7 @@ test('protects the organizer area and supports logout', async ({ page }) => {
 
 test('renders a private gallery from a simulated token', async ({ page }) => {
   await page.goto('/gallery?token=demo-gallery');
+  await expect(page).toHaveTitle('Tu galería · Findly');
   await expect(
     page.getByRole('heading', { name: /Findly Demo Night/ }),
   ).toBeVisible();

@@ -59,6 +59,7 @@ test('invited organizer chooses a permanent password and enters administration',
     },
   );
   await page.goto('/admin');
+  await expect(page).toHaveTitle('Iniciar sesión · Findly');
   await page.getByLabel('Usuario').fill('invited');
   await page.getByLabel('Contraseña', { exact: true }).fill('Temporary1!test');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
@@ -66,6 +67,7 @@ test('invited organizer chooses a permanent password and enters administration',
     page.getByRole('heading', { name: 'Elige tu contraseña.' }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/admin\/login$/);
+  await expect(page).toHaveTitle('Elige tu contraseña · Findly');
   await page
     .getByLabel('Nueva contraseña', { exact: true })
     .fill('Permanent1!test');
@@ -75,6 +77,7 @@ test('invited organizer chooses a permanent password and enters administration',
     page.getByRole('heading', { name: 'Tus eventos' }),
   ).toBeVisible();
   expect(completed).toBe(true);
+  await expect(page).toHaveTitle('Eventos · Findly');
   expect(
     await page.evaluate(() => ({
       local: localStorage.length,
@@ -82,6 +85,7 @@ test('invited organizer chooses a permanent password and enters administration',
     })),
   ).toEqual({ local: 0, session: 0 });
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(page).toHaveTitle('Iniciar sesión · Findly');
   await expect(
     page.getByRole('heading', { name: 'Iniciar sesión.' }),
   ).toBeVisible();

@@ -414,6 +414,27 @@
         "README.md",
         "docs/adr/ADR-021-administrator-invitations.md"
       ]
+    },
+    {
+      "id": "REQ-PAGE-TITLES",
+      "description": "Identificar cada pantalla en la pestaña y seguir ruta y autenticación sin datos privados.",
+      "issues": [109],
+      "spec": "specs/01-repository-foundation-and-development-standards.md",
+      "implementation": ["src/web/App.tsx", "index.html"],
+      "verification": [
+        {
+          "command": "test:e2e",
+          "environment": "unit",
+          "files": ["e2e/foundation.spec.ts", "e2e/admin-invitation.spec.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-109-page-titles.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": ["docs/adr/ADR-001-vite-react-over-nextjs.md"]
     }
   ]
 }

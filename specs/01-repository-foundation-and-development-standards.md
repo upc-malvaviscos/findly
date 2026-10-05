@@ -1,5 +1,7 @@
 # 01 - Fundación del repositorio y estándares de desarrollo
 
+<!-- requirement: REQ-PAGE-TITLES -->
+
 ## Objetivo
 
 Establecer y mantener una base de código reproducible, robusta y con calidad automatizada para un equipo multidisciplinar de 4 contribuidores utilizando React + Vite.
@@ -35,6 +37,14 @@ El archivo `package.json` debe exponer los siguientes comandos unificados:
 - `npm run verify`: Pipeline local completo que ejecuta lint, tipos, pruebas unitarias y build sin errores.
 
 ## Guía de Implementación Paso a Paso para el Ingeniero Junior
+
+### Títulos de página
+
+La pestaña identifica la pantalla visible y termina en «· Findly». El título
+se actualiza con la ruta y el estado de autenticación: portada, login, elección
+de contraseña, eventos y galería. Nunca incluye tokens ni datos privados.
+Seguimiento: [#109](https://github.com/upc-malvaviscos/findly/issues/109) y
+[evidencia](../docs/evidence/issue-109-page-titles.md).
 
 ### Paso 1: Configurar Node y Vite
 
