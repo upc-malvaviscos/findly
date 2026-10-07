@@ -14,3 +14,7 @@ Los tickets son publicables como issues. Cada uno debe enlazar PR, prueba, evide
 ## Ampliación de correo transaccional
 
 - [20 - Email obligatorio y envío manual de galerías](20-gallery-email-notifications-with-ses.md): issue #86, ADR-019; código y pruebas locales, configuración SES/DNS y aceptación AWS pendientes.
+
+## Backlog MVP ampliado (2026-10-03)
+
+- [22 - Actualización manual, descarga y enlaces compartidos de galería](22-gallery-refresh-download-and-sharing.md): issue #88; pendiente de implementación. Sin bloqueadores por #49.

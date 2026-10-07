@@ -36,7 +36,12 @@ type GalleryResponse = {
   eventId: string;
   eventName: string;
   registrationId: string;
-  photos: Array<{ photoId: string; url: string; matchedAt: string }>;
+  photos: Array<{
+    photoId: string;
+    url: string;
+    downloadUrl: string;
+    matchedAt: string;
+  }>;
   expiresAt: string;
 };
 
@@ -186,18 +191,32 @@ async function serveGallery(
         )
       ).Item as Partial<Pick<PhotoEntity, 's3Key'>> | undefined;
       if (!photo?.s3Key) return null;
-      const signedUrl = await getSignedUrl(
-        s3,
-        new GetObjectCommand({ Bucket: photoBucket, Key: photo.s3Key }),
-        { expiresIn: 300 },
-      );
+      const [signedUrl, signedDownloadUrl] = await Promise.all([
+        getSignedUrl(
+          s3,
+          new GetObjectCommand({ Bucket: photoBucket, Key: photo.s3Key }),
+          { expiresIn: 300 },
+        ),
+        getSignedUrl(
+          s3,
+          new GetObjectCommand({
+            Bucket: photoBucket,
+            Key: photo.s3Key,
+            ResponseContentDisposition: `attachment; filename="findly-${photoId}.jpg"`,
+          }),
+          { expiresIn: 300 },
+        ),
+      ]);
       const publicUrl = process.env.FLOCI_PUBLIC_URL;
+      const toPublicUrl = (url: string) =>
+        publicUrl
+          ? `${publicUrl}${new URL(url).pathname}${new URL(url).search}`
+          : url;
       return {
         photoId,
         matchedAt,
-        url: publicUrl
-          ? `${publicUrl}${new URL(signedUrl).pathname}${new URL(signedUrl).search}`
-          : signedUrl,
+        url: toPublicUrl(signedUrl),
+        downloadUrl: toPublicUrl(signedDownloadUrl),
       };
     }),
   );

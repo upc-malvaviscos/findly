@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getGallery, refreshGallery } from '../../galleryApi';
 import type { GalleryPhoto, GalleryResponse } from '../../types';
 import { ErasureModal } from './ErasureModal';
@@ -6,51 +6,104 @@ import { ErasureModal } from './ErasureModal';
 type GalleryState =
   'LOADING' | 'SUCCESS' | 'EMPTY' | 'EXPIRED' | 'NOT_FOUND' | 'ERASED';
 
+const REFRESH_INTERVAL_MS = 4 * 60 * 1000;
+
+function terminalStateFor(error: unknown): 'EXPIRED' | 'NOT_FOUND' | null {
+  if (!(error instanceof Error)) return 'NOT_FOUND';
+  if (error.message === 'GALLERY_EXPIRED') return 'EXPIRED';
+  if (error.message === 'GALLERY_NOT_FOUND') return 'NOT_FOUND';
+  return null;
+}
+
+function galleryShareUrl(token: string): string {
+  return `${window.location.origin}/gallery?token=${encodeURIComponent(token)}`;
+}
+
 export function GalleryPage({ token }: { token: string }) {
   const [state, setState] = useState<GalleryState>('LOADING');
   const [gallery, setGallery] = useState<GalleryResponse | null>(null);
   const [selected, setSelected] = useState<GalleryPhoto | null>(null);
   const [erasureOpen, setErasureOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>(
+    'idle',
+  );
+  const activeRef = useRef(true);
+  const timerRef = useRef<number | null>(null);
+
+  const stopPeriodicRefresh = useCallback(() => {
+    if (timerRef.current === null) return;
+    window.clearInterval(timerRef.current);
+    timerRef.current = null;
+  }, []);
+
+  const applyRefreshResult = useCallback((result: GalleryResponse) => {
+    if (!activeRef.current) return;
+    setGallery(result);
+    setState((current) =>
+      current === 'ERASED'
+        ? current
+        : result.photos.length === 0
+          ? 'EMPTY'
+          : 'SUCCESS',
+    );
+  }, []);
+
+  const applyRefreshFailure = useCallback(
+    (thrown: unknown) => {
+      if (!activeRef.current) return;
+      const terminal = terminalStateFor(thrown);
+      if (terminal) {
+        stopPeriodicRefresh();
+        setState(terminal);
+      }
+      return terminal;
+    },
+    [stopPeriodicRefresh],
+  );
 
   useEffect(() => {
-    let active = true;
+    activeRef.current = true;
     void getGallery(token)
-      .then((result) => {
-        if (!active) return;
-        setGallery(result);
-        setState(result.photos.length === 0 ? 'EMPTY' : 'SUCCESS');
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setState(
-          error instanceof Error && error.message === 'GALLERY_EXPIRED'
-            ? 'EXPIRED'
-            : 'NOT_FOUND',
-        );
+      .then(applyRefreshResult)
+      .catch((thrownError: unknown) => {
+        if (!activeRef.current) return;
+        setState(terminalStateFor(thrownError) ?? 'NOT_FOUND');
       });
-    const timer = window.setInterval(
-      () => {
-        void refreshGallery(token)
-          .then((result) => {
-            if (!active) return;
-            setGallery(result);
-            setState((current) =>
-              current === 'ERASED'
-                ? current
-                : result.photos.length === 0
-                  ? 'EMPTY'
-                  : 'SUCCESS',
-            );
-          })
-          .catch(() => undefined);
-      },
-      4 * 60 * 1000,
-    );
+    timerRef.current = window.setInterval(() => {
+      void refreshGallery(token)
+        .then(applyRefreshResult)
+        .catch(applyRefreshFailure);
+    }, REFRESH_INTERVAL_MS);
     return () => {
-      active = false;
-      window.clearInterval(timer);
+      activeRef.current = false;
+      stopPeriodicRefresh();
     };
-  }, [token]);
+  }, [token, applyRefreshResult, applyRefreshFailure, stopPeriodicRefresh]);
+
+  const handleManualRefresh = () => {
+    setRefreshing(true);
+    setRefreshError(null);
+    void refreshGallery(token)
+      .then((result) => {
+        setRefreshing(false);
+        applyRefreshResult(result);
+      })
+      .catch((thrownError: unknown) => {
+        setRefreshing(false);
+        const terminal = applyRefreshFailure(thrownError);
+        if (!terminal) setRefreshError('No hemos podido actualizar tus fotos.');
+      });
+  };
+
+  const handleShare = () => {
+    const url = galleryShareUrl(token);
+    void navigator.clipboard
+      .writeText(url)
+      .then(() => setShareStatus('copied'))
+      .catch(() => setShareStatus('error'));
+  };
 
   if (state === 'LOADING')
     return (
@@ -90,6 +143,22 @@ export function GalleryPage({ token }: { token: string }) {
         </section>
       </main>
     );
+  const shareControls = gallery ? (
+    <div className="gallery-share">
+      <button type="button" className="text-button" onClick={handleShare}>
+        Copiar enlace de la galería
+      </button>
+      <p className="hint-text">
+        Quien reciba este enlace podrá ver, descargar y también eliminar tus
+        datos con «Eliminar mis datos». Compartirlo no amplía el tiempo de
+        conservación de tus fotos.
+      </p>
+      {shareStatus === 'copied' && <p role="status">Enlace copiado.</p>}
+      {shareStatus === 'error' && (
+        <p role="alert">No hemos podido copiar el enlace.</p>
+      )}
+    </div>
+  ) : null;
   if (state === 'EMPTY' || gallery === null)
     return (
       <main className="page-shell">
@@ -98,6 +167,16 @@ export function GalleryPage({ token }: { token: string }) {
           <p>Te avisaremos cuando haya fotografías disponibles.</p>
           {gallery ? (
             <>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={handleManualRefresh}
+                disabled={refreshing}
+              >
+                {refreshing ? 'Actualizando…' : 'Actualizar fotos'}
+              </button>
+              {refreshError && <p role="alert">{refreshError}</p>}
+              {shareControls}
               <button
                 type="button"
                 className="text-button"
@@ -131,6 +210,17 @@ export function GalleryPage({ token }: { token: string }) {
       <section className="enrollment-card gallery-card">
         <span className="eyebrow">Tus recuerdos</span>
         <h1>{gallery.eventName}.</h1>
+        <div className="gallery-toolbar">
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Actualizando…' : 'Actualizar fotos'}
+          </button>
+          {refreshError && <p role="alert">{refreshError}</p>}
+        </div>
         <div className="gallery-grid">
           {gallery.photos.map((photo) => (
             <button
@@ -154,16 +244,15 @@ export function GalleryPage({ token }: { token: string }) {
             <img src={selected.url} alt="Fotografía ampliada del evento" />
             <a
               className="button button-primary"
-              href={selected.url}
+              href={selected.downloadUrl}
               download
-              target="_blank"
-              rel="noreferrer"
               onClick={(event) => event.stopPropagation()}
             >
               Descargar
             </a>
           </div>
         )}
+        {shareControls}
         <div className="gallery-footer">
           <button
             type="button"
