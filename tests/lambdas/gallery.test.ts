@@ -5,15 +5,25 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+type PresignedCommand = { input: Record<string, unknown> };
+
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: vi
     .fn()
-    .mockResolvedValue(
-      'http://localhost:4566/findly-local-photos/demo.jpg?signature=local',
+    .mockImplementation((_client: unknown, command: PresignedCommand) =>
+      Promise.resolve(
+        command.input.ResponseContentDisposition
+          ? 'http://localhost:4566/findly-local-photos/demo.jpg?signature=download'
+          : 'http://localhost:4566/findly-local-photos/demo.jpg?signature=local',
+      ),
     ),
 }));
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { gallery } from '../../src/lambdas/gallery';
 import { captureLogs } from './lib/logCapture';
+
+const getSignedUrlMock = vi.mocked(getSignedUrl);
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 
@@ -78,6 +88,42 @@ describe('gallery lambda', () => {
       eventName: 'Local Demo',
       registrationId: 'registration-demo',
       photos: [{ photoId: 'photo-1' }],
+    });
+  });
+
+  it('issues a separate attachment URL authorized only for the matched photo', async () => {
+    dynamoMock
+      .on(GetCommand)
+      .resolvesOnce({
+        Item: {
+          registrationId: 'registration-demo',
+          eventId: 'demo-2026',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+        },
+      })
+      .resolvesOnce({ Item: { name: 'Local Demo' } })
+      .resolvesOnce({ Item: { s3Key: 'events/demo-2026/photos/photo-1.jpg' } });
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [{ photoId: 'photo-1', matchedAt: '2026-09-04T10:00:00.000Z' }],
+    });
+
+    const result = await gallery({
+      queryStringParameters: { token: 'demo-gallery' },
+    });
+    const { photos } = JSON.parse(result.body) as {
+      photos: Array<{ url: string; downloadUrl: string }>;
+    };
+    expect(photos[0]?.url).toContain('signature=local');
+    expect(photos[0]?.downloadUrl).toContain('signature=download');
+    expect(photos[0]?.downloadUrl).not.toBe(photos[0]?.url);
+
+    const attachmentCall = getSignedUrlMock.mock.calls.find(
+      (call) => 'ResponseContentDisposition' in call[1].input,
+    );
+    expect((attachmentCall?.[1] as PresignedCommand).input).toMatchObject({
+      Bucket: 'findly-local-photos',
+      Key: 'events/demo-2026/photos/photo-1.jpg',
+      ResponseContentDisposition: 'attachment; filename="findly-photo-1.jpg"',
     });
   });
 

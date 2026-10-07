@@ -81,6 +81,7 @@ async function mockBackend(page: Page) {
         photos: [1, 2].map((n) => ({
           photoId: `photo-${n}`,
           url: `${API}/photos/${n}.jpg`,
+          downloadUrl: `${API}/photos/${n}.jpg?disposition=attachment`,
           matchedAt: '2026-09-18T20:04:00+02:00',
         })),
       });
@@ -207,6 +208,146 @@ test('renders a private gallery from a simulated token', async ({ page }) => {
   ).toHaveCount(2);
 });
 
+test('refreshes the gallery manually without reloading the page', async ({
+  page,
+}) => {
+  let reads = 0;
+  await page.route(`${API}/gallery?**`, (route) => {
+    reads += 1;
+    return route.fulfill({
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({
+        eventId: 'event-synthetic',
+        eventName: 'Synthetic event',
+        registrationId: 'registration-synthetic',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        photos:
+          reads === 1
+            ? []
+            : [
+                {
+                  photoId: 'photo-synthetic',
+                  url: `${API}/photos/synthetic.jpg`,
+                  downloadUrl: `${API}/photos/synthetic.jpg?disposition=attachment`,
+                  matchedAt: '2026-01-01T00:00:00.000Z',
+                },
+              ],
+      }),
+    });
+  });
+  await page.goto('/gallery?token=synthetic-refresh-token');
+  await expect(
+    page.getByRole('heading', { name: 'Aún no hay fotos.' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Actualizar fotos' }).click();
+  await expect(
+    page.getByRole('img', { name: 'Fotografía del evento' }),
+  ).toHaveCount(1);
+});
+
+test('the download control targets the authorized attachment URL, not the inline viewing URL', async ({
+  page,
+}) => {
+  await page.goto('/gallery?token=demo-gallery');
+  await page.getByRole('button', { name: 'Abrir fotografía' }).first().click();
+  const inlineImageSrc = await page
+    .getByRole('img', { name: 'Fotografía ampliada del evento' })
+    .getAttribute('src');
+  const download = page.getByRole('link', { name: 'Descargar' });
+  await expect(download).toHaveAttribute('download');
+  await expect(download).toHaveAttribute(
+    'href',
+    `${API}/photos/1.jpg?disposition=attachment`,
+  );
+  expect(await download.getAttribute('href')).not.toBe(inlineImageSrc);
+});
+
+/**
+ * Not AWS S3: a same-contract double that returns real bytes with the
+ * ResponseContentDisposition header the Lambda signs, so the downloaded file
+ * (name and content) can be verified instead of only href/download.
+ *
+ * Skipped on WebKit: Playwright's WebKit engine does not surface a
+ * `download` event for anchors whose response was served through
+ * `page.route` interception (verified in isolation against a minimal
+ * cross-origin repro, independent of this app). This is a limitation of
+ * Playwright's WebKit automation, not of the HTTP contract under test, which
+ * the href/attribute assertion above still covers on WebKit.
+ */
+test('downloads the real photo file through the authorized attachment URL', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName === 'webkit',
+    'Playwright WebKit does not fire a download event for page.route-intercepted anchors.',
+  );
+  const photoBytes = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+  await page.route(`${API}/photos/1.jpg**`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/jpeg',
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': 'attachment; filename="findly-photo-1.jpg"',
+      },
+      body: photoBytes,
+    }),
+  );
+  await page.goto('/gallery?token=demo-gallery');
+  await page.getByRole('button', { name: 'Abrir fotografía' }).first().click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Descargar' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('findly-photo-1.jpg');
+  const downloadedPath = await download.path();
+  expect(downloadedPath).toBeTruthy();
+  const { readFile } = await import('node:fs/promises');
+  const content = await readFile(downloadedPath!);
+  expect(content.equals(photoBytes)).toBe(true);
+});
+
+test('shares a gallery link that opens the same gallery in another browser context without login', async ({
+  page,
+}) => {
+  await page.goto('/gallery?token=demo-gallery');
+  await expect(
+    page.getByRole('heading', { name: /Findly Demo Night/ }),
+  ).toBeVisible();
+  await expect(page.getByText(/también eliminar tus datos/)).toBeVisible();
+  const shareUrl = page.url();
+
+  const otherContext = await page.context().browser()!.newContext();
+  const otherPage = await otherContext.newPage();
+  await mockBackend(otherPage);
+  await otherPage.goto(shareUrl);
+  await expect(
+    otherPage.getByRole('heading', { name: /Findly Demo Night/ }),
+  ).toBeVisible();
+  await otherContext.close();
+});
+
+test('copies the shareable link to the clipboard', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium',
+    'Clipboard permission grants are only supported on Chromium in Playwright.',
+  );
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/gallery?token=demo-gallery');
+  await page
+    .getByRole('button', { name: 'Copiar enlace de la galería' })
+    .click();
+  await expect(page.getByText('Enlace copiado.')).toBeVisible();
+  const clipboardText = await page.evaluate(() =>
+    navigator.clipboard.readText(),
+  );
+  expect(clipboardText).toContain('/gallery?token=demo-gallery');
+});
+
 test('shows new matches when an initially empty gallery refreshes', async ({
   page,
 }) => {
@@ -228,6 +369,7 @@ test('shows new matches when an initially empty gallery refreshes', async ({
                 {
                   photoId: 'photo-synthetic',
                   url: `${API}/photos/synthetic.jpg`,
+                  downloadUrl: `${API}/photos/synthetic.jpg?disposition=attachment`,
                   matchedAt: '2026-01-01T00:00:00.000Z',
                 },
               ],

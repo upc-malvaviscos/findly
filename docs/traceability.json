@@ -470,6 +470,40 @@
         }
       ],
       "documentation": ["docs/adr/ADR-001-vite-react-over-nextjs.md"]
+    },
+    {
+      "id": "REQ-GALLERY-DOWNLOAD-SHARING",
+      "description": "Refresco manual, descarga autorizada real y enlace compartido de galería con advertencia de borrado compartido.",
+      "issues": [88],
+      "spec": "specs/22-gallery-refresh-download-and-sharing.md",
+      "implementation": [
+        "src/lambdas/gallery.ts",
+        "src/web/components/gallery/GalleryPage.tsx",
+        "src/web/galleryApi.ts",
+        "src/web/types.ts"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/gallery.test.ts",
+            "tests/web/gallery.test.tsx"
+          ]
+        },
+        {
+          "command": "test:e2e",
+          "environment": "unit",
+          "files": ["e2e/foundation.spec.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-88-gallery-refresh-download-sharing.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": ["specs/08-private-gallery-links-and-image-delivery.md"]
     }
   ]
 }

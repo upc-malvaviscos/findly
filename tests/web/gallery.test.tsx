@@ -35,6 +35,7 @@ describe('GalleryPage', () => {
         {
           photoId: 'photo-synthetic',
           url: 'https://example.test/synthetic.jpg',
+          downloadUrl: 'https://example.test/synthetic-download.jpg',
           matchedAt: '2026-01-01T00:00:00.000Z',
         },
       ],
@@ -110,6 +111,7 @@ describe('GalleryPage', () => {
           {
             photoId: 'photo-synthetic',
             url: 'https://example.test/synthetic.jpg',
+            downloadUrl: 'https://example.test/synthetic-download.jpg',
             matchedAt: '2026-01-01T00:00:00.000Z',
           },
         ],
@@ -203,18 +205,117 @@ describe('GalleryPage', () => {
     );
   });
 
-  it('renders a real download control in the lightbox', async () => {
+  it('downloads through the authorized attachment URL, not the inline viewing URL', async () => {
     render(<GalleryPage token="demo-gallery" />);
     await screen.findByRole('heading', { name: /Findly Demo Night/ });
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Abrir fotografía' })[0]!,
     );
+    const inlineImage = screen.getByRole('img', {
+      name: 'Fotografía ampliada del evento',
+    });
     const download = screen.getByRole('link', { name: 'Descargar' });
     expect(download).toHaveAttribute('download');
     expect(download).toHaveAttribute(
       'href',
-      expect.stringContaining('images.unsplash.com'),
+      expect.stringContaining('dl=findly-photo-1.jpg'),
     );
+    expect(download.getAttribute('href')).not.toBe(
+      inlineImage.getAttribute('src'),
+    );
+  });
+
+  it('refreshes manually on demand without waiting for the periodic timer', async () => {
+    const initial: GalleryResponse = {
+      eventId: 'event-synthetic',
+      eventName: 'Synthetic event',
+      registrationId: 'registration-synthetic',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      photos: [],
+    };
+    vi.spyOn(galleryApi, 'getGallery').mockResolvedValue(initial);
+    const refresh = vi.spyOn(galleryApi, 'refreshGallery').mockResolvedValue({
+      ...initial,
+      photos: [
+        {
+          photoId: 'photo-synthetic',
+          url: 'https://example.test/synthetic.jpg',
+          downloadUrl: 'https://example.test/synthetic-download.jpg',
+          matchedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    render(<GalleryPage token="synthetic-refresh-token" />);
+    await screen.findByRole('heading', { name: 'Aún no hay fotos.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar fotos' }));
+    expect(refresh).toHaveBeenCalledWith('synthetic-refresh-token');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('img', { name: 'Fotografía del evento' }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it('shows a recoverable error when a manual refresh fails on the network', async () => {
+    render(<GalleryPage token="demo-gallery" />);
+    await screen.findByRole('heading', { name: /Findly Demo Night/ });
+    vi.spyOn(galleryApi, 'refreshGallery').mockRejectedValue(
+      new Error('GALLERY_NETWORK_ERROR'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar fotos' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No hemos podido actualizar tus fotos.',
+    );
+    expect(
+      screen.getByRole('heading', { name: /Findly Demo Night/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('stops the periodic refresh and shows the expired state when a refresh finds the link expired', async () => {
+    vi.useFakeTimers();
+    const initial: GalleryResponse = {
+      eventId: 'demo-2026',
+      eventName: 'Initial event',
+      registrationId: 'registration-demo',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      photos: [
+        {
+          photoId: 'photo-1',
+          url: 'https://example.test/old.jpg',
+          downloadUrl: 'https://example.test/old-download.jpg',
+          matchedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    };
+    vi.spyOn(galleryApi, 'getGallery').mockResolvedValue(initial);
+    vi.spyOn(galleryApi, 'refreshGallery').mockRejectedValue(
+      new Error('GALLERY_EXPIRED'),
+    );
+    render(<GalleryPage token="expiring-token" />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4 * 60 * 1000);
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Enlace caducado.' }),
+    ).toBeInTheDocument();
+  });
+
+  it('copies the shareable gallery link with a deletion-capability warning', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<GalleryPage token="demo-gallery" />);
+    await screen.findByRole('heading', { name: /Findly Demo Night/ });
+    expect(screen.getByText(/también eliminar tus datos/)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copiar enlace de la galería' }),
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/gallery?token=demo-gallery'),
+    );
+    expect(await screen.findByText('Enlace copiado.')).toBeInTheDocument();
   });
 
   it('refreshes gallery URLs after four minutes', async () => {
@@ -228,6 +329,7 @@ describe('GalleryPage', () => {
         {
           photoId: 'photo-1',
           url: 'https://example.test/old.jpg',
+          downloadUrl: 'https://example.test/old-download.jpg',
           matchedAt: '2026-01-01T00:00:00.000Z',
         },
       ],
@@ -239,6 +341,7 @@ describe('GalleryPage', () => {
         {
           photoId: 'photo-1',
           url: 'https://example.test/new.jpg',
+          downloadUrl: 'https://example.test/new-download.jpg',
           matchedAt: '2026-01-01T00:00:00.000Z',
         },
       ],
