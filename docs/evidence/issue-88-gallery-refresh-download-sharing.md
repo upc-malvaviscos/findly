@@ -184,12 +184,39 @@ No se investigó el motivo del cambio de comportamiento en `2.2.0` (podría
 ser una corrección legítima de semántica S3 o una regresión de Floci); se
 deja pendiente como seguimiento, sin bloquear este PR.
 
+## Verificación contra AWS real (entorno efímero del PR)
+
+El job `provision-test-destroy` (`.github/workflows/ephemeral-pr-e2e.yml`)
+despliega un entorno real y aislado por PR (`infra/ephemeral`, rol OIDC
+dedicado) y lo destruye al terminar. Hasta ahora solo comprobaba la URL de
+visualización inline heredada de la issue #70; no ejercía `downloadUrl`, la
+cabecera `attachment` ni el contenido descargado. Se consideró el bucket
+compartido `sandbox` (`terraform plan` contra el estado real:
+`findly-tfstate-912415493378`, `eu-west-1`, 109 recursos a crear desde
+cero) como alternativa, pero se descartó para no desplegar infraestructura
+persistente y manual solo para esta verificación.
+
+Se amplió `scripts/deployed-ephemeral-happy-path.mjs` para, en el mismo
+entorno real desplegado y autodestruido por el PR:
+
+- comprobar que `downloadUrl` existe y difiere de `url`;
+- descargar `downloadUrl` real contra S3 real y verificar
+  `Content-Disposition: attachment; filename="findly-<photoId>.jpg"`;
+- verificar que el contenido descargado coincide con los bytes JPEG
+  sintéticos subidos.
+
+El acceso sin login desde "otro navegador" ya estaba cubierto
+estructuralmente: `/gallery?token=` no usa cookies ni sesión en ninguna de
+las llamadas de este script.
+
 ## Pendiente
 
-- Verificación contra AWS/S3 real (la issue no autoriza ejecutar AWS en esta
-  sesión).
-- Resto de criterios de aceptación de la issue #88 marcados como pendientes
-  de verificación remota.
+- Resultado de la ejecución ampliada del CI efímero sobre el commit que
+  añade estas comprobaciones (pendiente de confirmar en verde en el PR
+  #117 en el momento de escribir esto).
+- Resto de criterios de aceptación de la issue #88 que requieren
+  verificación manual/visual (no automatizable aquí): revisión humana del
+  PR y de la demo.
 - Investigar por qué `floci/floci:2.2.0` rechaza con 400 los PUT firmados
   condicionales (`If-None-Match`) y decidir si actualizar el pin tras
   entender el cambio, en vez de quedarse indefinidamente en `2.1.0`.
