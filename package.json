@@ -88,7 +88,7 @@
     "jsdom": "30.0.1",
     "markdownlint-cli2": "0.23.3",
     "prettier": "3.9.6",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "5.0.1"
