@@ -1,6 +1,10 @@
 services:
   floci:
-    image: floci/floci:latest
+    # Pinned to 2.1.0 (not :latest, not a bare digest: Docker Hub refuses to
+    # pull this image's old manifest schema by digest directly). 2.2.0
+    # (2026-10-06) rejects conditional (If-None-Match) signed PUTs with 400,
+    # breaking write-once selfie uploads. Re-check before moving this forward.
+    image: floci/floci:2.1.0
     ports:
       - '${FLOCI_PORT:-4566}:4566'
     environment:

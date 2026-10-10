@@ -151,9 +151,45 @@ Ningún otro módulo usa este patrón de validación cruzada entre variables
 (`grep` confirmó que `permissions_boundary_arn` era el único caso en
 `infra/`), así que no se requirió tocar otros módulos.
 
+### CI del PR #117 — `floci/floci:latest` rompe los PUT condicionales
+
+El job `e2e` de CI falló de forma reproducible (no intermitente: se relanzó
+una vez con el mismo resultado) en `tests/integration/selfieIndexer.test.ts`,
+con `AssertionError: expected 400 to be 200` en los PUT firmados
+condicionales (`If-None-Match: *`, subida "write-once" de selfies, ver
+[src/lambdas/lib/presignedUpload.ts](../../src/lambdas/lib/presignedUpload.ts)).
+Ninguno de esos archivos lo toca este PR.
+
+Causa: `docker-compose.yml` y `tests/integration/floci.compose.yml`
+referenciaban `floci/floci:latest`, una etiqueta flotante. La imagen que
+Docker tenía cacheada localmente era de 2026-09-15
+(`sha256:ab456f84…`, con la que el test pasa 14/14); CI, al no tener caché,
+siempre descarga la última imagen publicada. Al forzar un `docker pull`
+fresco en local, obtuve la imagen de 2026-10-06 (`sha256:0d1fa7a9…`,
+publicada como `floci/floci:2.2.0`) y reproduje el mismo fallo en local:
+esa versión rechaza con 400 los PUT firmados con `If-None-Match`. Confirmado
+contra `https://hub.docker.com/v2/repositories/floci/floci/tags`: existe una
+etiqueta semver estable `2.1.0` (2026-09-15) que resuelve exactamente a la
+imagen que funciona.
+
+Corrección: ambos ficheros compose se fijaron a `floci/floci:2.1.0` en vez
+de `:latest`. Se intentó primero fijar por dígest exacto
+(`floci/floci@sha256:ab456f84…`), pero Docker Hub rechaza el pull directo de
+ese manifiesto ("manifest schema unsupported"); la etiqueta semver sí se
+descarga limpiamente y resuelve al mismo `Id` de imagen. Verificado:
+`npm run test:floci:integration` pasa 14/14 tras el pin, con caché de Docker
+vaciada y reconstruida desde cero.
+
+No se investigó el motivo del cambio de comportamiento en `2.2.0` (podría
+ser una corrección legítima de semántica S3 o una regresión de Floci); se
+deja pendiente como seguimiento, sin bloquear este PR.
+
 ## Pendiente
 
 - Verificación contra AWS/S3 real (la issue no autoriza ejecutar AWS en esta
   sesión).
 - Resto de criterios de aceptación de la issue #88 marcados como pendientes
   de verificación remota.
+- Investigar por qué `floci/floci:2.2.0` rechaza con 400 los PUT firmados
+  condicionales (`If-None-Match`) y decidir si actualizar el pin tras
+  entender el cambio, en vez de quedarse indefinidamente en `2.1.0`.
