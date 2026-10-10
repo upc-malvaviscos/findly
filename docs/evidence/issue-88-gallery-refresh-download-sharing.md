@@ -212,8 +212,10 @@ las llamadas de este script.
 ## Pendiente
 
 - Resultado de la ejecución ampliada del CI efímero sobre el commit que
-  añade estas comprobaciones (pendiente de confirmar en verde en el PR
-  #117 en el momento de escribir esto).
+  añade estas comprobaciones. El PR #117 (resto de la issue #88) ya se
+  fusionó antes de que este commit llegara a tiempo; se abrió un PR
+  separado solo para esta verificación (`fix/issue-88-ephemeral-download-verification`)
+  y queda pendiente confirmarlo en verde ahí.
 - Resto de criterios de aceptación de la issue #88 que requieren
   verificación manual/visual (no automatizable aquí): revisión humana del
   PR y de la demo.
