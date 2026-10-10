@@ -1,5 +1,8 @@
 services:
   floci:
-    image: floci/floci:latest
+    # Pinned to 2.1.0: see docker-compose.yml for why (If-None-Match PUTs
+    # start failing with 400 on the newer :latest, and the old working
+    # digest can't be pulled directly from Docker Hub).
+    image: floci/floci:2.1.0
     ports:
       - '127.0.0.1::4566'
