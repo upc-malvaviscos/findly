@@ -153,7 +153,8 @@ if (
   valid.eventName !== 'Synthetic CI Gallery' ||
   valid.photos?.length !== 1 ||
   valid.photos[0]?.photoId !== photoId ||
-  typeof valid.photos[0]?.url !== 'string'
+  typeof valid.photos[0]?.url !== 'string' ||
+  typeof valid.photos[0]?.downloadUrl !== 'string'
 )
   throw new Error(
     'The deployed gallery response did not contain the seeded metadata.',
@@ -162,6 +163,28 @@ const image = await fetch(valid.photos[0].url);
 if (!image.ok || !image.headers.get('content-type')?.startsWith('image/jpeg'))
   throw new Error(
     'The deployed gallery presigned URL did not return the synthetic JPEG.',
+  );
+if (valid.photos[0].downloadUrl === valid.photos[0].url)
+  throw new Error(
+    'The deployed download URL must be distinct from the inline viewing URL.',
+  );
+const download = await fetch(valid.photos[0].downloadUrl);
+if (!download.ok)
+  throw new Error(
+    `The deployed authorized attachment URL returned ${download.status}.`,
+  );
+const disposition = download.headers.get('content-disposition');
+if (disposition !== `attachment; filename="findly-${photoId}.jpg"`)
+  throw new Error(
+    `The deployed download response had an unexpected Content-Disposition: ${disposition}.`,
+  );
+if (
+  !Buffer.from(await download.arrayBuffer()).equals(
+    Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  )
+)
+  throw new Error(
+    'The deployed authorized attachment URL did not return the synthetic JPEG bytes.',
   );
 const missing = await gallery(randomUUID(), 404);
 if (missing.code !== 'GALLERY_NOT_FOUND')
