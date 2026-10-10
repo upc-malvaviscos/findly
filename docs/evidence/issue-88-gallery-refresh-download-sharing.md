@@ -92,22 +92,64 @@ context without login`.
 
 ## Comprobaciones con hallazgos ajenos a este cambio
 
-- `npm run terraform:validate` fue intermitente en esta sesión (falla en
-  distinto punto —sandbox o demo— en ejecuciones sucesivas, sin cambios en
-  `infra/`). Indicios apuntan a una carrera entre el script de validación
-  (que copia `infra/` a un workspace temporal) y el Terraform Language Server
-  del editor, que indexa el mismo árbol en segundo plano. Confirmado: cero
-  archivos bajo `infra/` modificados por esta tarea; una ejecución aislada sí
-  pasó limpia. `terraform:test:hosting` (3/3) y `terraform:test:email` (4/4)
-  pasaron sin intermitencia.
-- `npm run security` (`npm audit --omit=dev`) reporta una vulnerabilidad alta
-  preexistente en `source-map-js` dentro del árbol de dependencias de
-  `package-lock.json`, sin relación con los archivos tocados aquí
-  (`package.json`/`package-lock.json` no se modificaron).
+- `npm run security` (`npm audit --omit=dev`) reportó una vulnerabilidad alta
+  preexistente en `source-map-js` (dependencia transitiva de dev: vitest,
+  jsdom, vite), sin relación con los archivos tocados por la issue #88. Se
+  corrigió con `npm audit fix` (bump a `source-map-js@1.2.2`, solo
+  `package-lock.json`, sin cambios en `package.json`); `npm run security` pasa
+  limpio.
 
-Ambos hallazgos son preexistentes y ajenos al alcance de la issue #88; se
-registran aquí para no ocultarlos, no se investigan ni corrigen en esta
-entrega.
+### `npm run terraform:validate` intermitente — causa raíz y corrección
+
+Una entrada anterior de esta evidencia atribuía la intermitencia de
+`terraform:validate` (fallo en distinto entorno —sandbox, demo o production—
+en ejecuciones sucesivas, sin cambios en `infra/`) a una posible carrera con
+el Terraform Language Server del editor indexando el árbol en segundo plano.
+Investigación posterior, al intentar el push de esta rama, descartó esa
+hipótesis y encontró la causa real:
+
+- El bloque `validation` de `permissions_boundary_arn` en
+  [infra/modules/findly-stack/variables.tf](../../infra/modules/findly-stack/variables.tf)
+  referenciaba `var.environment` (validación cruzada entre variables,
+  disponible desde Terraform 1.9). El evaluador de grafo de Terraform 1.15
+  resuelve esa referencia de forma no determinista: en copias aisladas e
+  idénticas de `sandbox`, `demo` y `production`, `terraform validate` falló
+  de forma aleatoria (~50 % de las ejecuciones) con `Error: Reference to
+uninitialized variable` en cualquiera de los tres entornos, y pasó limpio
+  en las repeticiones restantes con la misma configuración. Reproducido
+  fuera del script de validación (`terraform validate` directo) y descartado
+  como problema de la config: la condición en sí es correcta y siempre
+  determinista en su resultado lógico, solo el momento de evaluación de la
+  referencia cruzada era inestable.
+- Corrección: se sustituyó el bloque `validation` por una `precondition` en
+  un output interno dedicado
+  (`output "_permissions_boundary_guard"` en
+  [infra/modules/findly-stack/outputs.tf](../../infra/modules/findly-stack/outputs.tf)),
+  que expresa la misma condición desde el grafo de expresiones ordinario en
+  vez del subsistema de validación de variables. Se descartó deliberadamente
+  un bloque `check` (alternativa más obvia): verificado empíricamente que un
+  `check` fallido solo emite un _warning_ en `terraform plan`/`apply` reales
+  (no bloquea), mientras que la `precondition` de un output sí produce
+  `Error` y aborta con código de salida distinto de cero, igual que el
+  bloque `validation` original. La garantía de seguridad (producción exige
+  `permissions_boundary_arn`) se mantiene con la misma fuerza.
+- Verificación: `terraform validate` repetido 18 veces en total (10 + 8)
+  contra copias aisladas de los tres entornos tras la corrección, sin ningún
+  fallo. `npm run terraform:validate` real, ejecutado 3 veces consecutivas
+  tras aplicar el fix en el repositorio, también limpio las 3 veces.
+- Prueba añadida: `infra/modules/findly-stack/tests/permissions-boundary.tftest.hcl`
+  (`terraform test` con `mock_provider`, sin credenciales reales), ejecutada
+  por el nuevo script `scripts/test-findly-stack-infra.mjs` y expuesta como
+  `npm run terraform:test:findly-stack`, incorporado a `npm run verify`.
+  Cubre: producción sin boundary → `expect_failures` sobre el output guard;
+  producción con boundary → acepta; entorno no productivo sin boundary →
+  acepta. `npm run verify` completo (lint, typecheck, test, build,
+  terraform:format/validate/test:hosting/test:email/test:findly-stack,
+  security, sync:check) pasa de extremo a extremo tras el fix.
+
+Ningún otro módulo usa este patrón de validación cruzada entre variables
+(`grep` confirmó que `permissions_boundary_arn` era el único caso en
+`infra/`), así que no se requirió tocar otros módulos.
 
 ## Pendiente
 
