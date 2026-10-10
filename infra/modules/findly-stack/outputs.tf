@@ -56,3 +56,19 @@ output "public_function_names" { value = module.public_enrollment.lambda_functio
 output "selfie_indexer_function_name" { value = module.selfie_indexer.lambda_function_name }
 
 output "collection_namespace" { value = "${var.project}-${var.environment}" }
+
+# A cross-variable "validation" block on permissions_boundary_arn (referencing
+# var.environment) intermittently raised "Reference to uninitialized
+# variable" under Terraform 1.15's graph walker across every environment
+# root (reproduced non-deterministically outside this change). This output's
+# precondition enforces the same guard from the ordinary expression graph,
+# which is not affected, and still hard-fails plan/apply like the removed
+# validation block (unlike a "check" block, which only warns).
+output "_permissions_boundary_guard" {
+  description = "Internal guard; always null. Fails plan/apply when production lacks a reviewed runtime permissions boundary."
+  value       = null
+  precondition {
+    condition     = var.environment != "production" || var.permissions_boundary_arn != null
+    error_message = "Production requires a reviewed runtime permissions boundary."
+  }
+}
