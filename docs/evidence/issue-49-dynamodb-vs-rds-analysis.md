@@ -2,10 +2,24 @@
 
 <!-- requirement: REQ-DATABASE-DECISION-INVENTORY -->
 
-Estado: **decisión abierta; inventario actualizado, sin autorización de migración.**
-ADR-002 sigue vigente. ADR-019 mantiene DynamoDB únicamente para #86; no decide
-los contratos de #87/#89 ni cierra #49. Esta revisión no cambia código, claves,
-índices, Terraform, IAM o AWS, ni publica un ADR nuevo.
+Estado: **motor de persistencia y contratos de acceso decididos (ADR-022,
+2026-10-12); #49 sigue abierta hasta ejecutar y documentar el benchmark de
+convergencia/fan-out de la fila "Prototipos/benchmarks" de la sección 9.**
+ADR-002 sigue vigente. ADR-019 mantiene DynamoDB únicamente para #86.
+[ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md) confirma DynamoDB
+para todo el backlog abierto por motivos técnicos independientes de la
+política del proyecto: el patrón de acceso confirmado en las secciones 2–4
+es casi todo por clave, sin JOINs ni informes transversales; la concurrencia
+de Lambda sobre RDS exigiría RDS Proxy para no agotar conexiones; y el coste
+on-demand de DynamoDB se ajusta a una demo que no corre de forma continua,
+frente al coste por instancia de RDS. Esa conclusión coincide, de forma
+independiente, con la prohibición de AGENTS.md sobre servicios de coste fijo
+(RDS/EC2/NAT/VPC); por eso no se ejecuta el ciclo efímero de RDS que
+proponía esta revisión en su sección 7 — mediría una diferencia que el
+diseño de ambos motores ya hace predecible. ADR-022 también fija los
+contratos de acceso de #87 (backfill tras ENROLLED) y #89 (ítem espejo
+foto→match). No cambia código, claves, índices, Terraform, IAM ni AWS; la
+implementación de #87/#89 sigue pendiente.
 
 ## 1. Fuentes, alcance e instantánea
 
@@ -239,15 +253,15 @@ como prueba de los contratos nuevos.
 
 ## 9. Checklist de #49 y pendientes
 
-| Criterio                                                             | Estado de esta entrega                                                                |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Inventario completo y separación de requisitos/hipótesis             | Actualizado: 12 issues, secciones 1–2.                                                |
-| Matriz de acceso/consistencia y estado trazado a código/tests/IaC    | Actualizada para lo confirmado; contratos de #87/#89 siguen abiertos.                 |
-| Alternativas, integridad, privacidad, red, migración, evolución y CI | Comparación documental actualizada; importes/capacidad y factibilidad RDS pendientes. |
-| Prototipos/benchmarks ante incertidumbre material                    | Diseñados como propuesta; no ejecutados ni acreditados.                               |
-| Recomendación con criterios sin cambiar implementación               | Provisional; no es decisión final.                                                    |
-| Responsable aprueba una opción explícita                             | Pendiente.                                                                            |
-| ADR e implementación/migración tras aprobación                       | Pendiente; ADR-002 vigente y #49 abierta.                                             |
+| Criterio                                                             | Estado de esta entrega                                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Inventario completo y separación de requisitos/hipótesis             | Actualizado: 12 issues, secciones 1–2.                                                                                       |
+| Matriz de acceso/consistencia y estado trazado a código/tests/IaC    | Actualizada para lo confirmado; contratos de #87/#89 siguen abiertos.                                                        |
+| Alternativas, integridad, privacidad, red, migración, evolución y CI | RDS descartado por patrón de acceso/concurrencia y coste (ADR-022), no por benchmark; coincide con la política de AGENTS.md. |
+| Prototipos/benchmarks ante incertidumbre material                    | Pendiente solo el lado DynamoDB: fan-out/convergencia de #87 (escenarios de la sección 7). RDS ya no aplica.                 |
+| Recomendación con criterios sin cambiar implementación               | Motor y contratos de acceso decididos (ADR-022); no cambia código todavía.                                                   |
+| Responsable aprueba una opción explícita                             | Aprobado 2026-10-12: DynamoDB, ítem espejo (#89) y backfill tras ENROLLED (#87).                                             |
+| ADR e implementación/migración tras aprobación                       | ADR-022 registrado. Implementación de #87/#89 y benchmark de convergencia pendientes; #49 permanece abierta hasta entonces.  |
 
 ## 10. Referencias técnicas primarias
 
