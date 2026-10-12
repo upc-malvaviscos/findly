@@ -27,13 +27,14 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 
 Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK` (Partition Key) y `SK` (Sort Key) de tipo String:
 
-| Entidad          | Partition Key (`PK`)   | Sort Key (`SK`)        | Atributos Principales / GSIs                           |
-| ---------------- | ---------------------- | ---------------------- | ------------------------------------------------------ |
-| **Event**        | `EVENT#{eventId}`      | `METADATA`             | `name`, `date`, `retentionDays`, `createdAt`           |
-| **Registration** | `EVENT#{eventId}`      | `REG#{registrationId}` | `email`, `consentTimestamp`, `faceId`, `status`, `ttl` |
-| **Photo**        | `EVENT#{eventId}`      | `PHOTO#{photoId}`      | `s3Key`, `uploadedAt`, `ttl`                           |
-| **Match**        | `REG#{registrationId}` | `MATCH#{photoId}`      | `eventId`, `similarity`, `matchedAt`, `ttl`            |
-| **GalleryToken** | `TOKEN#{tokenHash}`    | `METADATA`             | `registrationId`, `eventId`, `expiresAt`, `ttl`        |
+| Entidad            | Partition Key (`PK`)        | Sort Key (`SK`)          | Atributos Principales / GSIs                                              |
+| ------------------ | --------------------------- | ------------------------ | ------------------------------------------------------------------------- |
+| **Event**          | `EVENT#{eventId}`           | `METADATA`               | `name`, `date`, `retentionDays`, `createdAt`                              |
+| **Registration**   | `EVENT#{eventId}`           | `REG#{registrationId}`   | `email`, `consentTimestamp`, `faceId`, `status`, `ttl`                    |
+| **Photo**          | `EVENT#{eventId}`           | `PHOTO#{photoId}`        | `s3Key`, `uploadedAt`, `ttl`                                              |
+| **Match**          | `REG#{registrationId}`      | `MATCH#{photoId}`        | `eventId`, `similarity`, `matchedAt`, `ttl`                               |
+| **Match (espejo)** | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}` | Mismos atributos que el match; escrito en la misma transacción (ADR-022). |
+| **GalleryToken**   | `TOKEN#{tokenHash}`         | `METADATA`               | `registrationId`, `eventId`, `expiresAt`, `ttl`                           |
 
 El locator usa `PK = EVENT#{eventId}` y `SK = RETENTION#{registrationId}`.
 Conserva referencias sensibles de recuperación hasta la purga explícita;

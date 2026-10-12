@@ -3,7 +3,7 @@
   "requirements": [
     {
       "id": "REQ-DATABASE-DECISION-INVENTORY",
-      "description": "Inventario de issues y comparación documental de persistencia, sin migración ni decisión final.",
+      "description": "Inventario de issues, comparación documental de persistencia y decisión de motor/contratos de acceso (ADR-022); el benchmark de convergencia de #87 queda pendiente antes de cerrar #49.",
       "issues": [49],
       "spec": "specs/02-domain-model-api-contracts-and-dynamodb-keys.md",
       "implementation": ["docs/evidence/issue-49-dynamodb-vs-rds-analysis.md"],
@@ -11,7 +11,11 @@
         {
           "command": "lint:markdown",
           "environment": "static",
-          "files": ["docs/evidence/issue-49-dynamodb-vs-rds-analysis.md"]
+          "files": [
+            "docs/evidence/issue-49-dynamodb-vs-rds-analysis.md",
+            "specs/02-domain-model-api-contracts-and-dynamodb-keys.md",
+            "docs/adr/ADR-022-confirm-dynamodb-persistence.md"
+          ]
         },
         {
           "command": "sync:check",
@@ -27,6 +31,7 @@
       ],
       "documentation": [
         "docs/adr/ADR-002-serverless-without-rds-or-vpc.md",
+        "docs/adr/ADR-022-confirm-dynamodb-persistence.md",
         "docs/paper/03-requisitos-y-viabilidad.md",
         "docs/paper/09-conclusiones-y-trabajo-futuro.md"
       ]
