@@ -114,8 +114,8 @@ jobs:
             [.ServerSideEncryptionConfiguration.Rules[]?.ApplyServerSideEncryptionByDefault.SSEAlgorithm]
             | index("AES256") != null
           ' <<< "$bucket_encryption" > /dev/null
-      - name: Install Chromium for deployed browser verification
-        run: npm exec -- playwright install --with-deps chromium
+      - name: Install browsers for deployed browser verification
+        run: npm exec -- playwright install --with-deps chromium firefox webkit
       - name: Verify suppressed administrator invitation and reject self-registration
         run: |
           terraform -chdir=infra/ephemeral output -json > "$RUNNER_TEMP/admin-invitation-outputs.json"

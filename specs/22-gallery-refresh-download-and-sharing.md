@@ -126,24 +126,27 @@ persistencia o tokens, se debe consultar #49 antes de implementarlo.
       recuperables visibles.
 - [x] Refresco automático y 404/410 (manual o periódico) gestionados sin dejar
       datos visuales obsoletos.
-- [ ] JPEG descargado con nombre y contenido correctos en
+- [x] JPEG descargado con nombre y contenido correctos en
       Chromium/Firefox/WebKit contra S3 real (o doble fiel de otro origen); no
       basta comprobar `href`/`download`. Verificado contra S3 real con Node
-      (PR #118); Chromium/Firefox/WebKit contra S3 real con un navegador
-      siguen pendientes.
+      (PR #118) y, en PR #129, con un navegador real (Chromium, Firefox y
+      WebKit) navegando directamente a la URL de descarga real emitida por el
+      entorno efímero: el `Content-Disposition` del servidor convierte la
+      navegación en una descarga sin necesidad de CORS ni de interceptar la
+      petición, igual que hace `<a href download>` en la aplicación.
 - [x] Visualización inline se conserva y se rechazan descargas de claves S3
       ajenas al token.
 - [x] Compartir abre la misma galería en otro navegador sin login.
 - [x] Advertencia de capacidad de borrado compartido visible antes de copiar
       el enlace, y prueba de que el borrado invalida la inscripción para
       ambos navegadores.
-- [ ] Sin tokens ni identidad en logs, `localStorage` ni artefactos de prueba.
+- [x] Sin tokens ni identidad en logs, `localStorage` ni artefactos de prueba.
       Caducidad (410) ya verificada. `scripts/deployed-issue-70-acceptance.mjs`
       añade la comprobación de que las URLs de S3 ya emitidas (inline y
       descarga) siguen funcionando tras el borrado (no se promete revocación
       instantánea, según esta misma spec) y una auditoría real de CloudWatch
       Logs de `gallery-reader`/`delete-registration` que confirma ausencia del
-      token y del `registrationId`; pendiente de su primera ejecución real.
+      token y del `registrationId`. Verificado en AWS real por PR #127.
 - [x] Pruebas unitarias/E2E actualizadas; evidencia AWS/demo separada de
       mocks/Floci.
 - [x] Specs 08/22, runbook (#18) e issue #88 sincronizados; gates en verde.
@@ -176,6 +179,11 @@ portapapeles en Firefox/WebKit, cuyo permiso de `clipboard` Playwright solo
 puede concederse en Chromium). Evidencia completa:
 [issue-88-gallery-refresh-download-sharing.md](../docs/evidence/issue-88-gallery-refresh-download-sharing.md).
 
-Pendiente, fuera del alcance de esta spec: verificación contra AWS/S3 real
-(issue #88 no autoriza ejecutar AWS en esta sesión) y el resto de criterios
-marcados como tales en la issue.
+PR #127 (issue #88) añadió la verificación en AWS real de revocación: las
+URLs de S3 ya emitidas siguen funcionando tras el borrado y los logs de
+`gallery-reader`/`delete-registration` no contienen el token ni el
+`registrationId`. PR #129 (issue #88) añadió, en el mismo entorno efímero
+real, la descarga con un navegador real (Chromium, Firefox y WebKit) de la
+URL de descarga autorizada emitida por `GalleryReader`, verificando el
+nombre de archivo sugerido y el contenido descargado contra S3 real; con
+esto quedan verificados todos los criterios de aceptación de esta spec.
