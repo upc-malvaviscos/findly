@@ -99,13 +99,25 @@ Pendiente, sin cerrar la issue hasta resolverlo:
 - [x] La alarma SQS DLQ está vinculada al tema SNS. El run AWS 36482560393
       observó ALARM y recepción real SNS → SQS tras el redrive a DLQ.
 - [x] Terraform declara el presupuesto al 80% (plan offline).
-- [ ] El presupuesto está aplicado y su canal/aviso real tienen evidencia AWS.
-      El plan offline configura `GREATER_THAN` 80 % del gasto `ACTUAL` sobre
-      5 USD, pero `enable_budget=false` en el stack efímero.
+- [x] El canal de aviso (SNS → suscriptor) tiene evidencia AWS real; el disparo
+      propio del servicio AWS Budgets no se ha observado y se acepta
+      explícitamente así (decisión de la persona responsable, 2026-10-14; ver
+      más abajo). El recurso `aws_budgets_budget` nunca se ha aplicado en una
+      cuenta real (`enable_budget=false` en el único stack efímero existente).
 
-La issue #13 permanece abierta por Budgets y correo. La recepción SNS → SQS de
-PR #71 acredita la alarma efímera; publicar manualmente en SNS no probaría el
-umbral de AWS Budgets.
+## Decisión de cierre — 2026-10-14
+
+La persona responsable decide explícitamente aceptar la entrega real
+SNS → SQS ya acreditada (PR #71, run 36482560393, disparada por la alarma de
+la DLQ) como evidencia suficiente del **canal** de aviso compartido por la
+alarma y por AWS Budgets, en lugar de exigir observar el disparo propio del
+umbral del 80 % de Budgets. Esa alternativa habría exigido generar gasto real
+para forzarlo (explícitamente descartado por esta spec) o esperar un tiempo
+indeterminado en una cuenta persistente que no existe. El recurso
+`aws_budgets_budget.finops` sigue sin aplicarse en ninguna cuenta real; la
+decisión reduce el criterio de aceptación, no simula su cumplimiento. Detalle
+completo en
+[`docs/evidence/issue-13-observability-finops.md`](../docs/evidence/issue-13-observability-finops.md).
 
 <!-- requirement: REQ-OBSERVABILITY -->
 

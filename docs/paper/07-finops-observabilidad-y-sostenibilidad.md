@@ -53,10 +53,13 @@ cuenta con créditos de capa gratuita no mida un coste neto de cero. Este contro
 avisa, no frena: no corta recursos al superar el límite.
 
 Estado de validación: la configuración se verificó con un `terraform plan` sin
-conexión a AWS y con pruebas automatizadas. La entrega real de la alerta de
-Budgets y de un correo confirmado sigue pendiente (capítulo 9); el desvío a la
-DLQ y la alarma sí están verificados en AWS real (capítulo 8). Detalle en
-`docs/evidence/issue-13-observability-finops.md`.
+conexión a AWS y con pruebas automatizadas; el recurso nunca se ha aplicado en
+una cuenta real. El desvío a la DLQ y la alarma sí están verificados en AWS
+real (capítulo 8), con entrega SNS real. La persona responsable decidió
+(2026-10-14) aceptar ese canal SNS ya acreditado como evidencia suficiente en
+vez de exigir observar el disparo propio del servicio Budgets, dado que
+forzarlo exige gasto real (descartado) o una cuenta persistente (inexistente).
+Detalle en `docs/evidence/issue-13-observability-finops.md`.
 
 ### Principios FinOps aplicados, por spec de origen
 
