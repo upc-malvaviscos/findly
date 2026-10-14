@@ -171,8 +171,11 @@ async function setLocatorSelfieKey(fixture, selfieS3Key) {
   await put({ ...locator, selfieS3Key });
 }
 // Waits for the real CloudWatch ERROR line the induced failure must have
-// written, then asserts it carries none of the identifiers a person could be
-// traced by. Log delivery is eventual, so this polls instead of reading once.
+// written (deleteRegistration.ts returns a formatted 500 for it, so it logs
+// at ERROR level under the handler's normal request-summary event, not a
+// "_failed" event), then asserts it carries none of the identifiers a person
+// could be traced by. Log delivery is eventual, so this polls instead of
+// reading once.
 async function errorLogExcludesIdentifiers(since, forbidden) {
   const logGroupName = `/aws/lambda/${resourcePrefix}-delete-registration`;
   for (let attempt = 0; attempt < 30; attempt++) {
@@ -187,7 +190,7 @@ async function errorLogExcludesIdentifiers(since, forbidden) {
           '--log-group-name',
           logGroupName,
           '--filter-pattern',
-          '"delete_registration_request_failed"',
+          '"statusCode":500',
           '--output',
           'json',
         ],

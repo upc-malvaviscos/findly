@@ -31,6 +31,7 @@ import { selfieObjectKey } from '../shared/lib/s3Keys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import { isMissingResourceError } from './lib/awsErrors';
 import {
+  errorNameOf,
   withRequestLog,
   type LambdaContextLike,
   type RequestLog,
@@ -95,7 +96,23 @@ export async function deleteRegistration(
       requestId: event.requestContext?.requestId,
       awsRequestId: context?.awsRequestId,
     },
-    (request) => eraseRegistration(event, request),
+    async (request) => {
+      try {
+        return await eraseRegistration(event, request);
+      } catch (cause) {
+        // An unexpected dependency failure must still return a formatted
+        // response: an uncaught rejection would fail the Lambda invocation
+        // itself, which skips this handler's own structured logging and
+        // returns API Gateway's generic error body instead of this contract.
+        request.annotate({ errorName: errorNameOf(cause) });
+        return error(
+          500,
+          'INTERNAL_ERROR',
+          'Erasure could not complete.',
+          request.correlationId,
+        );
+      }
+    },
   );
 }
 

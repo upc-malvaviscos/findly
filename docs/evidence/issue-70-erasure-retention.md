@@ -11,7 +11,7 @@ vacío. La desaparición de REG por TTL fue simulada; faltan ejecución real del
 Scheduler y observación del servicio TTL. Los apartados siguientes conservan
 las pruebas y límites de la fase de preparación anterior a ese run.
 
-## Fallo parcial y reintento preparados para la siguiente PR
+## Fallo parcial y reintento del DELETE
 
 `scripts/deployed-ephemeral-erasure.mjs` añade un tercer escenario: siembra una
 inscripción normal y corrompe únicamente la `selfieS3Key` del localizador (una
@@ -28,8 +28,30 @@ estado final que el escenario individual (REG/MATCH/TOKEN/selfie ausentes,
 localizador en `CLEANED`). No se amplía ningún permiso IAM: reutiliza
 `dynamodb:PutItem`/`GetItem` ya concedidos al runner y el
 `logs:FilterLogEvents` de alcance `/aws/lambda/findly-pr-*-*` ya concedido para
-otras aceptaciones. Este escenario queda descrito aquí; su primera ejecución
-real en el stack efímero de la PR que lo introduce es la que lo acredita.
+otras aceptaciones.
+
+**Primer run real (PR #123, hallazgo y corrección):** el nuevo escenario de
+erasure pasó (`AWS erasure, partial-failure retry (PII-free error log) and
+manual retention invocation passed`), pero el run completo falló más adelante
+en `deployed-observability.mjs`: `Application log is missing correlationId`.
+`deleteRegistration.ts` dejaba que un fallo interno inesperado (como esta
+clave de selfie inválida) se propagara sin capturar fuera de la invocación
+Lambda; la invocación falla sin pasar por `withRequestLog`, y el runtime de
+Lambda escribe su propio diagnóstico crudo en CloudWatch Logs, que no es JSON
+estructurado ni lleva `correlationId` — rompiendo una garantía de
+observabilidad ya existente y no relacionada con esta issue, que ningún otro
+probe había ejercido nunca contra un fallo interno real de este handler.
+Corregido envolviendo la llamada a `eraseRegistration` en un `try/catch`
+propio del handler HTTP: un fallo inesperado ahora devuelve un 500 JSON
+formateado (mismo patrón que sus respuestas 400/404 existentes) en vez de
+dejar que la invocación Lambda falle. `withRequestLog` sigue registrando esa
+respuesta como `ERROR` (por `statusCode >= 500`), con `errorName` anotado
+explícitamente, bajo el evento normal `delete_registration_request` (ya no
+`_..._failed`, porque ya no se relanza la excepción). No toca
+`photoMatcher`/`retentionPurger`, que sí deben relanzar para que SQS/Scheduler
+reintenten de forma nativa. `tests/lambdas/deleteRegistration.test.ts` se
+actualizó: los ocho casos que antes esperaban un rechazo ahora esperan un 500
+formateado, conservando sus aserciones de que nada se borra a medias.
 
 ## Probe programado preparado para la siguiente PR
 
@@ -136,8 +158,9 @@ Los marcadores conservan identificadores sensibles, no datos anónimos.
 Los tests locales cubren fallos y subidas tardías. El run integrado acreditó el
 borrado AWS; el run AWS 36991833773 de la PR #84 acreditó además la invocación
 real del Scheduler. El escenario de fallo parcial y reintento del DELETE
-descrito arriba, pendiente de su primera ejecución real, es el criterio que
-mantiene #10 abierta.
+descrito arriba encontró y corrigió un fallo real en su primer run (PR #123);
+su ejecución en verde tras esa corrección es el criterio que mantiene #10
+abierta.
 
 ## Ampliación durable aprobada
 
