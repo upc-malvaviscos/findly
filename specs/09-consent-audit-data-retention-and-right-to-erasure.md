@@ -89,7 +89,11 @@ pero antes de borrar ningún recurso; la inscripción, sus coincidencias y su
 token sobreviven. Reparar la clave y reintentar con el mismo token completa el
 borrado. El script espera y lee la línea ERROR real de CloudWatch Logs de ese
 fallo inducido y comprueba que no contiene `registrationId`, token ni la clave
-de selfie.
+de selfie. Su primer run real (PR #123) encontró que un fallo interno
+inesperado dejaba la invocación Lambda sin capturar, sin pasar por el logger
+estructurado; `deleteRegistration.ts` ahora captura ese caso y devuelve un 500
+formateado igual que sus respuestas 400/404. Detalle en
+`docs/evidence/issue-70-erasure-retention.md`.
 
 ## Localizador durable y productores concurrentes (ADR-013)
 

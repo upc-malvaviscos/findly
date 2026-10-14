@@ -174,9 +174,9 @@ describe('deleteRegistration lambda', () => {
     dynamoMock.on(QueryCommand).resolves({ Items: [{ photoId: 'photo-1' }] });
     dynamoMock.on(DeleteCommand).rejects(new Error('temporary outage'));
     s3Mock.on(DeleteObjectCommand).resolves({});
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'temporary outage',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(1);
   });
 
@@ -252,7 +252,7 @@ describe('deleteRegistration lambda', () => {
     },
   );
 
-  it('rejects an invalid stored selfie key without deleting another registration', async () => {
+  it('returns a formatted error for an invalid stored selfie key without deleting another registration', async () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
@@ -263,9 +263,9 @@ describe('deleteRegistration lambda', () => {
         },
       })
       .resolves({});
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'InvalidRegistrationSelfieKey',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
     expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
     expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
@@ -347,9 +347,9 @@ describe('deleteRegistration lambda', () => {
     rekognitionMock
       .on(DeleteFacesCommand)
       .rejects(new Error('temporary failure'));
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'temporary failure',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
     expect(
       dynamoMock.commandCalls(UpdateCommand).at(-1)?.args[0].input
         .ExpressionAttributeValues?.[':faces'],
@@ -364,9 +364,9 @@ describe('deleteRegistration lambda', () => {
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
       .resolvesOnce({ Item: { faceId: 'legacy-face' } })
       .resolves({});
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'LegacyFaceCollectionMigrationRequired',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
     expect(rekognitionMock.commandCalls(DeleteFacesCommand)).toHaveLength(0);
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
   });
@@ -420,14 +420,14 @@ describe('deleteRegistration lambda', () => {
         { FaceId: 'face-1', Reasons: ['ASSOCIATED_TO_AN_EXISTING_USER'] },
       ],
     });
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'FaceDeletionFailed',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
     expect(dynamoMock.commandCalls(DeleteCommand)).toHaveLength(0);
     expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
   });
 
-  it('propagates an unexpected Rekognition error instead of silently succeeding', async () => {
+  it('returns a formatted error for an unexpected Rekognition failure instead of silently succeeding', async () => {
     dynamoMock
       .on(GetCommand)
       .resolvesOnce({ Item: { registrationId: 'reg-1', eventId: 'evt-1' } })
@@ -437,9 +437,9 @@ describe('deleteRegistration lambda', () => {
       .on(DeleteFacesCommand)
       .rejects(new Error('service unavailable'));
 
-    await expect(deleteRegistration(request('reg-1', 'token'))).rejects.toThrow(
-      'service unavailable',
-    );
+    expect(
+      (await deleteRegistration(request('reg-1', 'token'))).statusCode,
+    ).toBe(500);
   });
 });
 
@@ -523,16 +523,19 @@ describe('deleteRegistration structured logging', () => {
     failure.name = 'ServiceUnavailableException';
     rekognitionMock.on(DeleteFacesCommand).rejects(failure);
 
-    await expect(
-      deleteRegistration(request('reg-1', 'token'), { awsRequestId: 'l-1' }),
-    ).rejects.toBe(failure);
+    const result = await deleteRegistration(request('reg-1', 'token'), {
+      awsRequestId: 'l-1',
+    });
+    expect(result.statusCode).toBe(500);
+    expect(JSON.parse(result.body).requestId).toBe('l-1');
 
     expect(logs.records()).toEqual([
       expect.objectContaining({
         level: 'ERROR',
-        event: 'delete_registration_request_failed',
+        event: 'delete_registration_request',
         correlationId: 'l-1',
         eventId: 'evt-1',
+        statusCode: 500,
         errorName: 'ServiceUnavailableException',
       }),
     ]);
