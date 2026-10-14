@@ -53,7 +53,15 @@ reintenten de forma nativa. `tests/lambdas/deleteRegistration.test.ts` se
 actualizó: los ocho casos que antes esperaban un rechazo ahora esperan un 500
 formateado, conservando sus aserciones de que nada se borra a medias.
 
-## Probe programado preparado para la siguiente PR
+**Segundo run real (PR #123, hallazgo y corrección):** con el handler
+corregido, el nuevo escenario de erasure volvió a fallar, esta vez dentro de
+su propia comprobación de logs: `aws logs filter-log-events` devolvió
+`InvalidParameterException: Invalid filter pattern`. El patrón
+`"statusCode":500` incluía una comilla incrustada que cierra la frase de
+CloudWatch antes de tiempo (`"statusCode"` se interpreta como frase completa;
+`:500` suelto no es sintaxis válida). Corregido usando dos términos simples
+separados por espacio (`statusCode 500`, que CloudWatch combina con AND),
+sin comillas.
 
 `scripts/deployed-scheduler-retention.mjs` se ejecuta después del smoke AWS
 existente, cuando ya no quedan fixtures que puedan interferir. Lee el schedule

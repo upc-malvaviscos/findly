@@ -190,7 +190,12 @@ async function errorLogExcludesIdentifiers(since, forbidden) {
           '--log-group-name',
           logGroupName,
           '--filter-pattern',
-          '"statusCode":500',
+          // Two space-separated simple terms (CloudWatch ANDs them), not a
+          // quoted phrase: the JSON text itself is `"statusCode":500`, and
+          // wrapping that in a filter-pattern quoted phrase would embed a
+          // stray `"` that closes the phrase early and gets rejected as an
+          // invalid pattern.
+          'statusCode 500',
           '--output',
           'json',
         ],
