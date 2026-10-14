@@ -233,17 +233,49 @@ tokens en logs/artefactos" (caducidad -410- ya verificada). Se amplía
   reutiliza `logs:FilterLogEvents` ya concedido en
   `/aws/lambda/findly-pr-*-*`.
 
-Este escenario queda descrito aquí; su primera ejecución real en el stack
-efímero de la PR que lo introduce es la que lo acredita.
+Este escenario quedó confirmado en verde por
+[PR #127](https://github.com/upc-malvaviscos/findly/pull/127) (fusionado,
+`provision-test-destroy` en verde, 21m27s): las URLs de S3 ya emitidas
+-inline y descarga- siguieron devolviendo 200 tras el borrado, y los logs de
+`gallery-reader`/`delete-registration` no contuvieron el token ni el
+`registrationId` de la ejecución.
+
+## Descarga con un navegador real contra S3 real (PR #129)
+
+Pendiente restante de la issue #88 (y de esta spec): el contenido descargado
+sólo estaba verificado con Node (`fetch`, PR #118) o con un doble fiel de
+origen distinto interceptado por `page.route` en los E2E locales
+(`e2e/foundation.spec.ts`), que explícitamente se omite en WebKit por una
+limitación conocida de Playwright con rutas interceptadas.
+
+Se amplía `scripts/deployed-ephemeral-happy-path.mjs`, en el mismo entorno
+efímero real, para navegar un navegador real directamente a la
+`downloadUrl` ya emitida por `GalleryReader` (Chromium, Firefox y WebKit):
+
+- la navegación cruza de origen hacia S3 real sin CORS ni mocking, igual que
+  hace `<a href={downloadUrl} download>` en la aplicación; el
+  `Content-Disposition: attachment` del servidor convierte esa navegación en
+  una descarga real;
+- se verifica `download.suggestedFilename()` contra
+  `findly-<photoId>.jpg` y el contenido descargado contra los bytes JPEG
+  sintéticos subidos;
+- Chromium y Firefox son una puerta dura (el script falla si no pasan);
+  WebKit se intenta por separado y se documenta su resultado sin bloquear el
+  resto de la aceptación real, dado el precedente ya conocido en E2E locales.
+
+Una comprobación aislada previa (servidor HTTP local con el mismo
+`Content-Disposition`, sin AWS) confirmó que los tres motores -incluido
+WebKit- reciben el evento `download` cuando la respuesta llega por red real
+en vez de por interceptación de `page.route`: la limitación documentada en
+`e2e/foundation.spec.ts` es específica de esa interceptación, no del motor
+WebKit en general. Este escenario queda descrito aquí; su primera ejecución
+contra el entorno efímero real de la PR que lo introduce es la que lo
+acredita formalmente.
 
 ## Pendiente
 
-- Confirmar en verde la ejecución real del escenario de revocación/auditoría
-  de logs descrito arriba.
-- JPEG descargado con nombre y contenido correctos contra S3 real en un
-  navegador real (Chromium/Firefox/WebKit): sigue pendiente, fuera del
-  alcance de este cambio; sólo está verificado con Node (PR #118) y con un
-  doble fiel de otro origen en los E2E locales.
+- Confirmar en verde la ejecución real de la descarga con navegador
+  (Chromium/Firefox obligatorios; WebKit documentado) descrita arriba.
 - Resto de criterios de aceptación de la issue #88 que requieren
   verificación manual/visual (no automatizable aquí): revisión humana del
   PR y de la demo.
