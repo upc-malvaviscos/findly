@@ -159,10 +159,11 @@ localmente con `core.autocrlf=input`, sin cambios en Git.
 
 - **Correo:** la recepción SNS → SQS acredita la entrega de la alarma en AWS
   efímero, pero no una suscripción email confirmada ni un mensaje recibido.
-- **Budgets:** el plan offline configura el 80 %; falta aplicar el presupuesto
-  de cuenta, comprobar su configuración y obtener evidencia de su canal. No se
-  genera gasto para forzar el umbral. La identidad que aplique el presupuesto
-  requiere permisos revisados para Budgets.
+- **Budgets:** el plan offline configura el 80 %; el presupuesto de cuenta
+  nunca se ha aplicado. La persona responsable decidió (2026-10-14, más abajo)
+  aceptar el canal SNS ya acreditado como evidencia suficiente en vez de
+  exigir el disparo propio del servicio Budgets, dado que forzarlo exige gasto
+  real (descartado) o una cuenta persistente (inexistente).
 - **Entorno persistente:** los 12 grupos y la alarma probados pertenecían al
   stack efímero destruido. Demo y producción requieren evidencia propia.
 - **Presupuesto:** 5 USD es la cifra de demo de la spec 00; producción no tiene
@@ -175,6 +176,32 @@ localmente con `core.autocrlf=input`, sin cambios en Git.
 - No se abre ADR: son decisiones de implementación acotadas por las specs 00, 10
   y 12; el registro está en la nota de implementación de la spec 12.
 
+## Decisión de cierre — 2026-10-14
+
+La persona responsable decide explícitamente aceptar la entrega real
+SNS → SQS ya acreditada (PR #71, run 36482560393, disparada por la alarma
+real de la DLQ) como evidencia suficiente del **canal** de aviso que
+comparten la alarma y AWS Budgets, en vez de exigir observar el disparo
+propio del umbral del 80 % de Budgets.
+
+Motivo: la alternativa exigía generar gasto real para forzar el umbral
+(descartado explícitamente por la spec 12 desde su redacción original) o
+esperar un tiempo indeterminado en una cuenta persistente que no existe
+todavía para este proyecto. Ninguna de las dos era una opción razonable para
+un MVP académico.
+
+Esto es una decisión que **reduce el criterio de aceptación**, no una
+simulación que lo cumpla: el recurso `aws_budgets_budget.finops` sigue sin
+aplicarse en ninguna cuenta real (`enable_budget=false` en el único stack
+efímero donde se ha probado), y el disparo propio del servicio AWS Budgets
+nunca se ha observado. Si en el futuro se aplica en una cuenta persistente,
+su comportamiento real queda por verificar de forma independiente; esta
+decisión no lo prejuzga.
+
+Con esta decisión, la issue #13 cierra: los demás criterios de la spec 12
+(log groups con retención de 14 días, logs JSON sin PII, alarma DLQ → SNS
+real) ya estaban acreditados en AWS desde la PR #71.
+
 ## Métricas de inscripción en demo — 2026-10-04
 
 El run [37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959)
@@ -184,8 +211,8 @@ retención 14 días y dimensiones sin identificadores de asistentes.
 [Evidencia del ciclo](2026-10-04-pr-93-demo-acceptance.md).
 
 Esto completa el criterio de métricas de #22, fuera del alcance original de
-PR #64. No se aplica ni prueba Budgets, ni se confirma o recibe correo. #13
-permanece abierta por esos criterios; las cinco series no prueban las métricas
-de latencia/p95 de negocio ni los access logs pendientes.
+PR #64. Las cinco series no prueban las métricas de latencia/p95 de negocio ni
+los access logs pendientes, que quedan fuera del alcance de #13 (ver
+"Decisión de cierre" arriba).
 
 <!-- requirement: REQ-OBSERVABILITY -->
