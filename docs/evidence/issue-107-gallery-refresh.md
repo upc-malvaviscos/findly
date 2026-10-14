@@ -64,4 +64,9 @@ la recarga. Las pruebas de interfaz usan backend simulado.
 La validación remota se registra en la PR y la issue #107. La observación de
 producción describe el código anterior: la corrección requiere integración y
 despliegue posterior.
+
+[PR #108](https://github.com/upc-malvaviscos/findly/pull/108) se fusionó
+(auto-merge REBASE) con los nueve checks remotos en verde, incluido el
+recorrido AWS real `provision-test-destroy`. La corrección está en `main`.
+
 Las issues #18, #87, #88, #98, #86 y #49 conservan sus pendientes.
