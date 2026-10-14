@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { realpathSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEmailAcceptanceManifest } from './lib/email-acceptance-manifest.mjs';
 
@@ -13,12 +13,17 @@ assert(
 );
 const repository = realpathSync(fileURLToPath(new URL('..', import.meta.url)));
 const parent = realpathSync(dirname(destination));
-assert(
-  parent !== repository && !parent.startsWith(`${repository}/`),
-  'Keep capabilities outside the repository',
-);
+// path.relative starts with ".." when `parent` is outside `repository`, is
+// itself absolute when they are on different Windows drives (also outside),
+// and is "" or a bare relative path when `parent` is inside or equal to it.
+const relativeToRepository = relative(repository, parent);
+const isOutsideRepository =
+  relativeToRepository === '..' ||
+  relativeToRepository.startsWith(`..${sep}`) ||
+  isAbsolute(relativeToRepository);
+assert(isOutsideRepository, 'Keep capabilities outside the repository');
 writeFileSync(
-  join(parent, destination.split('/').at(-1)),
+  join(parent, basename(destination)),
   JSON.stringify(createEmailAcceptanceManifest(), null, 2),
   { mode: 0o600, flag: 'wx' },
 );
