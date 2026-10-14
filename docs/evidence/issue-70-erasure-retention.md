@@ -11,6 +11,26 @@ vacío. La desaparición de REG por TTL fue simulada; faltan ejecución real del
 Scheduler y observación del servicio TTL. Los apartados siguientes conservan
 las pruebas y límites de la fase de preparación anterior a ese run.
 
+## Fallo parcial y reintento preparados para la siguiente PR
+
+`scripts/deployed-ephemeral-erasure.mjs` añade un tercer escenario: siembra una
+inscripción normal y corrompe únicamente la `selfieS3Key` del localizador (una
+clave que no coincide ni con el sufijo legacy `.jpg` ni con el actual
+`.selfie.jpg`). El primer DELETE con el token correcto debe fallar (500) tras
+el punto en el que `deleteRegistration.ts` ya marcó `erasureRequestedAt` y
+`cleanupState=DELETING`, pero antes de borrar ningún recurso; la prueba
+comprueba que REG, su MATCH, su TOKEN y la selfie en S3 siguen presentes. Lee
+con reintento acotado (hasta 30 s) la línea ERROR real de CloudWatch Logs que
+ese fallo produjo y comprueba que no contiene el `registrationId`, el token ni
+la clave de selfie. Repara la clave del localizador con la misma ruta válida y
+repite el DELETE con el mismo token: debe completarse (204) y dejar el mismo
+estado final que el escenario individual (REG/MATCH/TOKEN/selfie ausentes,
+localizador en `CLEANED`). No se amplía ningún permiso IAM: reutiliza
+`dynamodb:PutItem`/`GetItem` ya concedidos al runner y el
+`logs:FilterLogEvents` de alcance `/aws/lambda/findly-pr-*-*` ya concedido para
+otras aceptaciones. Este escenario queda descrito aquí; su primera ejecución
+real en el stack efímero de la PR que lo introduce es la que lo acredita.
+
 ## Probe programado preparado para la siguiente PR
 
 `scripts/deployed-scheduler-retention.mjs` se ejecuta después del smoke AWS
@@ -114,7 +134,10 @@ aislamiento por entorno. La ampliación siguiente cubre desaparición de REG y
 reconciliación de FaceIds no persistidos; ya no son decisiones pendientes.
 Los marcadores conservan identificadores sensibles, no datos anónimos.
 Los tests locales cubren fallos y subidas tardías. El run integrado acreditó el
-borrado AWS; falta observar el cron. Ese criterio mantiene #10 abierta.
+borrado AWS; el run AWS 36991833773 de la PR #84 acreditó además la invocación
+real del Scheduler. El escenario de fallo parcial y reintento del DELETE
+descrito arriba, pendiente de su primera ejecución real, es el criterio que
+mantiene #10 abierta.
 
 ## Ampliación durable aprobada
 

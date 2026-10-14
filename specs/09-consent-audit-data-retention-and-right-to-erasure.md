@@ -62,20 +62,34 @@ Evidencia: `docs/evidence/issue-70-erasure-retention.md`.
       sintéticos en el entorno efímero de la PR #71.
 - [x] Galería 200 → DELETE 204 → galería 404 con el mismo token en AWS efímero.
 - [x] Pruebas unitarias de paginación, retención y errores parciales.
-- [ ] Cron real ejecuta purga y prueba ausencia de datos en AWS.
+- [x] Cron real ejecuta purga y prueba ausencia de datos en AWS (PR #84).
 
 Las dos primeras casillas se acreditan con el run AWS 36482560393 de la PR #71;
 las pruebas unitarias con mocks SDK no las certifican. La invocación manual del
-purgador en ese run tampoco acredita la ejecución programada del cron ni el
-servicio TTL real. Véase `docs/runbooks/issue-70-acceptance.md`.
+purgador en ese run no acreditaba la ejecución programada del cron ni el
+servicio TTL real; el run AWS 36991833773 de la PR #84, detallado abajo, sí
+acredita la invocación real del Scheduler. Véase
+`docs/runbooks/issue-70-acceptance.md`.
 
-La siguiente aceptación efímera ejecuta
-`scripts/deployed-scheduler-retention.mjs` después del smoke existente. Acelera
-temporalmente el mismo schedule a un minuto, observa la eliminación automática
-de un evento sintético vencido y la conservación de otro vigente, y restaura el
-cron diario. `DescribeTimeToLive` verifica que la tabla usa `ttl` habilitado.
-La eliminación eventual de un ítem por el servicio TTL requiere observación
-separada en un entorno persistente; no se marca como acreditada por este probe.
+La aceptación efímera ejecuta `scripts/deployed-scheduler-retention.mjs`
+después del smoke existente. Acelera temporalmente el mismo schedule a un
+minuto, observa la eliminación automática de un evento sintético vencido y la
+conservación de otro vigente, y restaura el cron diario. `DescribeTimeToLive`
+verifica que la tabla usa `ttl` habilitado. El
+[run AWS 36991833773](https://github.com/upc-malvaviscos/findly/actions/runs/36991833773/job/110793272543)
+de la PR #84 confirmó la invocación real de EventBridge Scheduler: purgó el
+evento sintético vencido y conservó el vigente. La eliminación eventual de un
+ítem por el servicio TTL requiere observación separada en un entorno
+persistente; no se marca como acreditada por este probe.
+
+`scripts/deployed-ephemeral-erasure.mjs` añade un escenario de fallo parcial y
+reintento: una clave de selfie inválida en el localizador falla el DELETE
+desplegado después de marcar `erasureRequestedAt` y `cleanupState=DELETING`,
+pero antes de borrar ningún recurso; la inscripción, sus coincidencias y su
+token sobreviven. Reparar la clave y reintentar con el mismo token completa el
+borrado. El script espera y lee la línea ERROR real de CloudWatch Logs de ese
+fallo inducido y comprueba que no contiene `registrationId`, token ni la clave
+de selfie.
 
 ## Localizador durable y productores concurrentes (ADR-013)
 
