@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
@@ -28,9 +29,10 @@ const table =
   process.env.EPHEMERAL_TABLE_NAME ?? process.env.EPHEMERAL_DYNAMODB_TABLE_NAME;
 const bucket = process.env.EPHEMERAL_UPLOADS_BUCKET_NAME;
 const functionName = process.env.EPHEMERAL_RETENTION_FUNCTION_NAME;
-if (!api || !table || !bucket || !functionName)
+const resourcePrefix = process.env.EPHEMERAL_RESOURCE_PREFIX;
+if (!api || !table || !bucket || !functionName || !resourcePrefix)
   throw new Error(
-    'Erasure smoke requires API, table, uploads bucket and retention function outputs.',
+    'Erasure smoke requires API, table, uploads bucket, retention function and resource prefix outputs.',
   );
 const options = { region: process.env.AWS_REGION ?? 'eu-west-1' };
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient(options));
@@ -164,6 +166,49 @@ async function status(path, expected, init) {
   const response = await fetch(`${api}${path}`, init);
   assert.equal(response.status, expected, 'Unexpected deployed HTTP status.');
 }
+async function setLocatorSelfieKey(fixture, selfieS3Key) {
+  const locator = await get(fixture.locatorKey);
+  await put({ ...locator, selfieS3Key });
+}
+// Waits for the real CloudWatch ERROR line the induced failure must have
+// written, then asserts it carries none of the identifiers a person could be
+// traced by. Log delivery is eventual, so this polls instead of reading once.
+async function errorLogExcludesIdentifiers(since, forbidden) {
+  const logGroupName = `/aws/lambda/${resourcePrefix}-delete-registration`;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const result = JSON.parse(
+      execFileSync(
+        'aws',
+        [
+          'logs',
+          'filter-log-events',
+          '--start-time',
+          String(since),
+          '--log-group-name',
+          logGroupName,
+          '--filter-pattern',
+          '"delete_registration_request_failed"',
+          '--output',
+          'json',
+        ],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+      ),
+    );
+    const messages = (result.events ?? []).map((event) => event.message);
+    if (messages.length) {
+      for (const identifier of forbidden)
+        assert.ok(
+          !messages.some((message) => message.includes(identifier)),
+          'The deployed error log leaked an identifier it must never contain.',
+        );
+      return;
+    }
+    await pause(1000);
+  }
+  assert.fail(
+    'Expected a real CloudWatch ERROR line for the induced partial failure.',
+  );
+}
 try {
   const individual = await seed(false);
   await status(`/gallery?token=${encodeURIComponent(individual.token)}`, 200);
@@ -202,6 +247,52 @@ try {
   assert.equal(tombstone.cleanupState, 'CLEANED');
   assert.equal(tombstone.ttl, undefined);
   assert.equal(tombstone.tokenHash, undefined);
+
+  // Partial failure and retry: an invalid stored selfie key fails the
+  // deployed handler after it has durably marked erasureRequestedAt and
+  // cleanupState=DELETING, but before any deletion. A retry that fixes the
+  // fault must converge to full cleanup without losing that earlier progress.
+  const retried = await seed(false);
+  await setLocatorSelfieKey(retried, `${retried.selfie}.corrupt`);
+  const inducedFailureAt = Date.now();
+  const failingAttempt = await fetch(
+    `${api}/registrations/${retried.registrationId}`,
+    erase(retried.token),
+  );
+  assert.equal(
+    failingAttempt.status,
+    500,
+    'An invalid stored selfie key must fail the deployed handler, not silently succeed.',
+  );
+  const registrationAfterFailure = await get(retried.regKey);
+  assert.ok(
+    registrationAfterFailure?.erasureRequestedAt,
+    'A partial failure must still durably record the erasure request.',
+  );
+  const locatorAfterFailure = await get(retried.locatorKey);
+  assert.equal(locatorAfterFailure.cleanupState, 'DELETING');
+  for (const key of [retried.matchKey, retried.tokenKey])
+    assert.ok(
+      await get(key),
+      'A partial failure must not delete dependent records early.',
+    );
+  await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: retried.selfie }));
+  await errorLogExcludesIdentifiers(inducedFailureAt, [
+    retried.registrationId,
+    retried.token,
+    retried.selfie,
+  ]);
+  await setLocatorSelfieKey(retried, retried.selfie);
+  await status(
+    `/registrations/${retried.registrationId}`,
+    204,
+    erase(retried.token),
+  );
+  for (const key of [retried.regKey, retried.matchKey, retried.tokenKey])
+    assert.equal(await get(key), undefined);
+  await absentObject(retried.selfie);
+  const retriedTombstone = await get(retried.locatorKey);
+  assert.equal(retriedTombstone.cleanupState, 'CLEANED');
 
   const expired = await seed(true);
   const active = await seed(false);
@@ -271,7 +362,7 @@ try {
     );
   await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: active.selfie }));
   console.log(
-    'AWS erasure and manual retention invocation passed. FaceId cleanup and real Scheduler execution are not verified by this smoke.',
+    'AWS erasure, partial-failure retry (PII-free error log) and manual retention invocation passed. FaceId cleanup and real Scheduler execution are not verified by this smoke.',
   );
 } finally {
   // Only fixtures created by this process are eligible for cleanup.

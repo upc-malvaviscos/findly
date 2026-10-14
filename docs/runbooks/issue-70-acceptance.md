@@ -8,8 +8,10 @@ después del
 Los probes efímeros acreditaron el recorrido integrado, la purga invocada
 manualmente, el redrive y SNS → SQS. El destroy eliminó 103 recursos y el
 estado remoto PR71 quedó vacío. Las instrucciones siguientes describen el
-procedimiento de la PR y sus límites; siguen pendientes la ejecución real del
-Scheduler, Budgets/correo y una SPA demo publicada.
+procedimiento de la PR y sus límites. El
+[run AWS 36991833773](https://github.com/upc-malvaviscos/findly/actions/runs/36991833773/job/110793272543)
+de la PR #84 acreditó después la ejecución real del Scheduler; siguen
+pendientes Budgets/correo y una SPA demo publicada.
 
 ## Local
 
@@ -61,7 +63,18 @@ limitados a ese PR para consultar/actualizar su schedule, pasar su rol de
 Scheduler, leer TTL y crear/consultar/borrar sus colecciones sintéticas. La
 invocación manual anterior sigue documentada por separado. El probe comprueba
 la configuración de DynamoDB TTL, sin afirmar que el servicio haya borrado
-un ítem dentro de la ventana del CI.
+un ítem dentro de la ventana del CI. El
+[run AWS 36991833773](https://github.com/upc-malvaviscos/findly/actions/runs/36991833773/job/110793272543)
+de la PR #84 confirmó la invocación real de EventBridge Scheduler sobre el
+evento vencido y la conservación del vigente.
+
+`scripts/deployed-ephemeral-erasure.mjs` añade un escenario de fallo parcial y
+reintento del DELETE: una `selfieS3Key` inválida en el localizador falla el
+borrado tras marcar `erasureRequestedAt`/`cleanupState=DELETING` pero antes de
+borrar nada; la prueba comprueba ese estado intermedio, lee la línea ERROR real
+de CloudWatch Logs del fallo inducido para confirmar ausencia de identificadores
+sensibles, repara la clave y reintenta con el mismo token hasta el 204 y la
+limpieza completa. Detalle en `docs/evidence/issue-70-erasure-retention.md`.
 
 ## Demo y #61
 
