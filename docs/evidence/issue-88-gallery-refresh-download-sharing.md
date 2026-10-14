@@ -209,13 +209,41 @@ El acceso sin login desde "otro navegador" ya estaba cubierto
 estructuralmente: `/gallery?token=` no usa cookies ni sesión en ninguna de
 las llamadas de este script.
 
+## Revocación y auditoría de logs (siguiente PR)
+
+Pendiente restante de la issue #88: "Caducidad/revocación probadas; sin
+tokens en logs/artefactos" (caducidad -410- ya verificada). Se amplía
+`scripts/deployed-issue-70-acceptance.mjs`:
+
+- Captura las dos URLs firmadas (`url` de visualización inline y
+  `downloadUrl`) del match real antes de borrar la inscripción; ambas se
+  comprueban funcionales (200) en ese punto, como ya hacía el script con
+  `url`.
+- Tras el `DELETE`/404 ya existentes (galería revocada para el token), vuelve
+  a pedir esas MISMAS URLs ya emitidas: deben seguir devolviendo 200 con el
+  mismo `Content-Disposition`/bytes. Esto no es un descuido: spec 22 dice
+  explícitamente que compartir/borrar no garantiza revocación instantánea de
+  capacidades S3 ya emitidas, y esta comprobación lo deja verificado contra
+  AWS real en vez de solo documentado en prosa.
+- Añade una auditoría real de CloudWatch Logs: tras una pausa de 10 s para la
+  entrega de logs, filtra `/aws/lambda/findly-pr-*-gallery-reader` y
+  `/aws/lambda/findly-pr-*-delete-registration` desde el inicio de la
+  aceptación y comprueba que ninguna línea contiene el `galleryToken` ni el
+  `registrationId` de esta ejecución. No se amplía ningún permiso IAM:
+  reutiliza `logs:FilterLogEvents` ya concedido en
+  `/aws/lambda/findly-pr-*-*`.
+
+Este escenario queda descrito aquí; su primera ejecución real en el stack
+efímero de la PR que lo introduce es la que lo acredita.
+
 ## Pendiente
 
-- Resultado de la ejecución ampliada del CI efímero sobre el commit que
-  añade estas comprobaciones. El PR #117 (resto de la issue #88) ya se
-  fusionó antes de que este commit llegara a tiempo; se abrió un PR
-  separado solo para esta verificación (`fix/issue-88-ephemeral-download-verification`)
-  y queda pendiente confirmarlo en verde ahí.
+- Confirmar en verde la ejecución real del escenario de revocación/auditoría
+  de logs descrito arriba.
+- JPEG descargado con nombre y contenido correctos contra S3 real en un
+  navegador real (Chromium/Firefox/WebKit): sigue pendiente, fuera del
+  alcance de este cambio; sólo está verificado con Node (PR #118) y con un
+  doble fiel de otro origen en los E2E locales.
 - Resto de criterios de aceptación de la issue #88 que requieren
   verificación manual/visual (no automatizable aquí): revisión humana del
   PR y de la demo.
