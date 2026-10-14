@@ -161,7 +161,15 @@ it('keeps gallery access after enrollment without promising disabled email', asy
   expect(
     screen.queryByText(/El organizador podrá enviarte/),
   ).not.toBeInTheDocument();
+  const link = screen.getByRole('link', { name: 'Abrir mi galería' });
+  expect(link).toHaveAttribute(
+    'href',
+    expect.stringMatching(/^\/gallery\?token=.+/),
+  );
+  // The link must sit inside the same confirmation panel as the message
+  // that tells the participant their gallery is ready, not detached from it
+  // elsewhere on the page where it would go unnoticed.
   expect(
-    screen.getByRole('link', { name: 'Abrir mi galería' }),
-  ).toHaveAttribute('href', expect.stringMatching(/^\/gallery\?token=.+/));
+    screen.getByText('Registro completado').closest('div'),
+  ).toContainElement(link);
 });

@@ -126,14 +126,6 @@ export function SelfieCaptureForm({ eventId }: Props) {
   const isBusy = status === 'UPLOAD_PENDING' || status === 'PROCESSING';
   return (
     <>
-      {status === 'ENROLLED' && galleryToken ? (
-        <a
-          href={`/gallery?token=${encodeURIComponent(galleryToken)}`}
-          rel="noreferrer"
-        >
-          Abrir mi galería
-        </a>
-      ) : null}
       <form
         className="enrollment-form"
         onSubmit={(event) => void submit(event)}
@@ -202,6 +194,15 @@ export function SelfieCaptureForm({ eventId }: Props) {
             <span>{message}</span>
             {progress > 0 && isBusy ? (
               <UploadProgressBar percentage={progress} />
+            ) : null}
+            {status === 'ENROLLED' && galleryToken ? (
+              <a
+                href={`/gallery?token=${encodeURIComponent(galleryToken)}`}
+                rel="noreferrer"
+                className="button button-primary"
+              >
+                Abrir mi galería
+              </a>
             ) : null}
           </div>
         ) : null}
