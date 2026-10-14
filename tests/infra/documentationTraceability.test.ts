@@ -142,6 +142,10 @@ describe('structured documentation traceability', () => {
     const external = mkdtempSync(join(tmpdir(), 'findly-external-fixture-'));
     fixtures.push(external);
     writeFileSync(join(external, 'outside'), 'existing external file');
+    // Creating a symlink needs Administrator elevation or Developer Mode on
+    // Windows (EPERM otherwise); the escaped-relative-path case above
+    // already exercises the same `unsafe file` rejection path.
+    if (process.platform === 'win32') return;
     symlinkSync(join(external, 'outside'), join(repo, 'implementation.mjs'));
     expect(() => checkTraceability(repo, manifest)).toThrow('unsafe file');
   });

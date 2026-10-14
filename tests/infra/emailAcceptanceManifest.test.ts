@@ -68,7 +68,12 @@ describe('private AWS email acceptance manifest', () => {
         { encoding: 'utf8' },
       );
       expect(result.status).toBe(0);
-      expect(statSync(destination).mode & 0o777).toBe(0o600);
+      // NTFS has no POSIX permission bits: Node's `mode` option only toggles
+      // the read-only attribute there, so a file always reports 0o666/0o444,
+      // never 0o600. The exclusivity check below (re-running refuses to
+      // overwrite) still verifies the real guarantee cross-platform.
+      if (process.platform !== 'win32')
+        expect(statSync(destination).mode & 0o777).toBe(0o600);
       const manifest = validateEmailAcceptanceManifest(
         JSON.parse(readFileSync(destination, 'utf8')),
       );
