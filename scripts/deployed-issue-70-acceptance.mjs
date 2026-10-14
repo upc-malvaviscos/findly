@@ -223,7 +223,12 @@ try {
   );
   assert.equal(gallery.photos.length, 1);
   assert.equal(gallery.photos[0].photoId, upload.photoId);
-  assert.equal((await fetch(gallery.photos[0].url)).status, 200);
+  const inlineUrl = gallery.photos[0].url;
+  const downloadUrl = gallery.photos[0].downloadUrl;
+  assert.equal(typeof downloadUrl, 'string');
+  assert.notEqual(downloadUrl, inlineUrl);
+  assert.equal((await fetch(inlineUrl)).status, 200);
+  assert.equal((await fetch(downloadUrl)).status, 200);
   console.log(
     'Public acceptance: matching and private gallery passed; checking duplicate delivery and erasure.',
   );
@@ -267,7 +272,62 @@ try {
     'Erasure left the synthetic enrolled FaceId.',
   );
   console.log(
-    'Deployed browser enrollment FAILED/ENROLLED, synthetic S3 matching, private gallery and actual FaceId erasure passed.',
+    'Deployed browser enrollment FAILED/ENROLLED, synthetic S3 matching, private gallery and actual FaceId erasure passed; checking that already-issued S3 URLs survive it and no identifier leaked to logs.',
+  );
+  // Sharing/deletion revokes the gallery *endpoint* (checked above as 404),
+  // but spec 22 explicitly does not promise instant revocation of S3
+  // capabilities already handed to a browser before the deletion happened.
+  const survivingInline = await fetch(inlineUrl);
+  assert.equal(
+    survivingInline.status,
+    200,
+    'An already-issued inline URL must keep working until its own expiry.',
+  );
+  const survivingDownload = await fetch(downloadUrl);
+  assert.equal(
+    survivingDownload.status,
+    200,
+    'An already-issued download URL must keep working until its own expiry.',
+  );
+  assert.equal(
+    survivingDownload.headers.get('content-disposition'),
+    `attachment; filename="findly-${upload.photoId}.jpg"`,
+  );
+  assert(
+    (await survivingDownload.arrayBuffer()).byteLength > 0,
+    'The surviving download URL must still return the photo bytes.',
+  );
+  await setTimeout(10000);
+  for (const handler of ['gallery-reader', 'delete-registration']) {
+    const result = JSON.parse(
+      execFileSync(
+        'aws',
+        [
+          'logs',
+          'filter-log-events',
+          '--start-time',
+          String(acceptanceStartedAt),
+          '--log-group-name',
+          `/aws/lambda/${process.env.EPHEMERAL_RESOURCE_PREFIX}-${handler}`,
+          '--output',
+          'json',
+        ],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+      ),
+    );
+    const messages = (result.events ?? []).map((event) => event.message);
+    assert(
+      messages.length,
+      `Expected application log evidence for ${handler}.`,
+    );
+    for (const identifier of [enrolled.galleryToken, enrolled.registrationId])
+      assert(
+        !messages.some((message) => message.includes(identifier)),
+        `The ${handler} logs leaked an identifier they must never contain.`,
+      );
+  }
+  console.log(
+    'Already-issued S3 URLs survived erasure as documented, and gallery-reader/delete-registration logs carried no gallery token or registrationId.',
   );
 } catch (error) {
   primaryFailure = error;

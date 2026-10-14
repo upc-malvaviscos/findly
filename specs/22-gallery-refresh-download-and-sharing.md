@@ -122,23 +122,31 @@ persistencia o tokens, se debe consultar #49 antes de implementarlo.
 
 ## Criterios de aceptación y verificación
 
-- [ ] Refresco manual sin recarga; estados EMPTY/SUCCESS y errores
+- [x] Refresco manual sin recarga; estados EMPTY/SUCCESS y errores
       recuperables visibles.
-- [ ] Refresco automático y 404/410 (manual o periódico) gestionados sin dejar
+- [x] Refresco automático y 404/410 (manual o periódico) gestionados sin dejar
       datos visuales obsoletos.
 - [ ] JPEG descargado con nombre y contenido correctos en
       Chromium/Firefox/WebKit contra S3 real (o doble fiel de otro origen); no
-      basta comprobar `href`/`download`.
-- [ ] Visualización inline se conserva y se rechazan descargas de claves S3
+      basta comprobar `href`/`download`. Verificado contra S3 real con Node
+      (PR #118); Chromium/Firefox/WebKit contra S3 real con un navegador
+      siguen pendientes.
+- [x] Visualización inline se conserva y se rechazan descargas de claves S3
       ajenas al token.
-- [ ] Compartir abre la misma galería en otro navegador sin login.
-- [ ] Advertencia de capacidad de borrado compartido visible antes de copiar
+- [x] Compartir abre la misma galería en otro navegador sin login.
+- [x] Advertencia de capacidad de borrado compartido visible antes de copiar
       el enlace, y prueba de que el borrado invalida la inscripción para
       ambos navegadores.
 - [ ] Sin tokens ni identidad en logs, `localStorage` ni artefactos de prueba.
-- [ ] Pruebas unitarias/E2E actualizadas; evidencia AWS/demo separada de
+      Caducidad (410) ya verificada. `scripts/deployed-issue-70-acceptance.mjs`
+      añade la comprobación de que las URLs de S3 ya emitidas (inline y
+      descarga) siguen funcionando tras el borrado (no se promete revocación
+      instantánea, según esta misma spec) y una auditoría real de CloudWatch
+      Logs de `gallery-reader`/`delete-registration` que confirma ausencia del
+      token y del `registrationId`; pendiente de su primera ejecución real.
+- [x] Pruebas unitarias/E2E actualizadas; evidencia AWS/demo separada de
       mocks/Floci.
-- [ ] Specs 08/22, runbook (#18) e issue #88 sincronizados; gates en verde.
+- [x] Specs 08/22, runbook (#18) e issue #88 sincronizados; gates en verde.
 
 ## Estado de implementación
 
