@@ -1,4 +1,15 @@
-mock_provider "aws" {}
+mock_provider "aws" {
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+      arn        = "arn:aws:iam::123456789012:user/terraform-test"
+      user_id    = "terraform-test"
+    }
+  }
+  mock_data "aws_region" {
+    defaults = { name = "eu-west-1" }
+  }
+}
 
 variables {
   environment         = "production"

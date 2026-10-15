@@ -369,3 +369,18 @@ con 623 pruebas, lint, TypeScript, build, siete raíces válidas, ocho contratos
 de stack/Cognito además de hosting/email, cero vulnerabilidades de producción
 y trazabilidad. CI incorpora explícitamente `terraform:test:findly-stack` para
 ejecutar también los nuevos contratos Cognito en GitHub.
+
+### Reproducibilidad de los contratos en CI
+
+El job Terraform del [run 38773698305](https://github.com/upc-malvaviscos/findly/actions/runs/38773698305)
+falló al ejecutar por primera vez el contrato completo sin credenciales AWS.
+Se reprodujo localmente sin perfiles ni metadatos: el agregador no declaraba
+`required_providers`, de modo que sus proveedores heredados no quedaban
+simulados correctamente. La declaración explícita elimina esa dependencia;
+los mocks de cuenta/región usan formatos válidos para los validadores AWS.
+
+Los tres contratos de límites pasan en esa reproducción sin credenciales. El
+ejecutor excluye variables AWS/TF_VAR heredadas, usa ficheros de configuración
+y credenciales vacíos y deshabilita metadatos. No se añaden credenciales a CI ni
+se retira el gate. Los mocks siguen sin acreditar AWS real; véase la
+[documentación de HashiCorp](https://developer.hashicorp.com/terraform/language/tests/mocking).
