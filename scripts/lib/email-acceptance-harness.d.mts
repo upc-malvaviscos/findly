@@ -2,6 +2,10 @@ import type {
   EmailAcceptanceFixture,
   EmailAcceptanceManifest,
 } from './email-acceptance-manifest.mjs';
+export function requireAcceptanceApiEndpoint(
+  actual: unknown,
+  expected: unknown,
+): void;
 export interface AcceptanceRow {
   PK: string;
   SK: string;

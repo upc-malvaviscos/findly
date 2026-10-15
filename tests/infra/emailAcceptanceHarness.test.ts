@@ -6,6 +6,7 @@ import {
   requireAcceptanceInputs,
   requireAcceptanceRecipients,
   acceptanceProviders,
+  requireAcceptanceApiEndpoint,
   runEmailAcceptance,
 } from '../../scripts/lib/email-acceptance-harness.mjs';
 import type {
@@ -27,6 +28,37 @@ const outputs = {
   },
 };
 const jwt = 'private-synthetic-organizer-credential';
+
+describe('deployed API endpoint ownership', () => {
+  const endpoint = 'https://synthetic.execute-api.eu-west-1.amazonaws.com';
+  it.each([
+    [endpoint, endpoint],
+    [endpoint, `${endpoint}/`],
+    [`${endpoint}/`, endpoint],
+  ])(
+    'accepts the default-stage trailing slash: %s against %s',
+    (actual, expected) =>
+      expect(() =>
+        requireAcceptanceApiEndpoint(actual, expected),
+      ).not.toThrow(),
+  );
+  it.each([
+    'https://foreign.execute-api.eu-west-1.amazonaws.com',
+    endpoint.replace('eu-west-1', 'us-east-1'),
+    endpoint.replace('https:', 'http:'),
+    `${endpoint}/stage`,
+    `${endpoint}/?token=private`,
+    `${endpoint}/#private`,
+    `${endpoint}//`,
+    undefined,
+  ])(
+    'rejects a different or non-root endpoint in either position',
+    (foreign) => {
+      expect(() => requireAcceptanceApiEndpoint(foreign, endpoint)).toThrow();
+      expect(() => requireAcceptanceApiEndpoint(endpoint, foreign)).toThrow();
+    },
+  );
+});
 const fixture = manifest.fixtures.find((item) => item.scenario === 'dlq')!;
 
 function harness() {
