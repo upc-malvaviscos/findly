@@ -430,3 +430,29 @@ MaxKeys 1 y cuenta propietaria esperada; no amplía IAM ni interpreta un 403
 como ausencia. Las regresiones cubren clave ausente, existente, vecina y fallo
 de permisos, además de resolver el comando SDK. La aceptación real debe
 repetirse tras integrar esta corrección.
+
+### Contrato de fixture y consulta de logs — 2026-10-15
+
+La PR #135 se integró con los cinco checks obligatorios correctos. El
+[run 38797927817](https://github.com/upc-malvaviscos/findly/actions/runs/38797927817)
+creó foto/metadata y llegó más lejos, pero abortó antes de crear la operación
+de correo. La inspección privada posterior confirma cero filas, objetos,
+colecciones y supresión propios; el usuario temporal se limpió. No demuestra
+envío ni recepción.
+
+Se identifican dos incompatibilidades del arnés con los contratos desplegados:
+las fixtures usaban `.jpg`, mientras la notificación S3 sólo entrega
+`.photo.jpg`; y FilterLogEvents recibía propiedades con inicial mayúscula,
+cuando el SDK de CloudWatch Logs exige `logGroupName`, `startTime`,
+`filterPattern` y `limit`. La regresión del adaptador reproduce el segundo
+fallo antes de corregirlo. El contrato de manifiesto comprueba ahora la misma
+clave que usa la aplicación y el sufijo real de Terraform. Se requiere un
+manifiesto compatible y volver a generar los permisos temporales antes de
+repetir; no se amplía su alcance ni se modifican recursos permanentes.
+
+El diagnóstico publica sólo escenario, paso, categoría y número de fallos de
+limpieza mediante listas cerradas. Se descartan mensajes/cuerpos originales,
+campos desconocidos y contadores inválidos; tampoco se conserva la excepción
+original como causa. Las pruebas comprueban esas fronteras de privacidad y la
+propagación del paso de siembra fallido. No se acreditan escenarios sólo por
+mejorar el diagnóstico: la aceptación AWS debe repetirse desde main.

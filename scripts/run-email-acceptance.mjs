@@ -17,6 +17,7 @@ import {
   acceptanceProviders,
   requireAcceptanceRecipients,
   requireAcceptanceApiEndpoint,
+  acceptanceFailureDiagnostic,
 } from './lib/email-acceptance-harness.mjs';
 
 const env = process.env;
@@ -327,8 +328,12 @@ try {
     confirmRecipientEvidence,
   });
   assert.equal(summary.cleanup, 'verified', 'Fixture cleanup not verified');
-} catch {
+} catch (cause) {
   failure = true;
+  console.error(
+    'Acceptance diagnostic:',
+    JSON.stringify(acceptanceFailureDiagnostic(cause)),
+  );
   console.error(
     `AWS email acceptance failed or remains pending at stage ${stage}; sensitive diagnostics are withheld.`,
   );

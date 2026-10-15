@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { FilterLogEventsCommandInput } from '@aws-sdk/client-cloudwatch-logs';
 import { createEmailAcceptanceManifest } from '../../scripts/lib/email-acceptance-manifest.mjs';
 import { acceptanceAwsCommand } from '../../scripts/lib/email-acceptance-aws.mjs';
 import type { EmailAcceptanceAdapter } from '../../scripts/lib/email-acceptance-harness.mjs';
@@ -16,17 +17,23 @@ const photoKey = fixture.photoKey;
 const bucket = `findly-production-uploads-${manifest.account}-eu-west-1`;
 
 function adapterFor(contents: Array<{ Key: string }> = []) {
-  const aws = vi.fn(async (service: string, action: string, input: unknown) => {
-    expect(service).toBe('s3api');
-    expect(action).toBe('list-objects-v2');
-    expect(input).toEqual({
-      Bucket: bucket,
-      Prefix: photoKey,
-      MaxKeys: 1,
-      ExpectedBucketOwner: manifest.account,
-    });
-    return { Contents: contents };
-  });
+  const aws = vi.fn(
+    async (
+      service: string,
+      action: string,
+      input: unknown,
+    ): Promise<Record<string, unknown>> => {
+      expect(service).toBe('s3api');
+      expect(action).toBe('list-objects-v2');
+      expect(input).toEqual({
+        Bucket: bucket,
+        Prefix: photoKey,
+        MaxKeys: 1,
+        ExpectedBucketOwner: manifest.account,
+      });
+      return { Contents: contents };
+    },
+  );
   const adapter = production.createEmailAcceptanceAwsAdapter({
     manifest,
     outputs: {
@@ -71,5 +78,40 @@ describe('acceptance photo existence with prefix-scoped S3 access', () => {
     expect(acceptanceAwsCommand('s3api', 'list-objects-v2').name).toBe(
       'ListObjectsV2Command',
     );
+  });
+});
+
+describe('acceptance matcher consumption evidence', () => {
+  it('uses the SDK CloudWatch Logs field names and returns only presence', async () => {
+    const { adapter, aws } = adapterFor();
+    const expected: FilterLogEventsCommandInput = {
+      logGroupName: '/aws/lambda/findly-production-photo-matcher',
+      startTime: Date.parse(manifest.createdAt) - 60000,
+      filterPattern: `{ $.event = "photo_processed" && $.eventId = "${fixture.eventId}" && $.photoId = "${fixture.photoId}" }`,
+      limit: 1,
+    };
+    aws.mockImplementationOnce(async (service, action, input) => {
+      expect(service).toBe('logs');
+      expect(action).toBe('filter-log-events');
+      expect(input).toEqual(expected);
+      return { events: [{ message: 'private log body must not escape' }] };
+    });
+    await expect(
+      adapter.photoProcessed(fixture.eventId, fixture.photoId),
+    ).resolves.toBe(true);
+  });
+  it('waits when the reviewed log event is not available', async () => {
+    const { adapter, aws } = adapterFor();
+    aws.mockResolvedValueOnce({ events: [] });
+    await expect(
+      adapter.photoProcessed(fixture.eventId, fixture.photoId),
+    ).resolves.toBe(false);
+  });
+  it('does not mask a log permission failure as pending consumption', async () => {
+    const { adapter, aws } = adapterFor();
+    aws.mockRejectedValueOnce(new Error('AccessDenied'));
+    await expect(
+      adapter.photoProcessed(fixture.eventId, fixture.photoId),
+    ).rejects.toThrow();
   });
 });

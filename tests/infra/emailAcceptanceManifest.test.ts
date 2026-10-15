@@ -4,12 +4,34 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
+import { eventPhotoObjectKey } from '../../src/shared/lib/s3Keys';
 import {
   createEmailAcceptanceManifest,
   validateEmailAcceptanceManifest,
 } from '../../scripts/lib/email-acceptance-manifest.mjs';
 
 describe('private AWS email acceptance manifest', () => {
+  it('uses the application photo key that triggers the deployed S3 queue', () => {
+    const source = readFileSync('infra/modules/photo-matching/main.tf', 'utf8');
+    const suffix = source.match(
+      /queue\s*\{[^}]*filter_suffix\s*=\s*"([^"]+)"/s,
+    )?.[1];
+    if (!suffix) throw new Error('Photo queue notification suffix is required');
+    for (const fixture of createEmailAcceptanceManifest().fixtures) {
+      expect(fixture.photoKey).toBe(
+        eventPhotoObjectKey(fixture.eventId, fixture.photoId),
+      );
+      expect(fixture.photoKey.endsWith(suffix)).toBe(true);
+    }
+  });
+  it('rejects a plain jpg key that bypasses the deployed photo notification', () => {
+    const manifest = createEmailAcceptanceManifest();
+    manifest.fixtures[0]!.photoKey = manifest.fixtures[0]!.photoKey.replace(
+      '.photo.jpg',
+      '.jpg',
+    );
+    expect(() => validateEmailAcceptanceManifest(manifest)).toThrow();
+  });
   it('prepares unique exact capabilities and fixture keys without recipient addresses', () => {
     const manifest = createEmailAcceptanceManifest();
     expect(manifest.fixtures).toHaveLength(10);

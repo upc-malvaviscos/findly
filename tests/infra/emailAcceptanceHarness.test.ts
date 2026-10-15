@@ -7,6 +7,7 @@ import {
   requireAcceptanceRecipients,
   acceptanceProviders,
   requireAcceptanceApiEndpoint,
+  acceptanceFailureDiagnostic,
   runEmailAcceptance,
 } from '../../scripts/lib/email-acceptance-harness.mjs';
 import type {
@@ -175,6 +176,73 @@ function harness() {
   return { adapter, rows, photos, collections, suppressions };
 }
 const wait = async () => {};
+
+describe('private acceptance failure diagnostics', () => {
+  it('emits only reviewed labels and a bounded cleanup count', () => {
+    const result = acceptanceFailureDiagnostic({
+      acceptanceScenario: 'api',
+      acceptanceStep: 'write-registration',
+      acceptanceCategory: 'AccessDeniedException',
+      acceptanceCleanupFailures: 2,
+      message: 'person@example.test private-capability-do-not-log',
+    });
+    expect(result).toEqual({
+      scenario: 'api',
+      step: 'write-registration',
+      category: 'AccessDeniedException',
+      cleanupFailures: 2,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/person@|private-capability/);
+  });
+  it('drops arbitrary exception fields instead of printing them', () => {
+    const secret = 'private-capability-do-not-log';
+    expect(
+      acceptanceFailureDiagnostic({
+        acceptanceScenario: secret,
+        acceptanceStep: secret,
+        acceptanceCategory: secret,
+        acceptanceCleanupFailures: secret,
+        message: secret,
+      }),
+    ).toEqual({
+      scenario: 'unknown',
+      step: 'unknown',
+      category: 'unknown',
+      cleanupFailures: null,
+    });
+  });
+  it.each([-1, 1.5, 101])(
+    'does not publish an invalid cleanup count',
+    (count) => {
+      expect(
+        acceptanceFailureDiagnostic({ acceptanceCleanupFailures: count })
+          .cleanupFailures,
+      ).toBeNull();
+    },
+  );
+  it('preserves the failed seed step without retaining the original exception', async () => {
+    const { adapter } = harness();
+    const secret = 'person@example.test private-capability-do-not-log';
+    vi.mocked(adapter.put).mockRejectedValueOnce(
+      Object.assign(new Error(secret), { code: 'AccessDeniedException' }),
+    );
+    let failure: unknown;
+    try {
+      await runEmailAcceptance({ manifest, outputs, jwt, adapter, wait });
+    } catch (cause) {
+      failure = cause;
+    }
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toHaveProperty('cause');
+    expect(acceptanceFailureDiagnostic(failure)).toEqual({
+      scenario: 'api',
+      step: 'write-event',
+      category: 'AccessDeniedException',
+      cleanupFailures: 0,
+    });
+    if (failure instanceof Error) expect(failure.message).not.toContain(secret);
+  });
+});
 
 describe('email acceptance orchestration (local adapters, not AWS evidence)', () => {
   it('requires explicit partial mode and preserves the full two-provider gate', () => {

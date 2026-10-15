@@ -345,10 +345,10 @@ export function createEmailAcceptanceAwsAdapter({
     },
     async photoProcessed(eventId, photoId) {
       const result = await call('logs', 'filter-log-events', {
-        LogGroupName: '/aws/lambda/findly-production-photo-matcher',
-        StartTime: Date.parse(manifest.createdAt) - 60000,
-        FilterPattern: `{ $.event = "photo_processed" && $.eventId = "${eventId}" && $.photoId = "${photoId}" }`,
-        Limit: 1,
+        logGroupName: '/aws/lambda/findly-production-photo-matcher',
+        startTime: Date.parse(manifest.createdAt) - 60000,
+        filterPattern: `{ $.event = "photo_processed" && $.eventId = "${eventId}" && $.photoId = "${photoId}" }`,
+        limit: 1,
       });
       // Never return or print log bodies, including messages from other events.
       return (result.events ?? []).length > 0;
