@@ -24,6 +24,19 @@ resource "aws_cognito_user_pool" "organizers" {
     allow_admin_create_user_only = true
   }
 
+  email_configuration {
+    email_sending_account = var.email_identity_arn != "" ? "DEVELOPER" : "COGNITO_DEFAULT"
+    source_arn            = var.email_identity_arn != "" ? var.email_identity_arn : null
+    from_email_address    = var.email_from_address != "" ? var.email_from_address : null
+  }
+
+  lifecycle {
+    precondition {
+      condition     = (var.email_identity_arn == "") == (var.email_from_address == "")
+      error_message = "Configure both Cognito SES identity and sender, or neither."
+    }
+  }
+
   password_policy {
     temporary_password_validity_days = 7
     minimum_length                   = 12

@@ -93,3 +93,15 @@ no se configura ni habilita SMS, no se amplía IAM y no se conecta Cognito a SES
 Las 34 pruebas focales de infraestructura y herramienta pasan con este cambio.
 La aceptación AWS y el cambio de producción permanecen pendientes; #105 y #106
 siguen abiertas y la fusión automática está desactivada.
+
+## Conservación del remitente SES — 2026-10-15
+
+Al revisar el despliegue de #98 se observó Cognito con `DEVELOPER` y la
+identidad regional propia, mientras el plan habría aplicado el remitente
+estándar. El responsable decidió conservar SES. Terraform declara la identidad
+y remitente exactos sólo en producción; los otros entornos conservan su valor
+predeterminado. La herramienta admite esa configuración revisada y rechaza
+identidades, cuentas, regiones o remitentes distintos. No se envían invitaciones
+nuevas ni se amplían permisos. ADR-021 y spec 04 registran la decisión; la
+[evidencia de #98](issue-98-ses-production.md) conservará el nuevo plan y
+la verificación desplegada. Esto no acredita recepción de invitaciones.

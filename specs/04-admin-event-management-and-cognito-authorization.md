@@ -123,3 +123,13 @@ rechaza `SignUp` y exige limpieza/destroy. No prueba entrega real.
 Véanse el [runbook](../docs/runbooks/admin-invitations.md) y la
 [evidencia](../docs/evidence/admin-invitations-aws-plan.md). La implementación
 local no acredita despliegue de producción ni invitación recibida.
+
+## Remitente de producción conservado — 2026-10-15
+
+El responsable aprobó conservar Cognito con SES en producción. El root declara
+explícitamente identidad `findly.barcelona` en eu-west-1 de su cuenta y remitente
+`info@findly.barcelona`, independientemente del módulo de galerías. El resto de
+entornos conserva `COGNITO_DEFAULT` por defecto. Se mantienen plantilla
+estándar, usuarios, contraseña temporal y challenge; no se añaden invitaciones,
+SMS ni permisos. ADR-021 registra la actualización. La herramienta acepta sólo
+la configuración estándar o los valores SES exactos aprobados.

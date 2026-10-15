@@ -41,8 +41,9 @@ pendiente en la propia evidencia que demuestra el resto del sistema
   correo de galería todavía requiere despliegue y aceptación AWS. SES ya
   permite destinatarios fuera del sandbox; esto no acredita recepción ni
   apertura en un buzón (issue #98). Por separado, la invitación de administradores por
-  Cognito usa el remitente genérico de Cognito, no el dominio propio — una
-  decisión de Terraform independiente del correo de galerías; no hay forma de confirmar desde el
+  Cognito conserva desde la decisión del 2026-10-15 su configuración SES
+  con el dominio propio, declarada en Terraform independientemente del correo
+  de galerías; no hay forma de confirmar desde el
   código si el correo llega a la bandeja o a spam de un destinatario real
   (issue #105).
 - **Migración de colecciones Rekognition heredadas pendiente.** ADR-015 aísla

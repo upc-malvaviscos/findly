@@ -337,3 +337,20 @@ build, siete raíces Terraform, contratos de hosting/email/stack, seguridad
 de producción sin vulnerabilidades y 15 requisitos de trazabilidad. Las
 políticas temporales generadas para esta ejecución pasan AWS Access Analyzer
 sin findings. Estas comprobaciones no sustituyen las pruebas de entrega.
+
+### Diferencia de Cognito y decisión operativa
+
+El plan inicial habría devuelto Cognito de `DEVELOPER` a `COGNITO_DEFAULT`.
+El responsable pidió conservar SES; se declara en Terraform de producción con
+la identidad regional de la misma cuenta y el remitente público acordado, de
+forma independiente a la habilitación de galerías. AWS confirma que el rol
+`AWSServiceRoleForAmazonCognitoIdpEmailService` ya existe. No se crean cuentas
+ni se envían invitaciones nuevas. ADR-021, spec 04 y runbook se actualizan;
+la herramienta valida estrictamente esa configuración además de la estándar.
+El nuevo plan deberá demostrar que el pool y remitente se conservan.
+
+La conservación de Cognito supera 33 pruebas focalizadas del operador y cinco
+contratos Terraform: remitente estándar, SES revisado, pares incompletos y
+región incorrecta. El bootstrap temporal de aceptación pasó además seis
+simulaciones IAM: fixtures propias permitidas; datos ajenos, permisos caducados
+y envío SES directo rechazados. No demuestra aún el nuevo despliegue.

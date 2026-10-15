@@ -206,3 +206,13 @@ sigue exigiendo dos buzones de dominios distintos y las confirmaciones A/B.
 Una prueba parcial no permite cerrar #98/#86 ni completar el criterio de dos
 proveedores. Si falta evidencia real al vencer la espera, el job falla y
 revoca/limpia sus fixtures; aceptación SES no sustituye confirmación del buzón.
+
+## Cognito y correo de galerías independientes
+
+Desde la decisión del 2026-10-15, el root de producción conserva explícitamente
+el envío Cognito con SES ya existente: identidad del dominio en la misma cuenta
+y eu-west-1 y remitente acordado. `enable_production_email` controla sólo las
+galerías; desactivarlo no revierte Cognito a su remitente genérico. Antes del
+apply revisar que el plan conserva el pool y su configuración SES, sin reemplazo
+ni cambio de remitente. No se requiere crear el rol vinculado de Cognito, que ya
+existe. Las pruebas de galerías no envían invitaciones administrativas.

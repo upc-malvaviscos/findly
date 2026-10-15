@@ -23,7 +23,23 @@ memoria durante tres minutos; el primer acceso permite definir contraseña
 definitiva. Cancelar, caducar o cerrar sesión invalida las respuestas antiguas.
 La política actual exige 12 caracteres y la contraseña temporal dura siete días.
 
-## Límites de aceptación
+## Actualización aprobada — 2026-10-15
+
+El responsable decide conservar la configuración SES existente en producción:
+`DEVELOPER`, identidad `findly.barcelona` de la misma cuenta en eu-west-1 y
+remitente `info@findly.barcelona`. Terraform la declara explícitamente en el
+root de producción y la conserva incluso con correo de galerías desactivado.
+La plantilla sigue siendo la estándar de Cognito y el login se comunica por
+separado; no se añaden SMS ni plantillas personalizadas. El rol vinculado de
+Cognito para SES ya existe; no se amplían permisos del operador ni de GitHub.
+Sandbox/demo/PR mantienen `COGNITO_DEFAULT` por defecto.
+
+La herramienta de invitación reconoce únicamente el remitente estándar o esa
+identidad SES exacta; rechaza cuentas, regiones, dominios y remitentes ajenos.
+Esta actualización no autoriza una invitación administrativa nueva ni acredita
+su recepción. La autorización de pruebas actual corresponde a galerías (#98).
+
+## Límites de aceptación originales
 
 Las invitaciones usan el mensaje y envío predeterminados de Cognito
 (`COGNITO_DEFAULT`), independientes del correo de galerías SES. La primera

@@ -18,10 +18,13 @@ de permisos de negocio. Invita únicamente a organizadores autorizados.
 - Configura `FINDLY_AWS_ACCOUNT_ID` y `FINDLY_COGNITO_USER_POOL_ID` con la cuenta
   y el ID del pool de producción revisados. La región es `eu-west-1`.
 - El pool debe tener nombre, ARN y etiquetas de producción Terraform correctos,
-  altas únicamente administrativas y correo `COGNITO_DEFAULT`. La invitación
-  usa el mensaje estándar y el correo gestionado por Cognito, independiente del
-  envío de galerías SES. No se configura una plantilla personalizada ni una
-  identidad SES para estas invitaciones.
+  altas únicamente administrativas. La decisión del 2026-10-15 conserva en
+  producción `DEVELOPER` con identidad SES `findly.barcelona` de la cuenta
+  prevista en eu-west-1 y `info@findly.barcelona`. El root Terraform declara
+  esos valores independientemente de la activación del correo de galerías.
+  La herramienta admite también el remitente estándar `COGNITO_DEFAULT`,
+  conservado por defecto en entornos no productivos. No se configura una
+  plantilla personalizada; el enlace de login se comunica por separado.
   Sus límites de envío pueden impedir una invitación; no se afirma entrega
   desde la respuesta de la API.
 - Ejecuta desde el repositorio con Node 24 y sus dependencias instaladas. No
