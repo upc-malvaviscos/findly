@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +15,13 @@ try {
   cpSync('artifacts', join(workspace, 'artifacts'), { recursive: true });
   const cache = join(workspace, 'provider-cache');
   mkdirSync(cache);
+  const emptyAwsConfig = join(workspace, 'empty-aws-config');
+  writeFileSync(emptyAwsConfig, '', { mode: 0o600 });
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([name]) => !name.startsWith('AWS_') && !name.startsWith('TF_VAR_'),
+    ),
+  );
   for (const moduleName of ['findly-stack', 'cognito']) {
     const moduleRoot = join(workspace, 'infra/modules', moduleName);
     cpSync(
@@ -28,11 +35,12 @@ try {
       execFileSync('terraform', [`-chdir=${moduleRoot}`, ...args], {
         stdio: 'inherit',
         env: {
-          ...process.env,
-          // The full stack (unlike the narrower cloudfront/gallery-email
-          // module tests) needs a resolvable region to configure the mocked
-          // aws provider; set a placeholder so this doesn't depend on an
-          // ambient AWS profile/config being present on the machine running it.
+          ...environment,
+          // Mocked contracts must fail if a real provider leaks into the graph,
+          // even on a developer machine with authenticated AWS profiles.
+          AWS_CONFIG_FILE: emptyAwsConfig,
+          AWS_SHARED_CREDENTIALS_FILE: emptyAwsConfig,
+          AWS_EC2_METADATA_DISABLED: 'true',
           AWS_REGION: 'eu-west-1',
           AWS_DEFAULT_REGION: 'eu-west-1',
           TF_DATA_DIR: join(workspace, 'data', moduleName),
