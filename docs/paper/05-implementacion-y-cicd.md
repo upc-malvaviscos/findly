@@ -15,6 +15,8 @@ HTTPS posterior es sólo una comprobación del origen y la ruta pública.
 La aceptación de correo usa un workflow independiente con manifiesto privado,
 operador OIDC de seis horas y limpieza de fixtures propias. Las pruebas locales
 validan su coordinación; feedback AWS y recepción/apertura siguen pendientes.
+La fase explícita `single-recipient` permite una verificación parcial con un
+solo buzón autorizado; la aceptación completa conserva dos proveedores.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la

@@ -307,3 +307,33 @@ mostró la SPA publicada. Estas comprobaciones acreditan publicación pública
 y carga del frontend, no recuperación de una galería privada ni entrega real
 de correo. No se crearon fixtures o usuarios ni se enviaron mensajes de
 galería. El correo sigue deshabilitado y #98/#86/#49 permanecen abiertas.
+
+## Reanudación y prueba parcial — 2026-10-15
+
+Lectura regional AWS: `ProductionAccessEnabled=true`, `SendingEnabled=true`,
+revisión `GRANTED`, identidad verificada, DKIM y MAIL FROM `SUCCESS`. Cuota
+regional: 50 000 mensajes/día y 14 mensajes/s; consumo de las últimas 24 horas
+en la comprobación inicial: cero. SPF de MAIL FROM y DMARC publicados;
+`https://www.findly.barcelona/gallery` responde 200. No acredita cabeceras de
+mensajes ni apertura de una galería privada.
+
+El [plan OIDC 38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625)
+terminó SUCCESS: 36 recursos nuevos, 15 modificaciones y cero borrados;
+apply/publicación omitidos expresamente. Además del módulo de email, incluye
+actualizaciones existentes de main que deben revisarse antes del despliegue.
+
+El responsable autorizó implementar/desplegar el plan y reservó una ventana
+sin tráfico. Sólo hay un buzón autorizado para recepción: su dirección no se
+publica como destinatario de prueba. La fase `single-recipient` verifica ese
+buzón y deja pendiente el requisito de dos proveedores. Las pruebas locales
+comprueban validación estricta por fase, confirmación real previa a limpieza,
+fallo sin confirmación y separación del resultado parcial/completo; no son
+evidencia AWS. Los resultados de la nueva ejecución y sus pendientes se
+añadirán al finalizar. #86/#98/#49 permanecen abiertas.
+
+Validación local del cambio parcial: `npm run harness:check` y
+`npm run verify` completos, 615 pruebas en 63 archivos, lint, TypeScript,
+build, siete raíces Terraform, contratos de hosting/email/stack, seguridad
+de producción sin vulnerabilidades y 15 requisitos de trazabilidad. Las
+políticas temporales generadas para esta ejecución pasan AWS Access Analyzer
+sin findings. Estas comprobaciones no sustituyen las pruebas de entrega.

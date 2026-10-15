@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: Synthetic AWS checks or authorized mailbox delivery
+        description: Synthetic checks, partial single mailbox, or two-provider acceptance
         type: choice
-        options: [synthetic, recipients]
+        options: [synthetic, single-recipient, recipients]
         required: true
       confirm_no_production_traffic:
         description: Confirm no concurrent production traffic during selective queue checks

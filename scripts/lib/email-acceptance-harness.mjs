@@ -2,6 +2,48 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { validateEmailAcceptanceManifest } from './email-acceptance-manifest.mjs';
 
+export function acceptanceProviders(phase) {
+  assert(
+    ['synthetic', 'single-recipient', 'recipients'].includes(phase),
+    'Unknown acceptance phase',
+  );
+  return phase === 'synthetic'
+    ? []
+    : phase === 'single-recipient'
+      ? ['A']
+      : ['A', 'B'];
+}
+
+export function requireAcceptanceRecipients(recipients, phase) {
+  const providers = acceptanceProviders(phase);
+  assert(Array.isArray(recipients), 'Private recipient array required');
+  assert.equal(
+    recipients.length,
+    providers.length,
+    'Authorize the exact number of recipients for this phase',
+  );
+  assert(
+    recipients.every(
+      (address) =>
+        typeof address === 'string' &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address),
+    ),
+    'Invalid private recipient input',
+  );
+  if (providers.length === 2) {
+    assert(
+      recipients[0].toLowerCase() !== recipients[1].toLowerCase(),
+      'Recipients must differ',
+    );
+    assert(
+      recipients[0].split('@')[1].toLowerCase() !==
+        recipients[1].split('@')[1].toLowerCase(),
+      'Use two providers',
+    );
+  }
+  return providers;
+}
+
 export function isOwnedAcceptanceMessage(body, fixtures) {
   try {
     let value = JSON.parse(body);
@@ -23,6 +65,7 @@ export function requireAcceptanceInputs({
   outputs,
   jwt,
   recipients = [],
+  phase = 'synthetic',
 }) {
   validateEmailAcceptanceManifest(manifest);
   const value = (name) => outputs[name]?.value;
@@ -41,29 +84,7 @@ export function requireAcceptanceInputs({
     typeof jwt === 'string' && jwt.length > 20,
     'Private organizer authentication required',
   );
-  assert(
-    [0, 2].includes(recipients.length),
-    'Authorize exactly two recipients',
-  );
-  if (recipients.length) {
-    assert(
-      recipients.every(
-        (address) =>
-          typeof address === 'string' &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address),
-      ),
-      'Invalid private recipient input',
-    );
-    assert(
-      recipients[0].toLowerCase() !== recipients[1].toLowerCase(),
-      'Recipients must differ',
-    );
-    assert(
-      recipients[0].split('@')[1].toLowerCase() !==
-        recipients[1].split('@')[1].toLowerCase(),
-      'Use two providers',
-    );
-  }
+  requireAcceptanceRecipients(recipients, phase);
 }
 
 export async function moveExactAcceptanceMessage({
@@ -117,17 +138,9 @@ export async function runEmailAcceptance({
   cleanupQuiescenceMs = 65000,
   executionBudgetMs = 2400000,
 }) {
-  requireAcceptanceInputs({ manifest, outputs, jwt, recipients });
-  assert(
-    ['synthetic', 'recipients'].includes(phase),
-    'Unknown acceptance phase',
-  );
-  if (phase === 'recipients') {
-    assert.equal(
-      recipients.length,
-      2,
-      'Private authorized recipients required',
-    );
+  requireAcceptanceInputs({ manifest, outputs, jwt, recipients, phase });
+  const providers = acceptanceProviders(phase);
+  if (providers.length) {
     assert.equal(
       typeof confirmRecipientEvidence,
       'function',
@@ -329,7 +342,7 @@ export async function runEmailAcceptance({
     await adapter.preflight();
     for (const fixture of manifest.fixtures) {
       stage = fixture.scenario;
-      if ((stage === 'recipients') !== (phase === 'recipients')) continue;
+      if ((stage === 'recipients') !== providers.length > 0) continue;
       remaining();
       let emails = [
         stage === 'bounce'
@@ -429,7 +442,11 @@ export async function runEmailAcceptance({
         // Keep galleries valid until the authorized mailbox flow confirms the
         // links actually received, rather than opening the initial fixture token.
         const evidence = await confirmRecipientEvidence(fixture);
-        assert.equal(evidence.length, 2, 'Both mailbox confirmations required');
+        assert.equal(
+          evidence.length,
+          providers.length,
+          'Every authorized mailbox confirmation required',
+        );
         for (const receipt of evidence) {
           assert.equal(receipt.received, true);
           assert.equal(receipt.opened, true);
@@ -682,9 +699,12 @@ export async function runEmailAcceptance({
     originatingCrash:
       'not tested; injected-state recovery is a separate criterion',
     concurrentErasure: 'not tested; erasure preceded consumption',
-    realRecipients:
+    realRecipients: providers.length
+      ? 'authorized mailbox receipt, authentication and opening confirmed'
+      : 'not sent; authorized mailbox phase pending',
+    deliverability:
       phase === 'recipients'
-        ? 'authorized mailbox receipt, authentication and opening confirmed'
-        : 'not sent; authorized mailbox phase pending',
+        ? 'two-provider evidence verified'
+        : 'pending; two-provider evidence required',
   };
 }
