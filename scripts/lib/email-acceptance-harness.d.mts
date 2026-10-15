@@ -83,6 +83,12 @@ export interface EmailAcceptanceOptions extends EmailAcceptanceInputs {
   executionBudgetMs?: number;
 }
 export function requireAcceptanceInputs(inputs: EmailAcceptanceInputs): void;
+export function acceptanceFailureDiagnostic(cause: unknown): {
+  scenario: string;
+  step: string;
+  category: string;
+  cleanupFailures: number | null;
+};
 export function acceptanceProviders(phase: string): Array<'A' | 'B'>;
 export function requireAcceptanceRecipients(
   recipients: unknown,

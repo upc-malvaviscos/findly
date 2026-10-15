@@ -40,7 +40,7 @@ export function createEmailAcceptanceManifest({
       eventId,
       operationId: randomUUID(),
       photoId,
-      photoKey: `events/${eventId}/photos/${photoId}.jpg`,
+      photoKey: `events/${eventId}/photos/${photoId}.photo.jpg`,
       collectionId: `findly-production-event-${eventId}`,
       registrations: [1, 2].map((index) => {
         const capability = randomBytes(32).toString('base64url');
@@ -118,7 +118,7 @@ export function validateEmailAcceptanceManifest(
     assert.match(fixture.photoId, uuid);
     assert.equal(
       fixture.photoKey,
-      `events/${eventId}/photos/${fixture.photoId}.jpg`,
+      `events/${eventId}/photos/${fixture.photoId}.photo.jpg`,
     );
     assert.equal(fixture.collectionId, `findly-production-event-${eventId}`);
     assert.equal(fixture.registrations.length, 2);
