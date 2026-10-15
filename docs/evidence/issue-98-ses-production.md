@@ -402,3 +402,11 @@ identifica la etapa del fallo mediante etiquetas constantes, sin publicar
 mensajes de excepción, cuerpos, URLs ni credenciales. No cambia recursos ni
 permisos de producción. La ejecución fallida no acredita recuperación, feedback,
 recepción ni apertura; deben repetirse tras integrar la corrección.
+
+La revisión adicional reprodujo otro fallo del arnés: la prueba de feedback
+tardío borra dos inscripciones y revoca sus capacidades; la limpieza intentaba
+reutilizarlas y recibía correctamente 404. Una regresión que reproduce esa
+revocación falla antes de la corrección. El ledger registra únicamente borrados
+confirmados por la API y evita repetirlos; mantiene la verificación posterior
+de ausencia, el rechazo de un 404 no acreditado y la conservación de referencias
+si falla un borrado. No cambia la API ni amplía permisos.

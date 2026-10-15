@@ -252,6 +252,7 @@ export async function runEmailAcceptance({
     const entry = {
       fixture,
       registrations: [],
+      erasedRegistrations: new Set(),
       collection: false,
       photo: false,
     };
@@ -511,6 +512,7 @@ export async function runEmailAcceptance({
           registration.registrationId,
           registration.capability,
         );
+        entry.erasedRegistrations.add(registration.registrationId);
         await adapter.invokeFeedback(feedback(fixture, kind));
         assert.equal(
           (await adapter.query(`REG#${registration.registrationId}`)).length,
@@ -610,9 +612,13 @@ export async function runEmailAcceptance({
     for (const entry of revokedOwned) {
       const pendingRegistrations = new Set();
       for (const registration of entry.registrations) {
-        const erased = await clean('registration erasure', () =>
-          adapter.erase(registration.registrationId, registration.capability),
-        );
+        // A successful late-feedback erasure already revoked this capability.
+        // Reusing it would correctly return 404, which is not fresh proof of erasure.
+        const erased =
+          entry.erasedRegistrations.has(registration.registrationId) ||
+          (await clean('registration erasure', () =>
+            adapter.erase(registration.registrationId, registration.capability),
+          ));
         if (!erased) {
           // Erasure owns every additional capability minted by the worker. Its
           // inverse references must survive an API failure so a private retry

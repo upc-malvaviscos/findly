@@ -498,6 +498,20 @@ describe('email acceptance orchestration (local adapters, not AWS evidence)', ()
       expect.any(Number),
     );
   });
+  it('does not reuse revoked capabilities after successful late-feedback erasure', async () => {
+    const { adapter, rows, photos, collections } = harness();
+    const erase = vi.mocked(adapter.erase).getMockImplementation()!;
+    const revoked = new Set<string>();
+    vi.mocked(adapter.erase).mockImplementation(async (id, capability) => {
+      if (revoked.has(id)) throw new Error('Revoked capability returns 404');
+      await erase(id, capability);
+      revoked.add(id);
+    });
+    await expect(
+      runEmailAcceptance({ manifest, outputs, jwt, adapter, wait }),
+    ).resolves.toMatchObject({ cleanup: 'verified' });
+    expect(rows.size + photos.size + collections.size).toBe(0);
+  });
   it('stops cleanup on its shared deadline and preserves references for retry', async () => {
     const { adapter, rows } = harness();
     let clock = Date.now();
