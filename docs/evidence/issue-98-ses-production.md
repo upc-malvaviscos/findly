@@ -384,3 +384,21 @@ ejecutor excluye variables AWS/TF_VAR heredadas, usa ficheros de configuración
 y credenciales vacíos y deshabilita metadatos. No se añaden credenciales a CI ni
 se retira el gate. Los mocks siguen sin acreditar AWS real; véase la
 [documentación de HashiCorp](https://developer.hashicorp.com/terraform/language/tests/mocking).
+
+### Primera aceptación sintética y URL de API — 2026-10-15
+
+Tras el despliegue, la [aceptación 38781756643](https://github.com/upc-malvaviscos/findly/actions/runs/38781756643)
+falló en la comprobación previa de pertenencia de la API. CloudTrail confirma
+OIDC, ACM, SES, lectura del estado y `GetApi` correctos, sin creación del
+organizador ni de fixtures. La lectura posterior prueba que las dos URLs
+difieren únicamente en la barra final: Terraform publica `invoke_url` del stage
+`$default`, mientras `GetApi` devuelve `ApiEndpoint` sin barra.
+
+El arnés normaliza únicamente esa barra opcional después de validar ambas
+URLs como raíces HTTPS de API Gateway en eu-west-1. Mantiene el mismo host
+exacto y rechaza otras APIs, regiones, HTTP, rutas, query, fragmentos y barras
+adicionales. La regresión cubre las dos posiciones de entrada; el coordinador
+identifica la etapa del fallo mediante etiquetas constantes, sin publicar
+mensajes de excepción, cuerpos, URLs ni credenciales. No cambia recursos ni
+permisos de producción. La ejecución fallida no acredita recuperación, feedback,
+recepción ni apertura; deben repetirse tras integrar la corrección.

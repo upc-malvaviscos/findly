@@ -2,6 +2,24 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { validateEmailAcceptanceManifest } from './email-acceptance-manifest.mjs';
 
+export function requireAcceptanceApiEndpoint(actual, expected) {
+  const endpoint =
+    /^https:\/\/[a-z0-9]+\.execute-api\.eu-west-1\.amazonaws\.com\/?$/;
+  assert(
+    typeof actual === 'string' && endpoint.test(actual),
+    'Invalid API endpoint',
+  );
+  assert(
+    typeof expected === 'string' && endpoint.test(expected),
+    'Invalid deployed API endpoint',
+  );
+  assert.equal(
+    actual.replace(/\/$/, ''),
+    expected.replace(/\/$/, ''),
+    'API endpoint ownership mismatch',
+  );
+}
+
 export function acceptanceProviders(phase) {
   assert(
     ['synthetic', 'single-recipient', 'recipients'].includes(phase),
