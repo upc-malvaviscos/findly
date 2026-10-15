@@ -240,7 +240,7 @@ Este escenario quedó confirmado en verde por
 `gallery-reader`/`delete-registration` no contuvieron el token ni el
 `registrationId` de la ejecución.
 
-## Descarga con un navegador real contra S3 real (PR #129)
+## Descarga con un navegador real contra S3 real (PR #130)
 
 Pendiente restante de la issue #88 (y de esta spec): el contenido descargado
 sólo estaba verificado con Node (`fetch`, PR #118) o con un doble fiel de
@@ -264,18 +264,36 @@ efímero real, para navegar un navegador real directamente a la
   resto de la aceptación real, dado el precedente ya conocido en E2E locales.
 
 Una comprobación aislada previa (servidor HTTP local con el mismo
-`Content-Disposition`, sin AWS) confirmó que los tres motores -incluido
+`Content-Disposition`, sin AWS) había mostrado que los tres motores -incluido
 WebKit- reciben el evento `download` cuando la respuesta llega por red real
-en vez de por interceptación de `page.route`: la limitación documentada en
-`e2e/foundation.spec.ts` es específica de esa interceptación, no del motor
-WebKit en general. Este escenario queda descrito aquí; su primera ejecución
-contra el entorno efímero real de la PR que lo introduce es la que lo
-acredita formalmente.
+en vez de por interceptación de `page.route`, sugiriendo que la limitación
+documentada en `e2e/foundation.spec.ts` podría ser específica de esa
+interceptación.
+
+[PR #130](https://github.com/upc-malvaviscos/findly/pull/130) ejecutó el
+escenario contra el entorno efímero real
+(`provision-test-destroy`, 21m41s, verde) y dio un resultado distinto al de
+la comprobación aislada:
+
+```text
+Chromium and Firefox downloaded the real attachment from S3 with the correct filename and bytes.
+WebKit did not complete the real S3 download, a known Playwright limitation, not a contract failure: page.waitForEvent: Timeout 15000ms exceeded while waiting for event "download"
+```
+
+Chromium y Firefox descargaron el adjunto real desde S3 con el nombre y
+contenido correctos; WebKit (la build de Ubuntu que usa el runner de CI, no
+la de Windows usada en la comprobación aislada) agotó el tiempo de espera
+del evento `download` contra el S3 real, a pesar de no usar `page.route`.
+Esto acota la limitación conocida de Playwright/WebKit documentada en
+`e2e/foundation.spec.ts`: no depende únicamente de la interceptación de
+rutas, sino que también se reproduce contra un servidor real de otro
+origen, al menos en la build de Linux. El resto de la aceptación real
+(matching, galería privada, borrado, redrive de DLQ y observabilidad,
+Scheduler/TTL) pasó sin verse bloqueada por este resultado, tal como estaba
+previsto.
 
 ## Pendiente
 
-- Confirmar en verde la ejecución real de la descarga con navegador
-  (Chromium/Firefox obligatorios; WebKit documentado) descrita arriba.
 - Resto de criterios de aceptación de la issue #88 que requieren
   verificación manual/visual (no automatizable aquí): revisión humana del
   PR y de la demo.
