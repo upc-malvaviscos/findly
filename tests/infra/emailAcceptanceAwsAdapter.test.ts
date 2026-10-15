@@ -10,7 +10,9 @@ const production: {
   ): EmailAcceptanceAdapter;
 } = await import(modulePath);
 const manifest = createEmailAcceptanceManifest();
-const photoKey = manifest.fixtures[0].photoKey;
+const fixture = manifest.fixtures.find((item) => item.scenario === 'api');
+if (!fixture) throw new Error('API acceptance fixture is required');
+const photoKey = fixture.photoKey;
 const bucket = `findly-production-uploads-${manifest.account}-eu-west-1`;
 
 function adapterFor(contents: Array<{ Key: string }> = []) {
