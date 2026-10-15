@@ -83,6 +83,18 @@ variable "web_certificate_arn" {
   default     = ""
 }
 
+variable "cognito_email_identity_arn" {
+  description = "Cognito SES identity; separate from optional gallery delivery."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_email_from_address" {
+  description = "Cognito SES sender; separate from optional gallery delivery."
+  type        = string
+  default     = ""
+}
+
 variable "email_identity_arn" {
   description = "Verified SES identity in eu-west-1; empty disables gallery email. Provision identity separately from environment teardown."
   type        = string

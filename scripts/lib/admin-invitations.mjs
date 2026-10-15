@@ -62,6 +62,15 @@ export async function inviteAdministrator({
     new DescribeUserPoolCommand({ UserPoolId: poolId }),
   );
   const pool = result.UserPool;
+  const emailConfig = pool?.EmailConfiguration;
+  const standardSender =
+    (emailConfig?.EmailSendingAccount ?? 'COGNITO_DEFAULT') ===
+    'COGNITO_DEFAULT';
+  const reviewedSesSender =
+    emailConfig?.EmailSendingAccount === 'DEVELOPER' &&
+    emailConfig.SourceArn ===
+      `arn:aws:ses:${invitationRegion}:${account}:identity/findly.barcelona` &&
+    emailConfig.From === 'info@findly.barcelona';
   const expectedTags = {
     Project: 'findly',
     Environment: 'production',
@@ -78,8 +87,7 @@ export async function inviteAdministrator({
     ) ||
     !pool.UserPoolTags?.DataClass ||
     pool.AdminCreateUserConfig?.AllowAdminCreateUserOnly !== true ||
-    (pool.EmailConfiguration?.EmailSendingAccount ?? 'COGNITO_DEFAULT') !==
-      'COGNITO_DEFAULT'
+    (!standardSender && !reviewedSesSender)
   )
     throw new Error(
       'The user pool does not match the approved production configuration.',

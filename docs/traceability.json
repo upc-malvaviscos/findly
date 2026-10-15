@@ -436,6 +436,11 @@
           "command": "test:e2e",
           "environment": "unit",
           "files": ["e2e/admin-invitation.spec.ts"]
+        },
+        {
+          "command": "terraform:test:findly-stack",
+          "environment": "unit",
+          "files": ["infra/modules/cognito/tests/email.tftest.hcl"]
         }
       ],
       "evidence": [

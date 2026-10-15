@@ -141,6 +141,49 @@ describe('production administrator invitation (mocked AWS only)', () => {
       expect(cognitoMock.commandCalls(AdminCreateUserCommand)).toHaveLength(0);
     },
   );
+  it('validates the approved production SES sender without sending an invitation', async () => {
+    cognitoMock.on(DescribeUserPoolCommand).resolves({
+      UserPool: {
+        ...pool,
+        EmailConfiguration: {
+          EmailSendingAccount: 'DEVELOPER',
+          SourceArn: `arn:aws:ses:eu-west-1:${account}:identity/findly.barcelona`,
+          From: 'info@findly.barcelona',
+        },
+      },
+    });
+    await expect(inviteAdministrator(request())).resolves.toEqual({
+      sent: false,
+    });
+    expect(cognitoMock.commandCalls(AdminCreateUserCommand)).toHaveLength(0);
+  });
+  it.each([
+    { From: 'other@findly.barcelona' },
+    {
+      SourceArn: 'arn:aws:ses:eu-west-1:999999999999:identity/findly.barcelona',
+    },
+    { SourceArn: `arn:aws:ses:us-east-1:${account}:identity/findly.barcelona` },
+    { SourceArn: `arn:aws:ses:eu-west-1:${account}:identity/foreign.example` },
+  ])(
+    'rejects unapproved SES configuration before an invitation: %j',
+    async (override) => {
+      cognitoMock.on(DescribeUserPoolCommand).resolves({
+        UserPool: {
+          ...pool,
+          EmailConfiguration: {
+            EmailSendingAccount: 'DEVELOPER',
+            SourceArn: `arn:aws:ses:eu-west-1:${account}:identity/findly.barcelona`,
+            From: 'info@findly.barcelona',
+            ...override,
+          },
+        },
+      });
+      await expect(
+        inviteAdministrator({ ...request(), send: true }),
+      ).rejects.toThrow('approved production configuration');
+      expect(cognitoMock.commandCalls(AdminCreateUserCommand)).toHaveLength(0);
+    },
+  );
   it('does not resend to an existing username or update its attributes', async () => {
     cognitoMock
       .on(AdminCreateUserCommand)

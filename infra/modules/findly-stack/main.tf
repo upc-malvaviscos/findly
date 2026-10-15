@@ -36,12 +36,14 @@ module "api_gateway" {
 }
 
 module "cognito" {
-  source         = "../cognito"
-  user_pool_name = "${var.project}-${var.environment}-organizers"
-  project        = var.project
-  environment    = var.environment
-  cost_center    = var.cost_center
-  data_class     = var.data_class
+  email_identity_arn = var.cognito_email_identity_arn
+  email_from_address = var.cognito_email_from_address
+  source             = "../cognito"
+  user_pool_name     = "${var.project}-${var.environment}-organizers"
+  project            = var.project
+  environment        = var.environment
+  cost_center        = var.cost_center
+  data_class         = var.data_class
 }
 
 module "admin_api" {
