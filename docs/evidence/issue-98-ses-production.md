@@ -410,3 +410,23 @@ revocación falla antes de la corrección. El ledger registra únicamente borrad
 confirmados por la API y evita repetirlos; mantiene la verificación posterior
 de ausencia, el rechazo de un 404 no acreditado y la conservación de referencias
 si falla un borrado. No cambia la API ni amplía permisos.
+
+### Aceptación con permisos S3 restringidos — 2026-10-15
+
+La PR #134 se integró después de los cinco checks obligatorios, incluida AWS
+efímera y limpieza. La [repetición 38792981786](https://github.com/upc-malvaviscos/findly/actions/runs/38792981786)
+superó la pertenencia de API, autenticación y preflight; creó y eliminó la
+primera colección, pero abortó antes de crear la operación de envío. La
+consulta de estado posterior no encuentra metadatos/operaciones de las fixtures
+y Cognito no conserva el usuario de ese run. No acredita envío ni recuperación.
+
+La política temporal concede ListBucket sólo con `s3:prefix` propio. El simulador
+IAM rechaza el listado sin ese contexto y permite la clave exacta. Según el
+[contrato de HeadObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html),
+una clave inexistente puede devolver 403 en lugar de 404 sin ListBucket. Es
+coherente con el punto de fallo, después de CreateCollection y antes de subir
+la foto. La comprobación pasa a ListObjectsV2 con prefijo de la clave exacta,
+MaxKeys 1 y cuenta propietaria esperada; no amplía IAM ni interpreta un 403
+como ausencia. Las regresiones cubren clave ausente, existente, vecina y fallo
+de permisos, además de resolver el comando SDK. La aceptación real debe
+repetirse tras integrar esta corrección.

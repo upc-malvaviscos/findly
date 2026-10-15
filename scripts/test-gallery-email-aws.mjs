@@ -332,11 +332,16 @@ export function createEmailAcceptanceAwsAdapter({
     async deletePhoto(key) {
       await call('s3api', 'delete-object', { Bucket: bucket, Key: key });
     },
-    photoExists(key) {
-      return absent(
-        () => call('s3api', 'head-object', { Bucket: bucket, Key: key }),
-        ['404', 'NotFound', 'NoSuchKey'],
-      );
+    async photoExists(key) {
+      // HEAD of a missing object can return 403 when ListBucket is prefix-scoped.
+      // Supply that reviewed prefix explicitly and match only the exact key.
+      const result = await call('s3api', 'list-objects-v2', {
+        Bucket: bucket,
+        Prefix: key,
+        MaxKeys: 1,
+        ExpectedBucketOwner: manifest.account,
+      });
+      return (result.Contents ?? []).some((object) => object.Key === key);
     },
     async photoProcessed(eventId, photoId) {
       const result = await call('logs', 'filter-log-events', {
