@@ -456,3 +456,29 @@ campos desconocidos y contadores inválidos; tampoco se conserva la excepción
 original como causa. Las pruebas comprueban esas fronteras de privacidad y la
 propagación del paso de siembra fallido. No se acreditan escenarios sólo por
 mejorar el diagnóstico: la aceptación AWS debe repetirse desde main.
+
+### Condiciones DynamoDB del worker — 2026-10-15
+
+La [aceptación 38803054411](https://github.com/upc-malvaviscos/findly/actions/runs/38803054411)
+alcanzó la primera operación administrativa, con foto procesada, y el worker
+registró `gallery_email_work_failed`. La lectura privada muestra cero aceptados
+y ninguna reclamación de destinatario ni capacidad adicional. El arnés revoca
+las fixtures y ejecuta su limpieza; no es evidencia de recepción.
+
+La revisión encuentra `ttl` sin alias en dos ConditionCheck de la transacción
+que reclama el destinatario. AWS incluye TTL en su
+[lista de palabras reservadas](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html):
+las condiciones requieren ExpressionAttributeNames. Una regresión que rechaza
+esas expresiones como DynamoDB falla antes de la corrección y pasa al usar
+`#ttl` enlazado a `ttl` en las dos condiciones. Conserva las mismas barreras
+de consentimiento, caducidad, borrado y reclamación atómica; no cambia IAM,
+datos, retención ni el contrato de ADR-019.
+
+El worker conserva su excepción pública genérica. El log admite únicamente
+cinco categorías SDK constantes de validación, permisos, recurso inexistente
+y limitación de peticiones; nombres desconocidos y mensajes originales siguen
+excluidos. Las regresiones comprueban tanto la categoría permitida como el
+descarte de un nombre arbitrario y del mensaje sensible. La expresión inválida
+es un defecto verificable del código, pero el log anterior no permite atribuir
+por sí solo el fallo observado a una categoría SDK concreta. La corrección
+requiere integrar, revisar el plan y publicar mediante OIDC antes de repetir.
