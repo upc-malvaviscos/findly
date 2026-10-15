@@ -191,3 +191,18 @@ de esa ejecución para reintentar la limpieza. No sustituir sus permisos por los
 de un manifiesto nuevo ni admitir tráfico hasta resolver los datos pendientes.
 La observación de colas vacías es puntual: feedback posterior aún puede llegar
 y el handler debe ignorar registros ya borrados.
+
+## Prueba parcial con un solo buzón
+
+La fase `single-recipient` del workflow `Verify production gallery email` exige
+un array privado con exactamente un buzón autorizado. Conserva el requisito
+de evidencia sintética previa y espera únicamente el marcador de recepción A
+de esa ejecución, con los mismos controles de actor, fecha, SPF/DKIM/DMARC,
+bandeja y apertura. No publicar el destinatario ni enlaces de galería.
+
+El resultado diferencia prueba parcial correcta de entregabilidad completa:
+`Deliverability: pending; two-provider evidence required`. La fase `recipients`
+sigue exigiendo dos buzones de dominios distintos y las confirmaciones A/B.
+Una prueba parcial no permite cerrar #98/#86 ni completar el criterio de dos
+proveedores. Si falta evidencia real al vencer la espera, el job falla y
+revoca/limpia sus fixtures; aceptación SES no sustituye confirmación del buzón.

@@ -64,12 +64,12 @@ export interface EmailAcceptanceInputs {
   outputs: Record<string, { value: unknown }>;
   jwt: string;
   recipients?: string[];
+  phase?: 'synthetic' | 'single-recipient' | 'recipients';
 }
 export interface EmailAcceptanceOptions extends EmailAcceptanceInputs {
   adapter: EmailAcceptanceAdapter;
   wait(milliseconds: number): Promise<void>;
   now?: () => number;
-  phase?: 'synthetic' | 'recipients';
   confirmRecipientEvidence?: (
     fixture: EmailAcceptanceFixture,
   ) => Promise<RecipientEvidence[]>;
@@ -79,6 +79,11 @@ export interface EmailAcceptanceOptions extends EmailAcceptanceInputs {
   executionBudgetMs?: number;
 }
 export function requireAcceptanceInputs(inputs: EmailAcceptanceInputs): void;
+export function acceptanceProviders(phase: string): Array<'A' | 'B'>;
+export function requireAcceptanceRecipients(
+  recipients: unknown,
+  phase: string,
+): Array<'A' | 'B'>;
 export function isOwnedAcceptanceMessage(
   body: string,
   fixtures: EmailAcceptanceFixture[],
@@ -96,4 +101,5 @@ export function runEmailAcceptance(options: EmailAcceptanceOptions): Promise<{
   originatingCrash: string;
   concurrentErasure: string;
   realRecipients: string;
+  deliverability: string;
 }>;

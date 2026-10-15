@@ -153,3 +153,17 @@ Pruebas/pendientes:
 [evidencia #86](../docs/evidence/issue-86-gallery-email.md).
 
 Issue: [#86](https://github.com/upc-malvaviscos/findly/issues/86).
+
+## Verificación parcial autorizada — 2026-10-15
+
+AWS confirma acceso de producción SES, envío habilitado e identidad, DKIM y
+MAIL FROM verificados en eu-west-1. El plan OIDC sin apply
+[38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625)
+pasó los controles de SES/DNS/certificado y calculó 36 altas, 15 modificaciones
+y cero borrados. Este plan no demuestra despliegue ni recepción.
+
+La fase explícita `single-recipient` permite comprobar un único buzón
+autorizado con recepción, autenticación y apertura, preservando la limpieza.
+Su resultado mantiene pendiente la entregabilidad entre dos proveedores; la
+fase `recipients` y los criterios de cierre conservan ese requisito. No cambian
+los contratos administrativos, datos de participantes, retención ni ADR-019.

@@ -13,6 +13,10 @@ import {
   recipientEvidence,
 } from './lib/email-acceptance-evidence.mjs';
 import { runEmailAcceptance } from './test-gallery-email-aws.mjs';
+import {
+  acceptanceProviders,
+  requireAcceptanceRecipients,
+} from './lib/email-acceptance-harness.mjs';
 
 const env = process.env;
 const startedAt = new Date().toISOString();
@@ -135,14 +139,18 @@ async function comments() {
 }
 
 async function confirmRecipientEvidence() {
+  const providers = acceptanceProviders(env.ACCEPTANCE_PHASE);
   const deadline = Date.now() + 30 * 60 * 1000;
   console.log(
-    `Awaiting authorized receipt and opening evidence for providers A and B, run ${runId}.`,
+    `Awaiting authorized receipt and opening evidence for provider labels ${providers.join(', ')}, run ${runId}.`,
   );
   while (Date.now() < deadline) {
     const proof = recipientEvidence(await comments(), runId, startedAt);
-    if (proof.A && proof.B)
-      return [proof.A, proof.B].map((item) => ({ ...item, received: true }));
+    if (providers.every((provider) => proof[provider]))
+      return providers.map((provider) => ({
+        ...proof[provider],
+        received: true,
+      }));
     await new Promise((resolve) => setTimeout(resolve, 30000));
   }
   throw new Error('Real receipt and opening evidence pending');
@@ -238,29 +246,18 @@ try {
     'Unapproved acceptance account',
   );
   assert.equal(env.CONFIRM_NO_PRODUCTION_TRAFFIC, 'true');
-  assert(['synthetic', 'recipients'].includes(env.ACCEPTANCE_PHASE));
+  acceptanceProviders(env.ACCEPTANCE_PHASE);
   assert.match(runId ?? '', /^\d+$/);
   const manifest = validateEmailAcceptanceManifest(
     JSON.parse(env.FINDLY_EMAIL_ACCEPTANCE_MANIFEST ?? ''),
   );
   requireAcceptanceTimeBudget(manifest);
   const recipients =
-    env.ACCEPTANCE_PHASE === 'recipients'
+    env.ACCEPTANCE_PHASE !== 'synthetic'
       ? JSON.parse(env.FINDLY_EMAIL_ACCEPTANCE_RECIPIENTS ?? '')
       : [];
-  if (env.ACCEPTANCE_PHASE === 'recipients') {
-    assert.equal(recipients.length, 2);
-    assert.equal(
-      new Set(recipients).size,
-      2,
-      'Distinct authorized recipients required',
-    );
-    assert(
-      recipients.every(
-        (address) =>
-          typeof address === 'string' && /^[^\s@]+@[^\s@]+$/.test(address),
-      ),
-    );
+  requireAcceptanceRecipients(recipients, env.ACCEPTANCE_PHASE);
+  if (env.ACCEPTANCE_PHASE !== 'synthetic') {
     const syntheticRun = env.FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_RUN_ID;
     assert.match(syntheticRun ?? '', /^\d+$/);
     assert(
@@ -355,7 +352,8 @@ const counts = (summary?.results ?? [])
   .filter((item) => Number.isSafeInteger(item.count) && item.count >= 0)
   .map((item, index) => `Stage ${index + 1}: count ${item.count}`);
 const report = [
-  `Production email acceptance ${env.ACCEPTANCE_PHASE === 'recipients' ? 'recipients' : 'synthetic'}: ${failure ? 'failed or pending' : 'passed'}.`,
+  `Production email acceptance ${env.ACCEPTANCE_PHASE}: ${failure ? 'failed or pending' : 'passed'}.`,
+  `Deliverability: ${!failure && env.ACCEPTANCE_PHASE === 'recipients' ? 'two-provider evidence verified' : 'pending; two-provider evidence required'}.`,
   ...counts,
   'Original crash and concurrent erasure are not demonstrated by injected or preconsumption fixtures.',
   `Cleanup: ${failure ? 'consult pending run' : 'verified'}.`,

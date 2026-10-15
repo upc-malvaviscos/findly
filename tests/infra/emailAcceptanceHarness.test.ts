@@ -4,6 +4,8 @@ import {
   moveExactAcceptanceMessage,
   isOwnedAcceptanceMessage,
   requireAcceptanceInputs,
+  requireAcceptanceRecipients,
+  acceptanceProviders,
   runEmailAcceptance,
 } from '../../scripts/lib/email-acceptance-harness.mjs';
 import type {
@@ -53,7 +55,9 @@ function harness() {
       uncertain: 0,
       bounced: name === 'bounce' ? 1 : 0,
       complained: name === 'complaint' ? 1 : 0,
-      [outcome]: ['api', 'recipients'].includes(name) ? 2 : 1,
+      [outcome]: [...rows.values()].filter(
+        (row) => row.PK === `EVENT#${eventId}` && row.SK.startsWith('REG#'),
+      ).length,
     });
   }
   const adapter: EmailAcceptanceAdapter = {
@@ -141,6 +145,89 @@ function harness() {
 const wait = async () => {};
 
 describe('email acceptance orchestration (local adapters, not AWS evidence)', () => {
+  it('requires explicit partial mode and preserves the full two-provider gate', () => {
+    expect(acceptanceProviders('single-recipient')).toEqual(['A']);
+    expect(acceptanceProviders('recipients')).toEqual(['A', 'B']);
+    expect(() =>
+      requireAcceptanceRecipients(['one@example.test'], 'recipients'),
+    ).toThrow();
+    expect(() =>
+      requireAcceptanceRecipients(['one@example.test'], 'synthetic'),
+    ).toThrow();
+    expect(() =>
+      requireAcceptanceRecipients(
+        ['one@example.test', 'two@example.test'],
+        'recipients',
+      ),
+    ).toThrow('two providers');
+    expect(() =>
+      requireAcceptanceRecipients(
+        ['ONE@example.test', 'one@example.test'],
+        'recipients',
+      ),
+    ).toThrow('differ');
+    expect(() =>
+      requireAcceptanceRecipients(['invalid'], 'single-recipient'),
+    ).toThrow();
+    expect(() => requireAcceptanceRecipients([], 'single-recipient')).toThrow();
+    expect(() =>
+      requireAcceptanceRecipients(
+        ['one@example.test', 'two@other.test'],
+        'single-recipient',
+      ),
+    ).toThrow();
+    expect(() => requireAcceptanceRecipients({}, 'single-recipient')).toThrow();
+    expect(() => acceptanceProviders('unknown')).toThrow();
+  });
+
+  it('confirms one mailbox, cleans its fixtures and keeps deliverability pending', async () => {
+    const { adapter, rows, photos, collections } = harness();
+    const result = await runEmailAcceptance({
+      manifest,
+      outputs,
+      jwt,
+      adapter,
+      wait,
+      phase: 'single-recipient',
+      recipients: ['one@example.test'],
+      confirmRecipientEvidence: async () => {
+        expect(
+          [...rows.values()].filter((item) => item.PK.startsWith('TOKEN#')),
+        ).toHaveLength(1);
+        return [
+          {
+            received: true,
+            opened: true,
+            folder: 'inbox',
+            spf: 'pass',
+            dkim: 'pass',
+            dmarc: 'pass',
+          },
+        ];
+      },
+    });
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.count).toBe(1);
+    expect(result.deliverability).toContain('pending');
+    expect(rows.size + photos.size + collections.size).toBe(0);
+  });
+
+  it('cleans partial mailbox fixtures when real receipt remains unconfirmed', async () => {
+    const { adapter, rows, photos, collections } = harness();
+    await expect(
+      runEmailAcceptance({
+        manifest,
+        outputs,
+        jwt,
+        adapter,
+        wait,
+        phase: 'single-recipient',
+        recipients: ['one@example.test'],
+        confirmRecipientEvidence: async () => [],
+      }),
+    ).rejects.toThrow('failed at recipients');
+    expect(rows.size + photos.size + collections.size).toBe(0);
+  });
   it('recognizes only exact owned work and SNS feedback messages for cleanup', () => {
     const owned = {
       eventId: fixture.eventId,
@@ -555,6 +642,7 @@ describe('email acceptance orchestration (local adapters, not AWS evidence)', ()
     });
     expect(confirmation).toHaveBeenCalledTimes(1);
     expect(result.realRecipients).toContain('confirmed');
+    expect(result.deliverability).toBe('two-provider evidence verified');
     expect(rows.size + photos.size).toBe(0);
   });
 });

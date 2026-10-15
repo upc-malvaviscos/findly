@@ -26,7 +26,9 @@ descarga real con navegador contra S3 real en Chromium/Firefox. Además, la
 SPA y la API de **producción** (`www.findly.barcelona`) están desplegadas y
 son públicas desde el 2026-10-05, con identidad SES, DKIM y MAIL FROM
 verificados y certificado ACM emitido — con el envío de correo
-deliberadamente deshabilitado hasta salir del sandbox SES (#98, abierta).
+deshabilitado en la última publicación comprobada. El acceso de producción
+SES está concedido desde la comprobación del 2026-10-15; despliegue y pruebas
+de recepción siguen pendientes (#98, abierta).
 
 ## Limitaciones verificadas
 
@@ -36,12 +38,11 @@ pendiente en la propia evidencia que demuestra el resto del sistema
 
 - **Correo de galería y de invitación administrativa sin confirmar en
   buzón real.** La SPA/API de producción están públicas, pero el envío de
-  correo de galería permanece deshabilitado: SES sigue en modo sandbox y la
-  solicitud de acceso de producción está pendiente de revisión por AWS
-  Support (issue #98). Por separado, la invitación de administradores por
+  correo de galería todavía requiere despliegue y aceptación AWS. SES ya
+  permite destinatarios fuera del sandbox; esto no acredita recepción ni
+  apertura en un buzón (issue #98). Por separado, la invitación de administradores por
   Cognito usa el remitente genérico de Cognito, no el dominio propio — una
-  decisión previa ya descarta conectar Cognito a SES, y el sandbox de SES
-  limitaría igualmente su alcance; no hay forma de confirmar desde el
+  decisión de Terraform independiente del correo de galerías; no hay forma de confirmar desde el
   código si el correo llega a la bandeja o a spam de un destinatario real
   (issue #105).
 - **Migración de colecciones Rekognition heredadas pendiente.** ADR-015 aísla
@@ -104,10 +105,11 @@ se consideraba terminado.
 
 ## Trabajo futuro
 
-1. Obtener acceso de producción SES fuera del sandbox (revisión de AWS
-   Support en curso), completar la propagación de MAIL FROM/DNS y habilitar
-   el envío real de correo de galería con recepción confirmada en buzones
-   de al menos dos proveedores distintos (issue #98, seguimiento de #86).
+1. Completar el despliegue y la aceptación real del correo de galerías tras
+   la aprobación regional SES ya comprobada. Verificar recuperación, feedback
+   y recepción/apertura en al menos dos proveedores distintos; una prueba
+   parcial autorizada con un solo buzón deja ese criterio pendiente
+   (issue #98, seguimiento de #86).
 2. Resolver el bloqueo de estado de Terraform de la PR #120 (requiere
    `terraform force-unlock` con credenciales AWS) para poder completar y
    fusionar la administración de edición/borrado de eventos y fotos
