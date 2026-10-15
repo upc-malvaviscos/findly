@@ -39,7 +39,7 @@ data "aws_caller_identity" "production" {}
 module "findly" {
   # Preserve the reviewed existing Cognito sender, even with gallery email off.
   cognito_email_identity_arn = "arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.production.account_id}:identity/findly.barcelona"
-  cognito_email_from_address = "info@findly.barcelona"
+  cognito_email_from_address = var.cognito_email_from_address
   permissions_boundary_arn   = "arn:aws:iam::${data.aws_caller_identity.production.account_id}:policy/findly-production-runtime-boundary"
   email_identity_arn         = var.email_identity_arn
   email_from_address         = var.email_from_address

@@ -39,6 +39,11 @@ export function requireProductionReadiness({
   certificate,
   config,
 }) {
+  assert.equal(
+    config.TF_VAR_cognito_email_from_address,
+    'info@findly.barcelona',
+    'Preserve the approved Cognito SES sender independently of gallery enablement',
+  );
   assert.equal(certificate.Status, 'ISSUED', 'HTTPS certificate is pending');
   assert.equal(certificate.DomainName, 'www.findly.barcelona');
   assert.equal(config.TF_VAR_web_domain_name, 'www.findly.barcelona');

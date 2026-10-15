@@ -59,6 +59,16 @@ variable "web_certificate_arn" {
   default     = ""
 }
 
+variable "cognito_email_from_address" {
+  description = "Reviewed existing Cognito SES sender, supplied independently of gallery email enablement."
+  type        = string
+  nullable    = false
+  validation {
+    condition     = can(regex("^[^@ ]+@[^@ ]+[.][^@ ]+$", var.cognito_email_from_address))
+    error_message = "A valid reviewed Cognito SES sender is required in production."
+  }
+}
+
 variable "email_identity_arn" {
   description = "Verified SES identity in eu-west-1; empty disables gallery email. Provision identity separately from environment teardown."
   type        = string

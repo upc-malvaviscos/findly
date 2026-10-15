@@ -216,3 +216,8 @@ galerías; desactivarlo no revierte Cognito a su remitente genérico. Antes del
 apply revisar que el plan conserva el pool y su configuración SES, sin reemplazo
 ni cambio de remitente. No se requiere crear el rol vinculado de Cognito, que ya
 existe. Las pruebas de galerías no envían invitaciones administrativas.
+
+El workflow suministra `TF_VAR_cognito_email_from_address` desde la variable
+production `FINDLY_EMAIL_FROM_ADDRESS` incluso cuando las galerías están
+desactivadas. El root exige ese parámetro y el gate rechaza un remitente vacío o
+ajeno al aprobado. No se escriben direcciones literales en los recursos IaC.

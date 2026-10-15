@@ -95,6 +95,7 @@ jobs:
       TF_VAR_web_domain_name: ${{ vars.FINDLY_WEB_DOMAIN_NAME }}
       TF_VAR_web_certificate_arn: ${{ vars.FINDLY_WEB_CERTIFICATE_ARN }}
       ENABLE_PRODUCTION_EMAIL: ${{ inputs.environment == 'production' && inputs.enable_production_email }}
+      TF_VAR_cognito_email_from_address: ${{ inputs.environment == 'production' && vars.FINDLY_EMAIL_FROM_ADDRESS || '' }}
       TF_VAR_email_identity_arn: ${{ inputs.environment == 'production' && inputs.enable_production_email && vars.FINDLY_EMAIL_IDENTITY_ARN || '' }}
       TF_VAR_email_from_address: ${{ inputs.environment == 'production' && inputs.enable_production_email && vars.FINDLY_EMAIL_FROM_ADDRESS || '' }}
       TF_VAR_email_gallery_origin: ${{ vars.FINDLY_EMAIL_GALLERY_ORIGIN || 'https://www.findly.barcelona' }}
