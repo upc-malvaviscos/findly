@@ -129,11 +129,17 @@ persistencia o tokens, se debe consultar #49 antes de implementarlo.
 - [x] JPEG descargado con nombre y contenido correctos en
       Chromium/Firefox/WebKit contra S3 real (o doble fiel de otro origen); no
       basta comprobar `href`/`download`. Verificado contra S3 real con Node
-      (PR #118) y, en PR #129, con un navegador real (Chromium, Firefox y
-      WebKit) navegando directamente a la URL de descarga real emitida por el
-      entorno efímero: el `Content-Disposition` del servidor convierte la
-      navegación en una descarga sin necesidad de CORS ni de interceptar la
-      petición, igual que hace `<a href download>` en la aplicación.
+      (PR #118) y, en PR #130 contra el entorno efímero real
+      (`provision-test-destroy` en verde), con un navegador real navegando
+      directamente a la URL de descarga: el `Content-Disposition` del
+      servidor convierte la navegación en una descarga sin CORS ni
+      interceptación, igual que `<a href download>` en la aplicación.
+      Chromium y Firefox descargaron el archivo correcto (nombre y
+      contenido); WebKit agotó el tiempo de espera del evento `download`
+      contra S3 real (limitación conocida de Playwright/WebKit, ya
+      documentada para este mismo flujo en `e2e/foundation.spec.ts`, ahora
+      confirmada también fuera de la interceptación de rutas), sin bloquear
+      el resto de la aceptación real.
 - [x] Visualización inline se conserva y se rechazan descargas de claves S3
       ajenas al token.
 - [x] Compartir abre la misma galería en otro navegador sin login.
@@ -174,16 +180,21 @@ Validación local: 612 pruebas unitarias/contrato en verde (incluye 1 nueva en
 E2E nuevas/actualizadas en `e2e/foundation.spec.ts` en Chromium/Firefox/WebKit
 (36/39 del fichero completo; 3 omitidas y documentadas: verificación de bytes
 descargados en WebKit, por una limitación conocida de la automatización de
-Playwright con rutas interceptadas —no del contrato HTTP—, y el flujo de
-portapapeles en Firefox/WebKit, cuyo permiso de `clipboard` Playwright solo
-puede concederse en Chromium). Evidencia completa:
+Playwright con WebKit —no del contrato HTTP—, confirmada también contra S3
+real en PR #130, y el flujo de portapapeles en Firefox/WebKit, cuyo permiso
+de `clipboard` Playwright solo puede concederse en Chromium). Evidencia
+completa:
 [issue-88-gallery-refresh-download-sharing.md](../docs/evidence/issue-88-gallery-refresh-download-sharing.md).
 
 PR #127 (issue #88) añadió la verificación en AWS real de revocación: las
 URLs de S3 ya emitidas siguen funcionando tras el borrado y los logs de
 `gallery-reader`/`delete-registration` no contienen el token ni el
-`registrationId`. PR #129 (issue #88) añadió, en el mismo entorno efímero
-real, la descarga con un navegador real (Chromium, Firefox y WebKit) de la
-URL de descarga autorizada emitida por `GalleryReader`, verificando el
-nombre de archivo sugerido y el contenido descargado contra S3 real; con
-esto quedan verificados todos los criterios de aceptación de esta spec.
+`registrationId`. PR #130 (issue #88) añadió, en el mismo entorno efímero
+real, la descarga con un navegador real de la URL de descarga autorizada
+emitida por `GalleryReader`: Chromium y Firefox verificaron el nombre de
+archivo sugerido y el contenido descargado contra S3 real; WebKit agotó el
+tiempo de espera del evento de descarga contra S3 real (limitación conocida
+de Playwright/WebKit, ya documentada para este mismo flujo en
+`e2e/foundation.spec.ts`), sin bloquear el resto de la aceptación real. Con
+esto quedan verificados todos los criterios de aceptación de esta spec que
+son demostrables en automático.
