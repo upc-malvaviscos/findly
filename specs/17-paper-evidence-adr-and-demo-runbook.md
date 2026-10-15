@@ -50,12 +50,17 @@ allow_bucket_destroy=false y acordar objetivos concretos de limpieza.
 ## Estado de implementación (issue #18)
 
 Capítulos 03/08/09/10/11 de `docs/paper/` y `docs/runbooks/demo-runbook.md`
-escritos con evidencia enlazada, sin AWS aplicado ni SPA publicada. El
-consentimiento, matching, galería y DELETE ya están verificados en AWS real
-por la aceptación de #70/PR #71 (capítulo 8); lo que sigue pendiente para el
-cierre completo de esta issue es exclusivamente lo que dependen #15/#61: el
-bootstrap del estado Terraform y el despliegue manual, y por tanto una SPA
-`demo` publicada y navegable. Evidencia:
+escritos con evidencia enlazada. El consentimiento, matching, galería y
+DELETE ya están verificados en AWS real por la aceptación de #70/PR #71
+(capítulo 8). El bloqueador original — bootstrap del estado Terraform y
+despliegue manual (#15/#61) — ya se resolvió: #61 se verificó en AWS real
+(PR #83) y #15 publicó y probó una SPA `demo` persistente (PR #92),
+desactivada después por control de coste. Capítulos 08/09 se sincronizaron
+el 2026-10-15 con los cierres reales de #7/#10/#11/#13/#15/#22 y con las
+nuevas issues #88/#98/#105/#107/#125. Lo que sigue pendiente para el cierre
+completo de esta issue es ahora lo registrado en la propia issue #18: las
+issues #49, #86, #87 y #89 siguen abiertas, y su alcance ampliado debe
+reflejarse aquí antes de cerrar. Evidencia:
 [`docs/evidence/issue-18-paper-runbook.md`](../docs/evidence/issue-18-paper-runbook.md).
 No se cierra esta issue con esta entrega.
 
