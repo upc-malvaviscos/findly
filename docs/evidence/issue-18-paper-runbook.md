@@ -148,13 +148,52 @@ esta entrega: aquí sólo se documenta ese resultado ya ocurrido. No se ha
 aplicado ningún cambio a `docs/adr/` ni a la numeración de ADRs, que sigue sin
 resolver.
 
+## Actualización posterior: cierres de #10/#11/#61/#13/#15/#22 y nuevas issues #88/#107/#125/#98 (2026-10-15)
+
+El bloqueador anterior (SPA `demo` publicada, dependiente de #15/#61) quedó
+resuelto: #61 se verificó en AWS real (PR #83) y #15 publicó y probó una
+demo persistente (PR #92, run `37151100042`), desactivada después por
+control de coste — no por fallo. En paralelo, #10 (cron real + reintento
+tras fallo parcial, PR #84/#123), #13 (Budgets real aceptado como fuera de
+alcance por decisión explícita, PR #122) y #22 (backend web real, PR #93/#94)
+también cerraron con evidencia desplegada. Esto hace que el bloqueador
+original de #18 ya no sea la causa de que siga abierta.
+
+El bloqueador vigente es otro, ya registrado en la propia issue #18
+(sección "Dependencias y coordinación — 2026-10-04"): #49, #86, #87 y #89
+permanecen abiertas, y #18 no se cierra hasta reflejar su alcance ampliado
+realmente implementado y verificado. Esta entrega es una sincronización
+incremental, no un cierre:
+
+- `docs/paper/08-validacion-y-resultados.md`: tabla de trazabilidad
+  reescrita con los estados reales (filas `#7`, `#10`, `#11`, `#13`, `#15`,
+  `#22` corregidas de "Abierta" a "Cerrada" con su PR de cierre; filas
+  nuevas `#49`, `#86`, `#88`, `#98`, `#105`, `#107`); sección de FinOps
+  corregida para citar la decisión real de cierre de #13 en vez de
+  presentarla como pendiente; nueva sección "Cierres posteriores
+  verificados en AWS real" que documenta, con cita de PR, lo cerrado desde
+  la última sincronización de esta memoria (2026-09-30/10-02).
+- `docs/paper/09-conclusiones-y-trabajo-futuro.md`: "Objetivos alcanzados"
+  amplía con los cierres reales y el estado de producción
+  (`www.findly.barcelona`, pública, correo deshabilitado); "Limitaciones
+  verificadas" sustituye las ya resueltas (cron, Budgets, demo persistente)
+  por las vigentes (correo de producción/invitación sin confirmar, bloqueo
+  externo de #89, límite de WebKit confirmado en CI real); "Lecciones de
+  la metodología" aclara que `#10`/`#13`/`#22` ya cerraron y que `#18` sigue
+  abierta por un motivo distinto al original; "Trabajo futuro" reescrita
+  para listar exactamente lo que queda: #98 (SES fuera de sandbox), #89
+  (desbloqueo del estado Terraform), ADR de migración de colecciones
+  Rekognition, decisión #49, y el cierre de #18 en sí.
+
+No se afirma ningún resultado nuevo sin verificar: cada corrección cita el
+PR o la issue de cierre ya fusionados en `main`, confirmados vía
+`gh issue view`/`gh pr view` antes de editar, no de memoria.
+
 ## Pendiente
 
-- El cierre completo de #18 exige una SPA `demo` publicada y navegable, que
-  depende de #15 (despliegue manual OIDC), todavía sin resolver. El bootstrap
-  del estado Terraform (#61) ya se verificó en una cuenta AWS dedicada
-  (`docs/evidence/issue-11-terraform-remote-state.md`, PR #83), pero esa prueba
-  no dejó ningún entorno desplegado.
+- El cierre completo de #18 exige que #49, #86, #87 y #89 queden resueltas y
+  su alcance ampliado se refleje en esta memoria y en el runbook de
+  demostración — ya no depende de una SPA `demo` publicada (resuelto, #15).
 - La cifra de cobertura global (81,34 % de líneas) se cita explícitamente como
   no sujeta a ningún umbral del 90 %; sólo `src/lambdas` y `src/shared/lib` lo
   están y ambos lo superan.
