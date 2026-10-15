@@ -185,7 +185,9 @@ El operador solicita una invitación con una sesión temporal no raíz; Cognito
 produce la contraseña temporal y la SPA completa `NEW_PASSWORD_REQUIRED`.
 Terraform conserva infraestructura y política, sin cuentas o contraseñas. Las
 invitaciones usan el mensaje estándar de Cognito; el operador comunica el
-enlace al login por separado, sin configurar envío SES ni ampliar IAM.
+enlace al login por separado. La decisión del 2026-10-15 conserva el envío
+SES ya existente en producción con identidad y remitente revisados, sin ampliar
+IAM; los entornos sintéticos mantienen el remitente predeterminado.
 El challenge y el token permanecen en memoria; cancelación y caducidad invalidan
 respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige
 limpieza, por lo que no acredita recepción de correo real. El despliegue de esta

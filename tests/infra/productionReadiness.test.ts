@@ -20,6 +20,7 @@ const valid = {
   certificate: { Status: 'ISSUED', DomainName: 'www.findly.barcelona' },
   config: {
     FINDLY_AWS_ACCOUNT_ID: '123456789012',
+    TF_VAR_cognito_email_from_address: 'info@findly.barcelona',
     TF_VAR_web_domain_name: 'www.findly.barcelona',
     TF_VAR_email_from_address: 'info@findly.barcelona',
     TF_VAR_email_gallery_origin: 'https://www.findly.barcelona',
@@ -43,6 +44,20 @@ describe('production email and HTTPS readiness', () => {
   it('allows the approved HTTPS deployment without SES credentials or mailbox DNS readiness', () => {
     expect(() => requireProductionReadiness(disabled)).not.toThrow();
   });
+  it.each(['', 'other@findly.barcelona', undefined])(
+    'refuses to drop or change the Cognito sender with gallery email disabled: %s',
+    (sender) => {
+      expect(() =>
+        requireProductionReadiness({
+          ...disabled,
+          config: {
+            ...disabled.config,
+            TF_VAR_cognito_email_from_address: sender,
+          },
+        }),
+      ).toThrow('Cognito SES sender');
+    },
+  );
   it.each([
     { Status: 'PENDING_VALIDATION' },
     { DomainName: 'foreign.example' },

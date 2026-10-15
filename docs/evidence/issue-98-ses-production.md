@@ -354,3 +354,12 @@ contratos Terraform: remitente estándar, SES revisado, pares incompletos y
 región incorrecta. El bootstrap temporal de aceptación pasó además seis
 simulaciones IAM: fixtures propias permitidas; datos ajenos, permisos caducados
 y envío SES directo rechazados. No demuestra aún el nuevo despliegue.
+
+La primera publicación de la corrección se detuvo en el hook: el contrato
+antiguo exigía ausencia de configuración Cognito SES y la política de
+privacidad rechazaba un remitente literal en IaC. Se conserva la comprobación
+de privacidad y el workflow suministra el remitente mediante la variable
+revisada, independiente del flag de galerías. El contrato de invitación mantiene
+la plantilla estándar y sus demás controles; los contratos Terraform verifican
+la selección del remitente. 87 pruebas focalizadas, TypeScript y actionlint
+pasan tras la corrección. No se eludió ningún hook.
