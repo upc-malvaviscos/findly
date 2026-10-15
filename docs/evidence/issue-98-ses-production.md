@@ -363,3 +363,9 @@ revisada, independiente del flag de galerías. El contrato de invitación mantie
 la plantilla estándar y sus demás controles; los contratos Terraform verifican
 la selección del remitente. 87 pruebas focalizadas, TypeScript y actionlint
 pasan tras la corrección. No se eludió ningún hook.
+
+Verificación completa de la revisión con Cognito conservado: pre-push pasa
+con 623 pruebas, lint, TypeScript, build, siete raíces válidas, ocho contratos
+de stack/Cognito además de hosting/email, cero vulnerabilidades de producción
+y trazabilidad. CI incorpora explícitamente `terraform:test:findly-stack` para
+ejecutar también los nuevos contratos Cognito en GitHub.
