@@ -193,6 +193,18 @@ describe('private acceptance failure diagnostics', () => {
       cleanupFailures: 2,
     });
     expect(JSON.stringify(result)).not.toMatch(/person@|private-capability/);
+    expect(
+      acceptanceFailureDiagnostic({
+        acceptanceScenario: 'suppression',
+        acceptanceStep: 'scenario',
+        acceptanceCategory: 'AssertionError',
+      }),
+    ).toEqual({
+      scenario: 'suppression',
+      step: 'scenario',
+      category: 'AssertionError',
+      cleanupFailures: null,
+    });
   });
   it('drops arbitrary exception fields instead of printing them', () => {
     const secret = 'private-capability-do-not-log';
