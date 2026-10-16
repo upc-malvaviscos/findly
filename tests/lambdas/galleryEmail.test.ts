@@ -282,6 +282,27 @@ describe('manual gallery email API', () => {
   });
 });
 describe('durable gallery email worker', () => {
+  it('claims a recipient using DynamoDB conditions without bare reserved TTL attributes', async () => {
+    db.on(TransactWriteCommand).callsFake((input) => {
+      for (const action of input.TransactItems ?? []) {
+        const check = action.ConditionCheck;
+        if (check && /(?<![#:\w])ttl\b/i.test(check.ConditionExpression ?? ''))
+          throw error('ValidationException');
+        if (
+          check?.ConditionExpression?.includes('#ttl') &&
+          check.ExpressionAttributeNames?.['#ttl'] !== 'ttl'
+        )
+          throw error('ValidationException');
+      }
+      return {};
+    });
+    await processGalleryEmail(message());
+    expect(ses.commandCalls(SendEmailCommand)).toHaveLength(1);
+    expect(items.get(opKey())).toMatchObject({
+      status: 'COMPLETED',
+      accepted: 1,
+    });
+  });
   it('sends an individual message with HTTPS link, both bodies and no persisted token', async () => {
     await processGalleryEmail(message());
     const send = ses.commandCalls(SendEmailCommand)[0]!.args[0].input;
@@ -566,6 +587,33 @@ it('logs only closed outcomes and identifiers, never recipient email or gallery 
     );
   } finally {
     info.mockRestore();
+    errors.mockRestore();
+  }
+});
+
+it('logs only a reviewed SDK category while preserving the generic worker exception', async () => {
+  const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    db.on(TransactWriteCommand).rejects(error('ValidationException'));
+    await expect(processGalleryEmail(message())).rejects.toThrow(
+      'GalleryEmailProcessingFailed',
+    );
+    expect(JSON.stringify(errors.mock.calls)).toContain('ValidationException');
+    expect(JSON.stringify(errors.mock.calls)).not.toContain(
+      'synthetic sensitive detail',
+    );
+    errors.mockClear();
+    db.on(TransactWriteCommand).rejects(error('SensitiveIdentifier'));
+    await expect(processGalleryEmail(message())).rejects.toThrow(
+      'GalleryEmailProcessingFailed',
+    );
+    expect(JSON.stringify(errors.mock.calls)).not.toContain(
+      'SensitiveIdentifier',
+    );
+    expect(JSON.stringify(errors.mock.calls)).toContain(
+      'GalleryEmailProcessingFailed',
+    );
+  } finally {
     errors.mockRestore();
   }
 });

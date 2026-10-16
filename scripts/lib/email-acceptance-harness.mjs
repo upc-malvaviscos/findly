@@ -1,6 +1,90 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { validateEmailAcceptanceManifest } from './email-acceptance-manifest.mjs';
+import {
+  emailAcceptanceScenarios,
+  validateEmailAcceptanceManifest,
+} from './email-acceptance-manifest.mjs';
+
+const diagnosticScenarios = new Set([
+  'preflight',
+  'cleanup',
+  ...emailAcceptanceScenarios,
+]);
+const diagnosticSteps = new Set([
+  'preflight',
+  'fixture-ownership',
+  'write-event',
+  'collection-ownership',
+  'create-collection',
+  'photo-ownership',
+  'upload-photo',
+  'write-photo',
+  'registration-ownership',
+  'write-registration',
+  'write-capability',
+  'write-inverse',
+  'write-match',
+  'photo-consumption',
+  'scenario',
+  'cleanup',
+]);
+const diagnosticCategories = new Set([
+  'unknown',
+  'Error',
+  'ERR_ASSERTION',
+  'AccessDenied',
+  'AccessDeniedException',
+  'ConditionalCheckFailedException',
+  'TransactionCanceledException',
+  'ValidationException',
+  'InvalidParameterException',
+  'ResourceNotFoundException',
+  'NotFoundException',
+  'ThrottlingException',
+  'TooManyRequestsException',
+  'TimeoutError',
+  'AbortError',
+  'AWS_OPERATION_FAILED',
+  'SUBPROCESS_FAILED',
+]);
+
+export function acceptanceFailureDiagnostic(cause) {
+  return {
+    scenario: diagnosticScenarios.has(cause?.acceptanceScenario)
+      ? cause.acceptanceScenario
+      : 'unknown',
+    step: diagnosticSteps.has(cause?.acceptanceStep)
+      ? cause.acceptanceStep
+      : 'unknown',
+    category: diagnosticCategories.has(cause?.acceptanceCategory)
+      ? cause.acceptanceCategory
+      : 'unknown',
+    cleanupFailures:
+      Number.isSafeInteger(cause?.acceptanceCleanupFailures) &&
+      cause.acceptanceCleanupFailures >= 0 &&
+      cause.acceptanceCleanupFailures <= 100
+        ? cause.acceptanceCleanupFailures
+        : null,
+  };
+}
+
+export function requireAcceptanceApiEndpoint(actual, expected) {
+  const endpoint =
+    /^https:\/\/[a-z0-9]+\.execute-api\.eu-west-1\.amazonaws\.com\/?$/;
+  assert(
+    typeof actual === 'string' && endpoint.test(actual),
+    'Invalid API endpoint',
+  );
+  assert(
+    typeof expected === 'string' && endpoint.test(expected),
+    'Invalid deployed API endpoint',
+  );
+  assert.equal(
+    actual.replace(/\/$/, ''),
+    expected.replace(/\/$/, ''),
+    'API endpoint ownership mismatch',
+  );
+}
 
 export function acceptanceProviders(phase) {
   assert(
@@ -151,7 +235,10 @@ export async function runEmailAcceptance({
   const results = [];
   let suppressionCreated = false;
   let stage = 'preflight';
+  let step = 'preflight';
   let failedStage;
+  let failedStep;
+  let failedCategory;
   const cleanupFailures = [];
   // A workflow lasts 55 minutes and operator STS lasts 60. Bound all polling
   // together, rather than allocating a fresh budget to every fixture, so finally
@@ -226,6 +313,7 @@ export async function runEmailAcceptance({
       ttl,
       acceptanceRunId: manifest.runId,
     };
+    step = 'fixture-ownership';
     assert.equal(
       await adapter.get(key(event.PK, event.SK)),
       undefined,
@@ -234,25 +322,32 @@ export async function runEmailAcceptance({
     const entry = {
       fixture,
       registrations: [],
+      erasedRegistrations: new Set(),
       collection: false,
       photo: false,
     };
     owned.push(entry);
+    step = 'write-event';
     await adapter.put(event);
+    step = 'collection-ownership';
     assert.equal(
       await adapter.collectionExists(fixture.collectionId),
       false,
       'Acceptance collection already exists',
     );
     entry.collection = true;
+    step = 'create-collection';
     await adapter.createCollection(fixture.collectionId);
+    step = 'photo-ownership';
     assert.equal(
       await adapter.photoExists(fixture.photoKey),
       false,
       'Acceptance photo already exists',
     );
     entry.photo = true;
+    step = 'upload-photo';
     await adapter.uploadPhoto(fixture.photoKey);
+    step = 'write-photo';
     await adapter.put({
       ...key(`EVENT#${fixture.eventId}`, `PHOTO#${fixture.photoId}`),
       eventId: fixture.eventId,
@@ -263,6 +358,7 @@ export async function runEmailAcceptance({
     });
     for (const [index, email] of emails.entries()) {
       const registration = fixture.registrations[index];
+      step = 'registration-ownership';
       assert.equal(
         await adapter.get(
           key(`EVENT#${fixture.eventId}`, `REG#${registration.registrationId}`),
@@ -271,6 +367,7 @@ export async function runEmailAcceptance({
         'Acceptance registration already exists',
       );
       entry.registrations.push(registration);
+      step = 'write-registration';
       await adapter.put({
         ...key(
           `EVENT#${fixture.eventId}`,
@@ -286,6 +383,7 @@ export async function runEmailAcceptance({
           erasureRequestedAt: new Date(now()).toISOString(),
         }),
       });
+      step = 'write-capability';
       await adapter.put({
         ...key(`TOKEN#${registration.tokenHash}`, 'METADATA'),
         tokenHash: registration.tokenHash,
@@ -295,6 +393,7 @@ export async function runEmailAcceptance({
         expiresAt: manifest.expiresAt,
         requireRegistration: true,
       });
+      step = 'write-inverse';
       await adapter.put({
         ...key(
           `REG#${registration.registrationId}`,
@@ -302,6 +401,7 @@ export async function runEmailAcceptance({
         ),
         tokenHash: registration.tokenHash,
       });
+      step = 'write-match';
       await adapter.put({
         ...key(
           `REG#${registration.registrationId}`,
@@ -318,6 +418,7 @@ export async function runEmailAcceptance({
     }
     // The object notification traverses the normal matcher; do not leave a photo
     // message behind that could fail after deleting its collection/object.
+    step = 'photo-consumption';
     await poll(() => adapter.photoProcessed(fixture.eventId, fixture.photoId));
     return entry;
   }
@@ -359,6 +460,7 @@ export async function runEmailAcceptance({
         expired: stage === 'expired',
         erased: stage === 'erased',
       });
+      step = 'scenario';
       if (
         ['accepted-recovery', 'uncertain-recovery', 'dlq', 'expired'].includes(
           stage,
@@ -493,6 +595,7 @@ export async function runEmailAcceptance({
           registration.registrationId,
           registration.capability,
         );
+        entry.erasedRegistrations.add(registration.registrationId);
         await adapter.invokeFeedback(feedback(fixture, kind));
         assert.equal(
           (await adapter.query(`REG#${registration.registrationId}`)).length,
@@ -529,8 +632,11 @@ export async function runEmailAcceptance({
         count: final[expected],
       });
     }
-  } catch {
+  } catch (cause) {
     failedStage = stage;
+    failedStep = step;
+    const category = cause?.code ?? cause?.name;
+    failedCategory = diagnosticCategories.has(category) ? category : 'unknown';
   } finally {
     const cleanupDeadline = now() + 420000;
     const requireCleanupTime = () => {
@@ -592,9 +698,13 @@ export async function runEmailAcceptance({
     for (const entry of revokedOwned) {
       const pendingRegistrations = new Set();
       for (const registration of entry.registrations) {
-        const erased = await clean('registration erasure', () =>
-          adapter.erase(registration.registrationId, registration.capability),
-        );
+        // A successful late-feedback erasure already revoked this capability.
+        // Reusing it would correctly return 404, which is not fresh proof of erasure.
+        const erased =
+          entry.erasedRegistrations.has(registration.registrationId) ||
+          (await clean('registration erasure', () =>
+            adapter.erase(registration.registrationId, registration.capability),
+          ));
         if (!erased) {
           // Erasure owns every additional capability minted by the worker. Its
           // inverse references must survive an API failure so a private retry
@@ -689,10 +799,17 @@ export async function runEmailAcceptance({
         ),
       );
   }
-  if (failedStage || cleanupFailures.length)
-    throw new Error(
+  if (failedStage || cleanupFailures.length) {
+    const failure = new Error(
       `Email acceptance failed at ${failedStage ?? 'cleanup'}; cleanup failures: ${cleanupFailures.join(', ') || 'none'}. Production infrastructure was preserved.`,
     );
+    // Only controlled labels survive; never retain exception bodies or messages.
+    failure.acceptanceScenario = failedStage ?? 'cleanup';
+    failure.acceptanceStep = failedStep ?? 'cleanup';
+    failure.acceptanceCategory = failedCategory ?? 'unknown';
+    failure.acceptanceCleanupFailures = cleanupFailures.length;
+    throw failure;
+  }
   return {
     results,
     cleanup: 'verified',

@@ -16,6 +16,8 @@ import { runEmailAcceptance } from './test-gallery-email-aws.mjs';
 import {
   acceptanceProviders,
   requireAcceptanceRecipients,
+  requireAcceptanceApiEndpoint,
+  acceptanceFailureDiagnostic,
 } from './lib/email-acceptance-harness.mjs';
 
 const env = process.env;
@@ -27,6 +29,7 @@ let outputs;
 let temporary;
 let failure;
 let summary;
+let stage = 'inputs';
 
 function command(executable, args, childEnv, input) {
   const result = spawnSync(executable, args, {
@@ -214,7 +217,7 @@ async function verifyOutputs(aws, values, credentials) {
   );
   assert.equal(api.Tags.Project, 'findly');
   assert.equal(api.Tags.Environment, 'production');
-  assert.equal(api.ApiEndpoint, value('api_endpoint'));
+  requireAcceptanceApiEndpoint(api.ApiEndpoint, value('api_endpoint'));
   assert.equal(api.Name, 'findly-production-api');
   const poolId = value('cognito_user_pool_id');
   assert.match(poolId, /^eu-west-1_[A-Za-z0-9]+$/);
@@ -269,15 +272,20 @@ try {
       'Missing trusted completed synthetic AWS evidence',
     );
   }
+  stage = 'deploy-credentials';
   const deploy = await assume(env.ROLE_ARN);
+  stage = 'readiness';
   command(
     'node',
     ['scripts/check-production-readiness.mjs'],
     credentialEnv(deploy),
   );
+  stage = 'outputs';
   outputs = await readOutputs(deploy);
   const deployAws = awsFor(deploy);
+  stage = 'output-ownership';
   await verifyOutputs(deployAws, outputs, deploy);
+  stage = 'organizer';
   organizer = `ses-acceptance-${runId}-${randomUUID()}`;
   const password = `${randomBytes(32).toString('base64url')}Aa1!`;
   organizerCreated = true;
@@ -300,9 +308,11 @@ try {
     })
   ).AuthenticationResult.IdToken;
   assert.equal(typeof jwt, 'string');
+  stage = 'operator-credentials';
   const operator = await assume(
     `arn:aws:iam::${env.FINDLY_AWS_ACCOUNT_ID}:role/findly-production-email-acceptance`,
   );
+  stage = 'scenarios';
   summary = await runEmailAcceptance({
     manifest,
     outputs,
@@ -318,10 +328,14 @@ try {
     confirmRecipientEvidence,
   });
   assert.equal(summary.cleanup, 'verified', 'Fixture cleanup not verified');
-} catch {
+} catch (cause) {
   failure = true;
   console.error(
-    'AWS email acceptance failed or remains pending; sensitive diagnostics are withheld.',
+    'Acceptance diagnostic:',
+    JSON.stringify(acceptanceFailureDiagnostic(cause)),
+  );
+  console.error(
+    `AWS email acceptance failed or remains pending at stage ${stage}; sensitive diagnostics are withheld.`,
   );
 } finally {
   if (organizerCreated && outputs) {
