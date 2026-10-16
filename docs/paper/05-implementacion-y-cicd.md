@@ -7,13 +7,17 @@ Este bootstrap no equivale al despliegue del stack ni a entregabilidad real;
 los resultados y pendientes constan en la evidencia de #98. La publicación
 de producción se separó del correo por autorización del 2026-10-05: la SPA y
 el backend pueden publicarse con envío deshabilitado; su activación explícita
-conserva los controles SES.
+conserva los controles SES. El despliegue OIDC 38781070488 del 2026-10-15
+habilitó el módulo de correo y publicó la SPA tras revisar un plan sin cambios
+de Cognito ni borrados. HTTPS y `/gallery` pasan; el detalle de aceptación se
+registra por separado en [la evidencia de #98](../evidence/issue-98-ses-production.md).
 Su rol de despliegue exige un límite de permisos en los roles de ejecución,
 separado de las políticas específicas de cada función. Los gates previos
 comprueban correo autenticado, acceso regional SES y certificado; el smoke
 HTTPS posterior es sólo una comprobación del origen y la ruta pública.
 La aceptación de correo usa un workflow independiente con manifiesto privado,
-operador OIDC de seis horas y limpieza de fixtures propias. Las pruebas locales
+permisos del operador OIDC limitados a seis horas, sesiones STS de una hora y
+limpieza de fixtures propias. Las pruebas locales
 validan su coordinación; feedback AWS y recepción/apertura siguen pendientes.
 La fase explícita `single-recipient` permite una verificación parcial con un
 solo buzón autorizado; la aceptación completa conserva dos proveedores.

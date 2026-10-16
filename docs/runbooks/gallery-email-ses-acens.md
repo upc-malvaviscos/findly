@@ -5,8 +5,10 @@
 Issue #86, ADR-019. Remitente: `Findly <info@findly.barcelona>` (nombre visible
 opcional); identidad regional `findly.barcelona` en eu-west-1;
 MAIL FROM `bounce.findly.barcelona`; DNS en Acens.
-Implementación preparada, configuración externa y recepción real pendientes.
-La compra del dominio no verifica SES ni activa acceso de producción.
+Producción habilitó el correo el 2026-10-15 mediante el despliegue OIDC
+38781070488, con SES fuera del sandbox e identidad, DKIM y MAIL FROM verificados.
+La aceptación de recuperación/feedback y la recepción real conservan sus
+criterios específicos en #98; la prueba de un buzón no completa dos proveedores.
 
 Este runbook no constituye autorización para crear recursos, modificar DNS o
 enviar correos. Revisar el plan y los permisos y obtener autorización para esas
@@ -145,6 +147,13 @@ POST con el mismo UUID para reparar el hueco entre persistencia y encolado.
   La lista regional SES es externa: revisar acceso y solicitudes de privacidad
   sin retirar supresión automáticamente y permitir nuevos envíos por accidente.
 
+El diagnóstico del worker conserva una excepción pública genérica y permite
+únicamente categorías SDK constantes en el log. Una ValidationException exige
+revisar las expresiones: atributos reservados como TTL necesitan un alias
+ExpressionAttributeNames, también dentro de ConditionCheck. No registrar el
+mensaje original ni reconstruir peticiones con datos personales para depurar.
+Corregir la causa y recuperar la misma operación conserva su idempotencia.
+
 ## Evidencia requerida para cerrar #86
 
 Probar autorización JWT real, cuotas, reintento/DLQ, rebote/queja y supresión con
@@ -221,3 +230,27 @@ El workflow suministra `TF_VAR_cognito_email_from_address` desde la variable
 production `FINDLY_EMAIL_FROM_ADDRESS` incluso cuando las galerías están
 desactivadas. El root exige ese parámetro y el gate rechaza un remitente vacío o
 ajeno al aprobado. No se escriben direcciones literales en los recursos IaC.
+
+## Última publicación comprobada — 2026-10-15
+
+La PR #133 habilitó el correo mediante el despliegue 38781070488. La
+corrección de las condiciones DynamoDB del worker, PR #137, está integrada
+con cinco checks correctos y publicada mediante el
+[despliegue 38808198446](https://github.com/upc-malvaviscos/findly/actions/runs/38808198446):
+cero altas, 17 actualizaciones de artefactos y cero borrados. HTTPS y
+`/gallery` pasan; Cognito conserva SES y la política reevaluada del matcher
+no necesita cambios. Las cuatro Lambdas, rutas JWT, consumidores SQS,
+feedback SES/SNS y alarmas están desplegados. Este estado sustituye la
+publicación sin correo del 5 de octubre; no acredita recepción ni apertura.
+Consultar [la evidencia operativa](../evidence/issue-98-ses-production.md)
+antes de repetir pruebas o marcar criterios.
+
+## Comprobación S3 con mínimo privilegio
+
+El rol temporal limita ListBucket a los prefijos de sus fixtures. Para verificar
+la existencia de una foto, el arnés consulta ListObjectsV2 con el prefijo de su
+clave exacta, MaxKeys 1 y propietario esperado, y compara la clave devuelta.
+No presupone que HeadObject de una clave inexistente devuelva siempre 404:
+sin permiso de listado aplicable puede devolver 403. No interpretar un error
+de permisos como ausencia ni ampliar el listado a otros datos. Conservar
+`IfNoneMatch` en la subida y las comprobaciones de ausencia al limpiar.

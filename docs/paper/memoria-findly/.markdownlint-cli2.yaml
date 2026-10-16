@@ -1,0 +1,8 @@
+config:
+  # memoria-postgrado.md es un único documento pandoc con varios
+  # "capítulos" de nivel H1 (numbersections los numera 1, 2, 3...) y
+  # subtítulos como "DynamoDB" que se repiten a propósito en capítulos
+  # distintos (p. ej. arquitectura y costes). Ambas reglas asumen un
+  # markdown de una sola sección por fichero y no encajan con ese formato.
+  MD025: false
+  MD024: false

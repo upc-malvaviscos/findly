@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 180" width="100%" height="100%">
+  <style>
+    .blue-fill { fill: #0066b3; }
+    .text-upc { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; fill: #0066b3; }
+    .text-barcelona { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; fill: #555555; }
+    .text-school { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: bold; fill: #0066b3; }
+  </style>
+
+  <!-- Círculo principal -->
+  <circle cx="90" cy="90" r="85" class="blue-fill" />
+
+  <!-- Matriz de puntos (3x3) -->
+  <g fill="#ffffff">
+    <!-- Fila 1 -->
+    <circle cx="60" cy="45" r="9" />
+    <circle cx="90" cy="45" r="9" />
+    <circle cx="120" cy="45" r="9" />
+    <!-- Fila 2 -->
+    <circle cx="60" cy="72" r="9" />
+    <circle cx="90" cy="72" r="9" />
+    <circle cx="120" cy="72" r="9" />
+    <!-- Fila 3 -->
+    <circle cx="60" cy="99" r="9" />
+    <circle cx="90" cy="99" r="9" />
+    <circle cx="120" cy="99" r="9" />
+  </g>
+
+  <!-- Texto UPC dentro del círculo -->
+  <text x="63" y="142" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#ffffff" letter-spacing="2">UPC</text>
+
+  <!-- Textos institucionales -->
+  <text x="210" y="38" class="text-upc" font-size="24" letter-spacing="1.5">UNIVERSITAT POLITÈCNICA DE CATALUNYA</text>
+  <text x="210" y="70" class="text-barcelona" font-size="22" letter-spacing="1">BARCELONATECH</text>
+
+  <!-- Línea divisoria -->
+  <line x1="210" y1="90" x2="900" y2="90" stroke="#0066b3" stroke-width="2" />
+
+  <!-- Subtítulo inferior -->
+  <text x="210" y="130" class="text-school" font-size="25" font-weight="bold">School of Professional &amp; Executive Development</text>
+</svg>

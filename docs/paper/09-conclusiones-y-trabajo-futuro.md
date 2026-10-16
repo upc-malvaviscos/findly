@@ -25,10 +25,10 @@ descarga autorizada y enlace compartido de galería (#88), incluida la
 descarga real con navegador contra S3 real en Chromium/Firefox. Además, la
 SPA y la API de **producción** (`www.findly.barcelona`) están desplegadas y
 son públicas desde el 2026-10-05, con identidad SES, DKIM y MAIL FROM
-verificados y certificado ACM emitido — con el envío de correo
-deshabilitado en la última publicación comprobada. El acceso de producción
-SES está concedido desde la comprobación del 2026-10-15; despliegue y pruebas
-de recepción siguen pendientes (#98, abierta).
+verificados y certificado ACM emitido. El acceso de producción SES se confirmó
+concedido el 2026-10-15 y el despliegue OIDC 38781070488 habilitó el correo,
+conservando Cognito con SES. La aceptación de recuperación, feedback y recepción
+sigue pendiente de sus resultados específicos (#98, abierta).
 
 ## Limitaciones verificadas
 
@@ -38,7 +38,7 @@ pendiente en la propia evidencia que demuestra el resto del sistema
 
 - **Correo de galería y de invitación administrativa sin confirmar en
   buzón real.** La SPA/API de producción están públicas, pero el envío de
-  correo de galería todavía requiere despliegue y aceptación AWS. SES ya
+  correo de galería está desplegado y requiere completar la aceptación AWS. SES ya
   permite destinatarios fuera del sandbox; esto no acredita recepción ni
   apertura en un buzón (issue #98). Por separado, la invitación de administradores por
   Cognito conserva desde la decisión del 2026-10-15 su configuración SES
@@ -106,8 +106,8 @@ se consideraba terminado.
 
 ## Trabajo futuro
 
-1. Completar el despliegue y la aceptación real del correo de galerías tras
-   la aprobación regional SES ya comprobada. Verificar recuperación, feedback
+1. Completar la aceptación real del correo de galerías tras
+   el despliegue y la aprobación regional SES ya comprobados. Verificar recuperación, feedback
    y recepción/apertura en al menos dos proveedores distintos; una prueba
    parcial autorizada con un solo buzón deja ese criterio pendiente
    (issue #98, seguimiento de #86).
@@ -124,6 +124,6 @@ se consideraba terminado.
 5. Cerrar #18 una vez #49/#86/#87/#89 estén resueltas y su alcance ampliado
    quede reflejado en esta memoria y en el runbook de demostración.
 6. Fuera del alcance de este MVP académico, y no planificado: revisión legal
-   formal de protección de datos, notificación transaccional por correo o
+   formal de protección de datos, campañas de marketing por correo o
    SMS a los asistentes, escalado más allá de un evento concurrente y
    operación en producción con soporte 24/7.

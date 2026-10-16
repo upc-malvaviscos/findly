@@ -17,7 +17,8 @@ ADR-003). Findly minimiza por diseño lo que persiste de una selfie:
   Registros anteriores sin email conservan galería/borrado por token y se
   omiten del envío. Los tokens adicionales se guardan sólo como hash, tienen
   referencias inversas durables y se revocan al borrar o purgar la inscripción.
-  La integración SES queda desactivada hasta configurar identidad/origen.
+  La integración SES queda desactivada por defecto; producción la habilitó
+  el 2026-10-15 tras comprobar identidad, origen y acceso regional.
   SES conserva supresión regional de rebotes/quejas; revisar su tratamiento
   de privacidad como almacén externo, sin copiar emails a estados de envío.
 

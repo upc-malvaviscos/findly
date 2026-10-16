@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 1100" width="1600" height="1100">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#1b3358"/>
+    <stop offset="1" stop-color="#4a78c2"/>
+  </linearGradient>
+  <g id="person">
+    <circle cx="0" cy="-20" r="27"/>
+    <path d="M -55 90 L -55 40 C -55 8 -30 0 0 0 C 30 0 55 8 55 40 L 55 90 Z"/>
+  </g>
+</defs>
+<rect width="1600" height="1100" fill="url(#bg)"/>
+<circle cx="703" cy="68" r="47" fill="white" opacity="0.14"/>
+<circle cx="138" cy="48" r="74" fill="white" opacity="0.14"/>
+<circle cx="232" cy="123" r="59" fill="white" opacity="0.07"/>
+<circle cx="1079" cy="84" r="24" fill="white" opacity="0.07"/>
+<circle cx="928" cy="137" r="26" fill="white" opacity="0.07"/>
+<circle cx="225" cy="171" r="49" fill="white" opacity="0.07"/>
+<circle cx="1198" cy="61" r="36" fill="white" opacity="0.14"/>
+<circle cx="1324" cy="179" r="25" fill="white" opacity="0.14"/>
+<circle cx="1239" cy="131" r="25" fill="white" opacity="0.07"/>
+<circle cx="135" cy="172" r="76" fill="white" opacity="0.07"/>
+<circle cx="633" cy="137" r="31" fill="white" opacity="0.14"/>
+<circle cx="281" cy="176" r="41" fill="white" opacity="0.14"/>
+<circle cx="1436" cy="76" r="28" fill="white" opacity="0.14"/>
+<circle cx="1209" cy="193" r="34" fill="white" opacity="0.1"/>
+<circle cx="239" cy="170" r="67" fill="white" opacity="0.07"/>
+<circle cx="1195" cy="45" r="61" fill="white" opacity="0.07"/>
+<rect x="110" y="250" width="380" height="600" rx="52" fill="white"/>
+<rect x="130" y="280" width="340" height="540" rx="34" fill="#eef3fb"/>
+<rect x="260.0" y="260" width="80" height="10" rx="5" fill="#c9d4e6"/>
+<clipPath id="screen"><rect x="130" y="280" width="340" height="540" rx="34"/></clipPath>
+<g clip-path="url(#screen)">
+<use xlink:href="#person" fill="#2b4c7e" transform="translate(300.0 650) scale(2.4)"/>
+</g>
+<path d="M 225.0 565.0 V 527.0 H 263.0 M 337.0 527.0 H 375.0 V 565.0 M 375.0 639.0 V 677.0 H 337.0 M 263.0 677.0 H 225.0 V 639.0" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="412" cy="342" r="32" fill="#22a06b" stroke="white" stroke-width="5"/><path d="M 398.56 343 L 408.8 352.88 L 426.72 331.76" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="565" cy="520" r="34" fill="none" stroke="white" stroke-width="12"/>
+<line x1="590" y1="545" x2="623" y2="578" stroke="white" stroke-width="14" stroke-linecap="round"/>
+<clipPath id="c0"><rect x="650" y="250" width="260" height="260" rx="28"/></clipPath>
+<rect x="650" y="250" width="260" height="260" rx="28" fill="#dbe7fb"/>
+<g clip-path="url(#c0)">
+<use xlink:href="#person" fill="#5b7db3" transform="translate(728 425) scale(0.95)"/>
+<use xlink:href="#person" fill="#4c9a74" opacity="0.9" transform="translate(840 445) scale(0.78)"/>
+</g>
+<clipPath id="c1"><rect x="940" y="250" width="260" height="260" rx="28"/></clipPath>
+<rect x="940" y="250" width="260" height="260" rx="28" fill="#fde7cf"/>
+<g clip-path="url(#c1)">
+<use xlink:href="#person" fill="#e08a3c" transform="translate(1018 425) scale(0.95)"/>
+<use xlink:href="#person" fill="#8a62b5" opacity="0.9" transform="translate(1130 445) scale(0.78)"/>
+</g>
+<path d="M 976.0 386.0 V 364.0 H 998.0 M 1038.0 364.0 H 1060.0 V 386.0 M 1060.0 426.0 V 448.0 H 1038.0 M 998.0 448.0 H 976.0 V 426.0" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1164" cy="286" r="26" fill="#22a06b" stroke="white" stroke-width="5"/><path d="M 1153.08 287 L 1161.4 294.84 L 1175.96 277.68" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<clipPath id="c2"><rect x="1230" y="250" width="260" height="260" rx="28"/></clipPath>
+<rect x="1230" y="250" width="260" height="260" rx="28" fill="#dff3e4"/>
+<g clip-path="url(#c2)">
+<use xlink:href="#person" fill="#4c9a74" transform="translate(1308 425) scale(0.95)"/>
+<use xlink:href="#person" fill="#c75a5a" opacity="0.9" transform="translate(1420 445) scale(0.78)"/>
+</g>
+<clipPath id="c3"><rect x="650" y="560" width="260" height="260" rx="28"/></clipPath>
+<rect x="650" y="560" width="260" height="260" rx="28" fill="#efe1f7"/>
+<g clip-path="url(#c3)">
+<use xlink:href="#person" fill="#8a62b5" transform="translate(728 735) scale(0.95)"/>
+<use xlink:href="#person" fill="#3f8fa6" opacity="0.9" transform="translate(840 755) scale(0.78)"/>
+</g>
+<path d="M 686.0 696.0 V 674.0 H 708.0 M 748.0 674.0 H 770.0 V 696.0 M 770.0 736.0 V 758.0 H 748.0 M 708.0 758.0 H 686.0 V 736.0" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="874" cy="596" r="26" fill="#22a06b" stroke="white" stroke-width="5"/><path d="M 863.08 597 L 871.4 604.84 L 885.96 587.68" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<clipPath id="c4"><rect x="940" y="560" width="260" height="260" rx="28"/></clipPath>
+<rect x="940" y="560" width="260" height="260" rx="28" fill="#fbe0e0"/>
+<g clip-path="url(#c4)">
+<use xlink:href="#person" fill="#c75a5a" transform="translate(1018 735) scale(0.95)"/>
+<use xlink:href="#person" fill="#5b7db3" opacity="0.9" transform="translate(1130 755) scale(0.78)"/>
+</g>
+<clipPath id="c5"><rect x="1230" y="560" width="260" height="260" rx="28"/></clipPath>
+<rect x="1230" y="560" width="260" height="260" rx="28" fill="#e0f1f5"/>
+<g clip-path="url(#c5)">
+<use xlink:href="#person" fill="#3f8fa6" transform="translate(1308 735) scale(0.95)"/>
+<use xlink:href="#person" fill="#e08a3c" opacity="0.9" transform="translate(1420 755) scale(0.78)"/>
+</g>
+<rect x="590" y="900" width="420" height="96" rx="48" fill="white" opacity="0.96"/>
+<rect x="644" y="946" width="48" height="38" rx="7" fill="#2b4c7e"/>
+<path d="M 654 946 V 934 a 14 14 0 0 1 28 0 V 946" fill="none" stroke="#2b4c7e" stroke-width="8" stroke-linecap="round"/>
+<circle cx="668" cy="965" r="5" fill="white"/>
+<line x1="800" y1="920" x2="800" y2="976" stroke="#c9d4e6" stroke-width="4"/>
+<circle cx="932" cy="948" r="30" fill="none" stroke="#2b4c7e" stroke-width="8"/>
+<path d="M 932 932 V 948 L 945 956" fill="none" stroke="#2b4c7e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

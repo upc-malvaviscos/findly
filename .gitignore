@@ -59,3 +59,10 @@ terraform.rc
 .env
 .env.*
 !.env.example
+
+# Entorno Python reproducible (make diagrams lo recrea)
+.venv/
+
+# Artefactos de build; se regeneran con `make pdf` / `make docx`
+memoria.pdf
+memoria.docx
