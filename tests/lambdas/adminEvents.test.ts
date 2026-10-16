@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureLogs } from './lib/logCapture';
 import {
+  BatchWriteCommand,
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
@@ -343,10 +344,20 @@ describe('listEventPhotos', () => {
 });
 
 describe('deleteEventPhoto', () => {
+  function batchDeletedKeys() {
+    return dynamoMock
+      .commandCalls(BatchWriteCommand)
+      .flatMap(
+        (call) => call.args[0].input.RequestItems?.['findly-local'] ?? [],
+      )
+      .map((request) => request.DeleteRequest?.Key);
+  }
+
   it('deletes both match items per affected registration, the photo and its object', async () => {
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ registrationId: 'reg-1' }, { registrationId: 'reg-2' }],
     });
+    dynamoMock.on(BatchWriteCommand).resolves({});
     dynamoMock.on(DeleteCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
     const result = await deleteEventPhoto({
@@ -357,9 +368,7 @@ describe('deleteEventPhoto', () => {
     expect(queryInput?.ExpressionAttributeValues).toEqual({
       ':pk': 'PHOTO#evt-1#photo-1',
     });
-    const deleteKeys = dynamoMock
-      .commandCalls(DeleteCommand)
-      .map((call) => call.args[0].input.Key);
+    const deleteKeys = batchDeletedKeys();
     expect(deleteKeys).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#photo-1' });
     expect(deleteKeys).toContainEqual({
       PK: 'PHOTO#evt-1#photo-1',
@@ -370,7 +379,10 @@ describe('deleteEventPhoto', () => {
       PK: 'PHOTO#evt-1#photo-1',
       SK: 'MATCH#reg-2',
     });
-    expect(deleteKeys).toContainEqual({
+    const photoDeleteKeys = dynamoMock
+      .commandCalls(DeleteCommand)
+      .map((call) => call.args[0].input.Key);
+    expect(photoDeleteKeys).toContainEqual({
       PK: 'EVENT#evt-1',
       SK: 'PHOTO#photo-1',
     });
@@ -382,12 +394,55 @@ describe('deleteEventPhoto', () => {
   });
   it('is idempotent when the photo object is already gone', async () => {
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(BatchWriteCommand).resolves({});
     dynamoMock.on(DeleteCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).rejects({ name: 'NoSuchKey' });
     const result = await deleteEventPhoto({
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
     });
     expect(result.statusCode).toBe(204);
+  });
+  it('batches a realistic match volume into chunks of 25 instead of one call per item', async () => {
+    const registrationIds = Array.from(
+      { length: 120 },
+      (_, index) => `reg-${index}`,
+    );
+    dynamoMock.on(QueryCommand).resolves({
+      Items: registrationIds.map((registrationId) => ({ registrationId })),
+    });
+    dynamoMock.on(BatchWriteCommand).resolves({});
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    const result = await deleteEventPhoto({
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    });
+    expect(result.statusCode).toBe(204);
+    // 120 registrations * 2 items (match + mirror) = 240 items / 25 per
+    // BatchWriteItem call = 10 calls, versus 240 individual DeleteCommand
+    // round-trips before this fix.
+    expect(dynamoMock.commandCalls(BatchWriteCommand)).toHaveLength(10);
+    expect(batchDeletedKeys()).toHaveLength(240);
+  });
+  it('retries any items DynamoDB leaves unprocessed in a batch', async () => {
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [{ registrationId: 'reg-1' }],
+    });
+    const mirrorKey = { PK: 'PHOTO#evt-1#photo-1', SK: 'MATCH#reg-1' };
+    dynamoMock
+      .on(BatchWriteCommand)
+      .resolvesOnce({
+        UnprocessedItems: {
+          'findly-local': [{ DeleteRequest: { Key: mirrorKey } }],
+        },
+      })
+      .resolves({});
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    const result = await deleteEventPhoto({
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    });
+    expect(result.statusCode).toBe(204);
+    expect(dynamoMock.commandCalls(BatchWriteCommand)).toHaveLength(2);
   });
 });
 
