@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-16",
+  "environment": "IAM policy simulator; not deployed runtime acceptance",
+  "accessAnalyzerFindings": 0,
+  "appliedVersion": "v2",
+  "previousVersionPreserved": "v1",
+  "cases": [
+    {
+      "case": "create_backfill",
+      "decision": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "case": "create_production_denied",
+      "decision": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "case": "create_untagged_denied",
+      "decision": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "case": "lifecycle_backfill",
+      "decision": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "case": "lifecycle_production_denied",
+      "decision": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "case": "alarm_backfill",
+      "decision": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "case": "alarm_production_denied",
+      "decision": "implicitDeny",
+      "expected": "implicitDeny"
+    }
+  ]
+}

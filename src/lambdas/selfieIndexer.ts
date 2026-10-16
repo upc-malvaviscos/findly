@@ -17,6 +17,7 @@ import {
   type RetentionLocatorEntity,
 } from '../shared/lib/retentionCleanup';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 import { registrationKey, faceGsi1Key } from '../shared/lib/dynamoKeys';
 import { eventCollectionId } from '../shared/lib/rekognitionCollections';
 import {
@@ -34,7 +35,28 @@ const options = {
 const db = DynamoDBDocumentClient.from(new DynamoDBClient(options));
 const rekognition = new RekognitionClient(options);
 const s3 = new S3Client({ ...options, forcePathStyle: Boolean(endpoint) });
+const sqs = new SQSClient(options);
 const tableName = process.env.FINDLY_TABLE_NAME ?? 'findly-local';
+
+// ADR-022/issue #87: trigger the backfill of matches against the event's
+// already-uploaded photos only after FaceId is persisted. Best-effort: a
+// failure here must not fail the ENROLLED transition itself, since new
+// uploads after this point still match normally through PhotoMatcher's own
+// S3 trigger. The queue is optional (Terraform wires it only when the
+// registration-backfill module is deployed for this environment).
+async function enqueueBackfill(
+  eventId: string,
+  registrationId: string,
+): Promise<void> {
+  const queueUrl = process.env.FINDLY_BACKFILL_QUEUE_URL;
+  if (!queueUrl) return;
+  await sqs.send(
+    new SendMessageCommand({
+      QueueUrl: queueUrl,
+      MessageBody: JSON.stringify({ eventId, registrationId }),
+    }),
+  );
+}
 type S3Record = {
   s3?: { bucket?: { name?: string }; object?: { key?: string } };
 };
@@ -305,6 +327,21 @@ async function processSelfies(
         }),
       );
       emitLog('INFO', 'selfie_indexed', correlationId, { eventId });
+      if (faceId) {
+        try {
+          await enqueueBackfill(eventId!, registrationId!);
+        } catch (enqueueError) {
+          emitLog(
+            'ERROR',
+            'registration_backfill_enqueue_failed',
+            correlationId,
+            {
+              eventId,
+              errorName: errorNameOf(enqueueError),
+            },
+          );
+        }
+      }
     } catch (error) {
       if (
         !faceId &&

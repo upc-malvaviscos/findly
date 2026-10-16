@@ -53,10 +53,16 @@ pendiente en la propia evidencia que demuestra el resto del sistema
 - **Decisión DynamoDB frente a RDS abierta.** La revisión del 2026-10-05 del
   [análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md) inventaría
   las 12 issues abiertas de su instantánea y sustituye los gaps históricos
-  ya resueltos. #87/#89 introducen incertidumbre material de convergencia,
-  acceso inverso foto→matches y borrado concurrente. Mantener la implementación
-  vigente mientras se decide no equivale a aprobar DynamoDB para todo el
-  backlog. Comparación medida, aprobación y ADR final siguen pendientes.
+  ya resueltos. [ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md)
+  (2026-10-12) confirmó DynamoDB para todo el backlog y fijó los contratos de
+  acceso de #87/#89; la incertidumbre de **diseño** de convergencia de #87 que
+  motivó ese ADR ya tiene evidencia AWS real
+  ([`issue-87-matching-convergence.md`](../evidence/issue-87-matching-convergence.md),
+  2026-10-14, capítulo 8). Mantener la implementación vigente mientras se
+  decide no equivale a aprobar DynamoDB para todo el backlog: el benchmark
+  de coste/capacidad propio de #49 (sección 7 de su análisis) sigue sin
+  ejecutarse, y es ese benchmark, no el ADR ni la evidencia de #87, el que
+  cierra #49.
 - **Administración de eventos/fotos bloqueada por un recurso externo, no
   por el código.** La PR #120 (issue #89: editar/borrar eventos, eliminar
   fotografías) tiene todos sus checks de código en verde, pero su entorno

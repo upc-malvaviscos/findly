@@ -40,3 +40,15 @@ variable "permissions_boundary_arn" {
   type        = string
   default     = null
 }
+
+variable "backfill_queue_arn" {
+  description = "Optional RegistrationBackfill queue ARN (issue #87/ADR-022); null skips the send-only grant and the post-ENROLLED trigger stays disabled."
+  type        = string
+  default     = null
+}
+
+variable "backfill_queue_url" {
+  description = "Optional RegistrationBackfill queue URL, injected as FINDLY_BACKFILL_QUEUE_URL when backfill_queue_arn is set."
+  type        = string
+  default     = null
+}

@@ -23,12 +23,16 @@ resource "aws_iam_role" "selfie" {
 }
 resource "aws_iam_role_policy" "selfie" {
   role = aws_iam_role.selfie.id
-  policy = jsonencode({ Version = "2012-10-17", Statement = [
+  policy = jsonencode({ Version = "2012-10-17", Statement = concat([
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.selfie.arn}:*" },
     { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:UpdateItem"], Resource = var.table_arn },
     { Effect = "Allow", Action = ["s3:GetObject", "s3:DeleteObject"], Resource = "${var.uploads_bucket_arn}/events/*/selfies/*" },
     { Effect = "Allow", Action = ["rekognition:ListFaces", "rekognition:CreateCollection", "rekognition:TagResource", "rekognition:IndexFaces", "rekognition:DeleteFaces"], Resource = "arn:aws:rekognition:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:collection/${local.prefix}-event-*" }
-  ] })
+    ], var.backfill_queue_arn == null ? [] : [
+    # Spec 21/ADR-022: trigger the post-ENROLLED backfill (issue #87) only
+    # after FaceId is persisted; the queue itself bounds this to send-only.
+    { Effect = "Allow", Action = "sqs:SendMessage", Resource = var.backfill_queue_arn }
+  ]) })
 }
 resource "aws_lambda_function" "selfie" {
   function_name    = "${local.prefix}-selfie-indexer"
@@ -40,7 +44,10 @@ resource "aws_lambda_function" "selfie" {
   filename         = var.lambda_artifact_path
   source_code_hash = filebase64sha256(var.lambda_artifact_path)
   environment {
-    variables = { FINDLY_COLLECTION_NAMESPACE = local.prefix, FINDLY_TABLE_NAME = var.table_name, FINDLY_PROJECT = var.project, FINDLY_ENVIRONMENT = var.environment, FINDLY_COST_CENTER = var.cost_center, FINDLY_DATA_CLASS = var.data_class }
+    variables = merge(
+      { FINDLY_COLLECTION_NAMESPACE = local.prefix, FINDLY_TABLE_NAME = var.table_name, FINDLY_PROJECT = var.project, FINDLY_ENVIRONMENT = var.environment, FINDLY_COST_CENTER = var.cost_center, FINDLY_DATA_CLASS = var.data_class },
+      var.backfill_queue_url == null ? {} : { FINDLY_BACKFILL_QUEUE_URL = var.backfill_queue_url },
+    )
   }
   depends_on = [aws_cloudwatch_log_group.selfie]
   tags       = local.tags

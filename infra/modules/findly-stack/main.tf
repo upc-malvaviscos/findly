@@ -168,6 +168,21 @@ module "public_enrollment" {
   cost_center                     = var.cost_center
   data_class                      = var.data_class
 }
+module "registration_backfill" {
+  permissions_boundary_arn = var.permissions_boundary_arn
+  source                   = "../registration-backfill"
+  table_name               = module.dynamodb.table_name
+  table_arn                = module.dynamodb.table_arn
+  uploads_bucket_name      = module.uploads_bucket.bucket_name
+  uploads_bucket_arn       = module.uploads_bucket.bucket_arn
+  lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/registrationBackfill.zip"
+  dlq_alarm_actions        = [module.monitoring.alerts_topic_arn]
+  project                  = var.project
+  environment              = var.environment
+  cost_center              = var.cost_center
+  data_class               = var.data_class
+}
+
 module "selfie_indexer" {
   permissions_boundary_arn = var.permissions_boundary_arn
   uploads_bucket_name      = module.uploads_bucket.bucket_name
@@ -176,6 +191,8 @@ module "selfie_indexer" {
   table_arn                = module.dynamodb.table_arn
   uploads_bucket_arn       = module.uploads_bucket.bucket_arn
   lambda_artifact_path     = "${path.module}/../../../artifacts/lambdas/selfieIndexer.zip"
+  backfill_queue_arn       = module.registration_backfill.queue_arn
+  backfill_queue_url       = module.registration_backfill.queue_url
   project                  = var.project
   environment              = var.environment
   cost_center              = var.cost_center

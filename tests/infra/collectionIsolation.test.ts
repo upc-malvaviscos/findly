@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('Rekognition namespace infrastructure boundary', () => {
-  it.each(['photo-matching', 'retention-purger', 'delete-registration'])(
+  it.each([
+    'photo-matching',
+    'retention-purger',
+    'delete-registration',
+    'registration-backfill',
+  ])(
     'restricts %s operations and runtime naming to its own environment',
     (name) => {
       const module = readFileSync(`infra/modules/${name}/main.tf`, 'utf8');
