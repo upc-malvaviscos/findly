@@ -96,7 +96,10 @@
         "cloudwatch:UntagResource",
         "cloudwatch:ListTagsForResource"
       ],
-      "Resource": "arn:aws:cloudwatch:eu-west-1:567158658992:alarm:findly-pr-*-photos-dlq-has-messages"
+      "Resource": [
+        "arn:aws:cloudwatch:eu-west-1:567158658992:alarm:findly-pr-*-photos-dlq-has-messages",
+        "arn:aws:cloudwatch:eu-west-1:567158658992:alarm:findly-pr-*-backfill-dlq-has-messages"
+      ]
     },
     {
       "Sid": "EphemeralBucketNotifications",
@@ -116,7 +119,10 @@
           "aws:RequestTag/Ephemeral": "true"
         },
         "ArnLike": {
-          "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-photo-matcher"
+          "lambda:FunctionArn": [
+            "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-photo-matcher",
+            "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-registration-backfill"
+          ]
         },
         "StringLike": {
           "aws:RequestTag/Environment": "pr-?*",
@@ -135,7 +141,10 @@
       "Resource": "arn:aws:lambda:eu-west-1:567158658992:event-source-mapping:*",
       "Condition": {
         "ArnLike": {
-          "lambda:FunctionArn": "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-photo-matcher"
+          "lambda:FunctionArn": [
+            "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-photo-matcher",
+            "arn:aws:lambda:eu-west-1:567158658992:function:findly-pr-*-registration-backfill"
+          ]
         }
       }
     },

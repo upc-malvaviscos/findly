@@ -198,6 +198,20 @@ module "public_enrollment" {
   cost_center                     = "findly-ci"
   data_class                      = "synthetic"
 }
+module "registration_backfill" {
+  source               = "../modules/registration-backfill"
+  table_name           = module.dynamodb.table_name
+  table_arn            = module.dynamodb.table_arn
+  uploads_bucket_name  = module.uploads_bucket.bucket_name
+  uploads_bucket_arn   = module.uploads_bucket.bucket_arn
+  lambda_artifact_path = "../../artifacts/lambdas/registrationBackfill.zip"
+  dlq_alarm_actions    = [module.monitoring.alerts_topic_arn]
+  project              = "findly"
+  environment          = local.environment
+  cost_center          = "findly-ci"
+  data_class           = "synthetic"
+}
+
 module "selfie_indexer" {
   uploads_bucket_name  = module.uploads_bucket.bucket_name
   source               = "../modules/selfie-indexer"
@@ -205,6 +219,8 @@ module "selfie_indexer" {
   table_arn            = module.dynamodb.table_arn
   uploads_bucket_arn   = module.uploads_bucket.bucket_arn
   lambda_artifact_path = "../../artifacts/lambdas/selfieIndexer.zip"
+  backfill_queue_arn   = module.registration_backfill.queue_arn
+  backfill_queue_url   = module.registration_backfill.queue_url
   project              = "findly"
   environment          = local.environment
   cost_center          = "findly-ci"

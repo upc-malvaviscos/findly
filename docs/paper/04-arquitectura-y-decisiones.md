@@ -55,6 +55,7 @@ flowchart LR
 | `publicEvents` / `publicEnrollment` | Descubrimiento de eventos, consentimiento, emisión de token y sondeo de estado. | ADR-011           |
 | `selfieIndexer`                     | Indexa el rostro en Rekognition tras el `PUT` condicional del selfie.           | ADR-011, ADR-014  |
 | `photoMatcher`                      | Matching asíncrono desacoplado por SQS/DLQ.                                     | ADR-006           |
+| `registrationBackfill`              | Tras `ENROLLED`, re-matchea fotos ya subidas (orden inverso, issue #87).        | ADR-022           |
 | `adminEvents`                       | Gestión de eventos y carga masiva de fotos (JWT de Cognito).                    | —                 |
 | `gallery` (GalleryReader)           | Resuelve la galería privada por token opaco.                                    | ADR-005           |
 | `deleteRegistration`                | Derecho al olvido: borra registro, coincidencias, token, selfie y `FaceId`.     | ADR-013           |
@@ -218,8 +219,10 @@ el capítulo 8 y en `docs/runbooks/issue-70-aws-review.md`.
 
 Los siguientes diagramas muestran el orden exacto de llamadas entre
 componentes para cada recorrido de negocio, no sólo qué servicios
-intervienen. Todos están verificados contra AWS real en el run de aceptación
-de PR #71 (capítulo 8), salvo el de purga, cuyo disparo real por
+intervienen. La mayoría están verificados contra AWS real en el run de
+aceptación de PR #71 (capítulo 8); el backfill de matching (issue #87) tiene
+su propio run de aceptación AWS real, independiente y posterior (2026-10-14,
+capítulo 8); el de purga es la única excepción, cuyo disparo real por
 `EventBridge Scheduler` sigue pendiente (capítulo 9).
 
 **Inscripción pública e indexación facial** (ADR-011 vigente, ADR-014 — no
@@ -292,6 +295,48 @@ concreta hasta 4 veces con espera creciente (200, 500, 1000, 2000 ms) antes de
 dejar que el error se propague al conteo de reintentos de SQS. El paso que
 falla (`index_faces`, `search_faces`, `write_match` o `delete_faces`) se
 registra en el log de error para diagnóstico, sin datos sensibles.
+
+**Backfill de matching en orden inverso** (issue #87, ADR-022, spec 21): el
+diagrama anterior cubre solo la foto subida _después_ de que la selfie ya
+esté `ENROLLED`. Para el orden contrario — foto ya subida, selfie inscrita
+más tarde — `selfieIndexer` encola un trabajo de backfill que reaplica el
+mismo núcleo de matching (`matchPhoto`, extraído a `src/lambdas/lib/matching.ts`
+para que ambos triggers llamen exactamente a la misma función) sobre las
+fotos ya existentes del evento:
+
+```mermaid
+sequenceDiagram
+    participant SI as Lambda selfieIndexer
+    participant QB as SQS backfill
+    participant RB as Lambda registrationBackfill
+    participant D as DynamoDB
+    participant R as Rekognition
+
+    SI->>D: UpdateItem condicional (ENROLLED + faceId)
+    SI->>QB: SendMessage { eventId, registrationId } (best-effort)
+    QB->>RB: Invoca
+    RB->>D: GetItem (revalida ENROLLED, sin erasureRequestedAt, ttl vigente)
+    RB->>D: Query PK=EVENT#{id}, SK begins_with PHOTO# (página de 25, sin Scan)
+    loop por cada foto de la página
+        RB->>R: matchPhoto (mismo núcleo que photoMatcher)
+        RB->>D: PutItem condicional (MATCH#, idempotente)
+    end
+    opt quedan más páginas
+        RB->>QB: SendMessage (continuación con cursor)
+    end
+```
+
+Ambos triggers —el disparo S3 normal y este backfill— convergen en la misma
+escritura condicional `attribute_not_exists(PK)` de `writeMatch`: un doble
+disparo sobre la misma foto cuesta una llamada Rekognition adicional, nunca
+un match duplicado. El run de aceptación AWS real de esta issue (capítulo 8)
+observó además que el disparo S3 falla su primer intento
+(`ResourceNotFoundException` en `IndexFaces`) cuando la foto se sube antes de
+que exista cualquier selfie `ENROLLED` del evento, porque solo
+`selfieIndexer` crea la colección Rekognition del evento, de forma perezosa;
+el backfill, que corre después de `ENROLLED`, sí la encuentra creada. El
+mensaje de backfill nunca registra `registrationId` en los logs
+estructurados, solo `eventId` y un contador de fotos.
 
 **Galería privada y derecho al olvido** (ADR-005, ADR-013):
 

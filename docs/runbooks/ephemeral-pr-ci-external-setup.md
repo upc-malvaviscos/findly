@@ -97,3 +97,7 @@ destroy` desde `infra/ephemeral`, pasando el número de PR y el account ID.
 Primero confirma que las etiquetas `Ephemeral=true` y `PullRequest=<numero>`
 coinciden. No borres manualmente estado, bucket de backend ni recursos de otro
 entorno.
+
+### Backfill de inscripciones (PR #129)
+
+El documento propuesto incorpora la función `findly-pr-*-registration-backfill` a las condiciones de creación y ciclo de vida de mappings SQS, y su alarma DLQ a la lista de alarmas permitidas. No añade acciones IAM ni elimina las condiciones de región y etiquetas. La conexión debe declarar etiquetas para enviar las condiciones de creación exigidas. La revisión de código no aplica esta política: validar, simular y publicar una versión en AWS requiere autorización operativa independiente y una comparación con la versión vigente.

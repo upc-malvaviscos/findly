@@ -516,6 +516,51 @@
       "documentation": ["specs/08-private-gallery-links-and-image-delivery.md"]
     },
     {
+      "id": "REQ-MATCHING-BOTH-ORDERS",
+      "description": "Matching convergente tras subir selfies o fotos en cualquier orden, con backfill post-ENROLLED sobre fotos existentes; verificado con unitarias y aceptación AWS efimera real de los tres órdenes de subida.",
+      "issues": [87],
+      "spec": "specs/21-matching-from-selfie-and-photo-uploads.md",
+      "implementation": [
+        "src/lambdas/lib/matching.ts",
+        "src/lambdas/photoMatcher.ts",
+        "src/lambdas/registrationBackfill.ts",
+        "src/lambdas/selfieIndexer.ts",
+        "infra/modules/registration-backfill/main.tf",
+        "infra/modules/selfie-indexer/main.tf"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/photoMatcher.test.ts",
+            "tests/lambdas/registrationBackfill.test.ts",
+            "tests/lambdas/selfieIndexer.test.ts",
+            "tests/lambdas/registrationBackfillMatching.test.ts"
+          ]
+        },
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/deployed-issue-87-acceptance.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-87-matching-convergence.md",
+          "environment": "unit"
+        },
+        {
+          "file": "docs/evidence/issue-87-matching-convergence.md",
+          "environment": "aws"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-022-confirm-dynamodb-persistence.md",
+        "specs/07-event-photo-ingestion-and-face-matching.md"
+      ]
+    },
+    {
       "id": "REQ-ADMIN-EVENT-PHOTO-LIFECYCLE",
       "description": "Edición y borrado administrativo de eventos y fotografías, reutilizando la limpieza compartida con retentionPurger.",
       "issues": [89],

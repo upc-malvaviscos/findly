@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-10-14T20:47:19.897Z",
+  "scenarios": {
+    "A_selfie_then_photo": {
+      "eventId": "evt-6a07d40ff6d3fe0d18f9f9c9",
+      "registrationId": "68b6dde1-840d-4055-b534-5e9c933d7633",
+      "photoId": "0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
+      "enrolledAfterMs": 10233,
+      "match": {
+        "SK": "MATCH#0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
+        "PK": "REG#68b6dde1-840d-4055-b534-5e9c933d7633",
+        "similarity": 100,
+        "eventId": "evt-6a07d40ff6d3fe0d18f9f9c9",
+        "matchedAt": "2026-10-14T20:47:33.668Z",
+        "ttl": 1792097243,
+        "photoId": "0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
+        "matchId": "9320a59e-06ba-42b4-8512-6eaba0999334",
+        "registrationId": "68b6dde1-840d-4055-b534-5e9c933d7633"
+      }
+    },
+    "B_photo_then_selfie": {
+      "eventId": "evt-2738843b780ff0540e28f586",
+      "registrationId": "4c3c015e-477e-4231-b277-2fae0ba1127b",
+      "photoId": "488cf94c-6c75-4aee-9d98-0a81acd74eb3",
+      "enrolledAfterMs": 5768,
+      "match": {
+        "photoId": "488cf94c-6c75-4aee-9d98-0a81acd74eb3",
+        "matchedAt": "2026-10-14T20:47:42.124Z",
+        "similarity": 100,
+        "matchId": "94e16d66-5226-4288-8474-79f5c94089c3",
+        "ttl": 1792097254,
+        "registrationId": "4c3c015e-477e-4231-b277-2fae0ba1127b",
+        "SK": "MATCH#488cf94c-6c75-4aee-9d98-0a81acd74eb3",
+        "PK": "REG#4c3c015e-477e-4231-b277-2fae0ba1127b",
+        "eventId": "evt-2738843b780ff0540e28f586"
+      },
+      "backfillLogSample": null,
+      "backfillLogsMentionRegistrationId": false
+    },
+    "C_concurrent": {
+      "eventId": "evt-2e7e8bb034726d819a7956b4",
+      "registrationId": "d5c20275-add3-49d1-944f-4dd70de37e42",
+      "photoId": "d98f2978-72f3-47f2-9e6c-df73ed14929e",
+      "startedAt": "2026-10-14T20:47:45.035Z",
+      "matchCount": 1,
+      "match": {
+        "similarity": 100,
+        "photoId": "d98f2978-72f3-47f2-9e6c-df73ed14929e",
+        "PK": "REG#d5c20275-add3-49d1-944f-4dd70de37e42",
+        "matchId": "58994686-ea6c-4cbc-b16f-fecbfe420223",
+        "eventId": "evt-2e7e8bb034726d819a7956b4",
+        "ttl": 1792097265,
+        "matchedAt": "2026-10-14T20:47:47.159Z",
+        "SK": "MATCH#d98f2978-72f3-47f2-9e6c-df73ed14929e",
+        "registrationId": "d5c20275-add3-49d1-944f-4dd70de37e42"
+      }
+    }
+  }
+}

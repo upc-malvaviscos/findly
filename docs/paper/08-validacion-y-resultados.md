@@ -189,6 +189,46 @@ sin repetir lo ya acreditado por PR #71:
   requieren su aceptación específica; la prueba de un buzón no acredita el
   criterio de dos proveedores.
 
+## Aceptación desplegada issue #87: matching convergente tras subir selfies o fotos
+
+Run de aceptación AWS real independiente, ejecutado el 2026-10-14 contra el
+entorno sandbox (`infra/environments/sandbox`, no el root efímero de PR) con
+`scripts/deployed-issue-87-acceptance.mjs` (nuevo), y destruido al terminar
+(117 recursos, estado remoto vacío, 5 colecciones Rekognition borradas
+explícitamente — no las gestiona Terraform). Detalle completo y logs citados
+en
+[`issue-87-matching-convergence.md`](../evidence/issue-87-matching-convergence.md).
+
+Demuestra, contra Rekognition/DynamoDB/SQS reales, los tres órdenes de
+subida de la issue #87:
+
+- **Selfie antes de foto**: `ENROLLED` en 10,2 s; coincidencia al 100 % de
+  similitud por el disparo S3 existente (spec 07), sin regresión.
+- **Foto antes de selfie**: foto subida primero; `ENROLLED` 5,8 s después de
+  la selfie; coincidencia al 100 % **sin volver a subir la fotografía** — la
+  produjo el backfill de la issue #87 (capítulo 4).
+- **Subidas simultáneas**: selfie y foto lanzadas en paralelo; 10 s después
+  de la primera coincidencia, sigue existiendo **exactamente una** —
+  convergencia sin intervención administrativa y sin duplicar, bajo una
+  carrera real entre los dos disparadores, no solo en el diseño.
+
+Un hallazgo real no anticipado en la spec: en los dos últimos escenarios, el
+disparo S3 normal falló su primer intento (`ResourceNotFoundException` en
+`IndexFaces`) porque la colección Rekognition del evento todavía no existía
+—solo `selfieIndexer` la crea, de forma perezosa, en la primera selfie—;
+quedó para reintento de SQS mientras el backfill, que corre después de
+`ENROLLED`, sí la encontró creada y matcheó con éxito. Confirma en AWS real,
+no solo en el diseño, que la condición idempotente `attribute_not_exists(PK)`
+de `writeMatch` es la única garantía de convergencia que hace falta.
+
+**Lo que este run no acredita**: "sin rostro / bajo umbral / otro evento",
+paginación con varias páginas reales y borrado _durante_ el matching (no
+solo después) siguen demostrados únicamente por las 626 pruebas unitarias
+del proyecto, no por este run. El benchmark de coste/capacidad que ADR-022
+exige para cerrar la issue #49 tampoco queda satisfecho — este run aporta una
+carrera real documentada, no esas medidas. La issue #87 permanece abierta
+hasta sincronizar este resultado en GitHub.
+
 ## Seguridad y gobierno de datos
 
 `docs/evidence/issue-70-verification-gates.md` registra la corrección del
@@ -245,6 +285,7 @@ fichero de `docs/evidence/` individual.
 | 20   | #98   | `issue-98-ses-production.md`                                                                          | Abierta (correo desplegado; aceptación/entregabilidad pendientes) |
 | 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                    |
 | —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Abierta (coordina fase 3)                                         |
+| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Abierta (AWS real de los 3 órdenes; #49 propio pendiente)         |
 
 La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md)
 distingue, issue por issue, qué criterios están respaldados por evidencia
