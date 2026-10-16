@@ -3,7 +3,7 @@
   "requirements": [
     {
       "id": "REQ-DATABASE-DECISION-INVENTORY",
-      "description": "Inventario de issues, comparación documental de persistencia y decisión de motor/contratos de acceso (ADR-022); el benchmark de convergencia de #87 queda pendiente antes de cerrar #49.",
+      "description": "Inventario de issues, comparación documental de persistencia y decisión de motor/contratos de acceso (ADR-022); benchmark real de fan-out/borrado concurrente ejecutado y documentado; #49 cerrada.",
       "issues": [49],
       "spec": "specs/02-domain-model-api-contracts-and-dynamodb-keys.md",
       "implementation": ["docs/evidence/issue-49-dynamodb-vs-rds-analysis.md"],
@@ -21,12 +21,21 @@
           "command": "sync:check",
           "environment": "static",
           "files": ["scripts/check-documentation-sync.mjs"]
+        },
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/deployed-issue-49-fanout-benchmark.mjs"]
         }
       ],
       "evidence": [
         {
           "file": "docs/evidence/issue-49-dynamodb-vs-rds-analysis.md",
           "environment": "static"
+        },
+        {
+          "file": "docs/evidence/issue-49-dynamodb-vs-rds-analysis.md",
+          "environment": "aws"
         }
       ],
       "documentation": [
