@@ -132,9 +132,10 @@ paso de reconciliación posterior: esta condición evita la escritura huérfana
 en origen, dentro de la misma transacción atómica que ya existía, sin coste
 de llamadas AWS adicionales ni cambio de contrato público. Verificado por
 unitarias (`tests/lambdas/photoMatcher.test.ts`,
-`tests/lambdas/registrationBackfillMatching.test.ts`); la repetición del
-escenario de carrera del benchmark de #49 contra AWS real queda pendiente
-(ver `docs/evidence/issue-89-admin-event-photo-lifecycle.md`).
+`tests/lambdas/registrationBackfillMatching.test.ts`) y, contra AWS real,
+repitiendo el escenario de carrera del benchmark de #49 con la corrección
+aplicada: el match y su ítem espejo ya no sobreviven (antes sí) — ver
+`docs/evidence/issue-89-admin-event-photo-lifecycle.md`.
 
 ## Qué no decide este ADR
 
