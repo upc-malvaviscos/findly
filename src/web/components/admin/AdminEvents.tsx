@@ -1,9 +1,20 @@
 import { GalleryEmailSender } from './GalleryEmailSender';
+import { EventPhotoManager } from './EventPhotoManager';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/auth';
 import { BulkPhotoUploader } from './BulkPhotoUploader';
-import { createAdminEvent, getAdminEvents } from '../../adminApi';
+import {
+  createAdminEvent,
+  deleteAdminEvent,
+  getAdminEvents,
+  updateAdminEvent,
+} from '../../adminApi';
 import type { AdminEvent } from '../../../shared/types/api';
+
+function toDatetimeLocal(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 16);
+}
 
 export function AdminEvents({ onLogout }: { onLogout: () => void }) {
   const { logout, session } = useAuth();
@@ -14,6 +25,31 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
   const [retentionDays, setRetentionDays] = useState(30);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const selectedEvent = events.find(
+    (event) => event.eventId === selectedEventId,
+  );
+  const [editName, setEditName] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editRetentionDays, setEditRetentionDays] = useState(30);
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  // Resets the edit form from the newly selected event during render
+  // (React's documented "adjusting state when a prop changes" pattern),
+  // not in an effect: the guard converges in the same render instead of
+  // cascading one.
+  const [syncedEventId, setSyncedEventId] = useState<string | null>(null);
+  if (selectedEvent && syncedEventId !== selectedEvent.eventId) {
+    setSyncedEventId(selectedEvent.eventId);
+    setEditName(selectedEvent.name);
+    setEditDate(toDatetimeLocal(selectedEvent.date));
+    setEditRetentionDays(selectedEvent.retentionDays);
+    setEditError('');
+  }
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (!session) return;
@@ -47,6 +83,54 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
       setError(
         'No se pudo crear el evento. Revisa los datos e inténtalo de nuevo.',
       );
+    }
+  }
+
+  async function onSaveEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!session || !selectedEvent) return;
+    setEditError('');
+    setEditSaving(true);
+    try {
+      const updated = await updateAdminEvent(
+        session.idToken,
+        selectedEvent.eventId,
+        {
+          name: editName,
+          date: new Date(editDate).toISOString(),
+          retentionDays: editRetentionDays,
+        },
+      );
+      setEvents((current) =>
+        current.map((candidate) =>
+          candidate.eventId === updated.eventId ? updated : candidate,
+        ),
+      );
+    } catch {
+      setEditError(
+        'No se pudo actualizar el evento. Revisa los datos e inténtalo de nuevo.',
+      );
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function onDeleteEvent() {
+    if (!session || !selectedEvent) return;
+    setDeleteError('');
+    setDeletingEvent(true);
+    try {
+      await deleteAdminEvent(session.idToken, selectedEvent.eventId);
+      const remaining = events.filter(
+        (event) => event.eventId !== selectedEvent.eventId,
+      );
+      setEvents(remaining);
+      setSelectedEventId(remaining[0]?.eventId ?? '');
+      setConfirmingDelete(false);
+    } catch {
+      setDeleteError('No se pudo eliminar el evento. Inténtalo de nuevo.');
+    } finally {
+      setDeletingEvent(false);
     }
   }
   return (
@@ -135,6 +219,58 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
         ) : !loading ? (
           <p>No hay eventos todavía. Crea el primero para subir fotografías.</p>
         ) : null}
+        {selectedEvent ? (
+          <section aria-labelledby="edit-event-title">
+            <h3 id="edit-event-title">Editar evento</h3>
+            <form
+              onSubmit={(event) => void onSaveEdit(event)}
+              className="admin-event-form"
+            >
+              <label className="field">
+                <span>Nuevo nombre</span>
+                <input
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Día y hora</span>
+                <input
+                  type="datetime-local"
+                  value={editDate}
+                  onChange={(event) => setEditDate(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Días de conservación</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={editRetentionDays}
+                  onChange={(event) =>
+                    setEditRetentionDays(Number(event.target.value))
+                  }
+                  required
+                />
+              </label>
+              {editError ? (
+                <p className="field-error" role="alert">
+                  {editError}
+                </p>
+              ) : null}
+              <button
+                className="button button-primary"
+                type="submit"
+                disabled={editSaving}
+              >
+                {editSaving ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </form>
+          </section>
+        ) : null}
         {selectedEventId ? (
           <>
             <GalleryEmailSender
@@ -146,6 +282,53 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
               eventId={selectedEventId}
               token={session?.idToken ?? ''}
             />
+            <EventPhotoManager
+              key={`photos-${selectedEventId}`}
+              eventId={selectedEventId}
+              token={session?.idToken ?? ''}
+            />
+            <section aria-labelledby="delete-event-title">
+              <h3 id="delete-event-title">Eliminar evento</h3>
+              <p>
+                Esta acción es <strong>irreversible</strong>: elimina fotos,
+                inscripciones, coincidencias, enlaces de galería y la colección
+                facial de este evento.
+              </p>
+              {deleteError ? (
+                <p className="field-error" role="alert">
+                  {deleteError}
+                </p>
+              ) : null}
+              {confirmingDelete ? (
+                <div>
+                  <p>¿Confirmas que quieres eliminar este evento?</p>
+                  <button
+                    type="button"
+                    className="button button-danger"
+                    disabled={deletingEvent}
+                    onClick={() => void onDeleteEvent()}
+                  >
+                    {deletingEvent ? 'Eliminando…' : 'Confirmar eliminación'}
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-quiet"
+                    disabled={deletingEvent}
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="button button-danger"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Eliminar evento
+                </button>
+              )}
+            </section>
           </>
         ) : null}
       </section>

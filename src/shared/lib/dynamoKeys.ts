@@ -36,6 +36,27 @@ export function registrationPartitionKey(registrationId: string): string {
   return `REG#${registrationId}`;
 }
 
+// ADR-022: mirror item for the photo->match reverse lookup, written in the
+// same transaction as matchKey so photo deletion can find every affected
+// registration without a Scan.
+export function matchMirrorKey(
+  eventId: string,
+  photoId: string,
+  registrationId: string,
+): PrimaryKey {
+  return {
+    PK: `PHOTO#${eventId}#${photoId}`,
+    SK: `MATCH#${registrationId}`,
+  };
+}
+
+export function photoMatchPartitionKey(
+  eventId: string,
+  photoId: string,
+): string {
+  return `PHOTO#${eventId}#${photoId}`;
+}
+
 export function galleryTokenKey(tokenHash: string): PrimaryKey {
   return { PK: `TOKEN#${tokenHash}`, SK: 'METADATA' };
 }

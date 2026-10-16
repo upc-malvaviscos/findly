@@ -6,8 +6,10 @@ import type {
   AdminEventsResponse,
   CreateAdminEventRequest,
   CreateAdminEventResponse,
+  EventPhotosResponse,
   PhotoUploadRequest,
   PhotoUploadResponse,
+  UpdateAdminEventRequest,
 } from '../shared/types/api';
 
 const mockEvents: AdminEvent[] = [];
@@ -46,6 +48,91 @@ export async function createAdminEvent(
     body: JSON.stringify(request),
     token,
   });
+}
+
+export async function updateAdminEvent(
+  token: string,
+  eventId: string,
+  request: UpdateAdminEventRequest,
+): Promise<AdminEvent> {
+  if (executionMode === 'mock') {
+    const existing = mockEvents.find((event) => event.eventId === eventId);
+    if (!existing) throw new Error('EVENT_NOT_FOUND');
+    const updated: AdminEvent = { ...existing, ...request };
+    mockEvents.splice(mockEvents.indexOf(existing), 1, updated);
+    return updated;
+  }
+  return apiClient(
+    apiUrl(
+      requiredApiBaseUrl(),
+      `/admin/events/${encodeURIComponent(eventId)}`,
+    ),
+    { method: 'PATCH', body: JSON.stringify(request), token },
+  );
+}
+
+export async function getEventPhotos(
+  token: string,
+  eventId: string,
+  cursor?: string,
+): Promise<EventPhotosResponse> {
+  if (executionMode === 'mock') return { photos: [] };
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return apiClient(
+    apiUrl(
+      requiredApiBaseUrl(),
+      `/admin/events/${encodeURIComponent(eventId)}/photos${query}`,
+    ),
+    { token },
+  );
+}
+
+async function deleteNoContent(
+  token: string,
+  path: string,
+  notFoundCode: string,
+): Promise<void> {
+  const response = await fetch(apiUrl(requiredApiBaseUrl(), path), {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (response.status === 204) return;
+  let payload: { code?: string } = {};
+  try {
+    payload = (await response.json()) as { code?: string };
+  } catch {
+    // Keep the public error stable when the upstream response is not JSON.
+  }
+  throw new Error(payload.code ?? notFoundCode);
+}
+
+export async function deleteEventPhoto(
+  token: string,
+  eventId: string,
+  photoId: string,
+): Promise<void> {
+  if (executionMode === 'mock') return;
+  await deleteNoContent(
+    token,
+    `/admin/events/${encodeURIComponent(eventId)}/photos/${encodeURIComponent(photoId)}`,
+    'ADMIN_NETWORK_ERROR',
+  );
+}
+
+export async function deleteAdminEvent(
+  token: string,
+  eventId: string,
+): Promise<void> {
+  if (executionMode === 'mock') {
+    const index = mockEvents.findIndex((event) => event.eventId === eventId);
+    if (index !== -1) mockEvents.splice(index, 1);
+    return;
+  }
+  await deleteNoContent(
+    token,
+    `/admin/events/${encodeURIComponent(eventId)}`,
+    'ADMIN_NETWORK_ERROR',
+  );
 }
 
 export async function requestPhotoUploads(

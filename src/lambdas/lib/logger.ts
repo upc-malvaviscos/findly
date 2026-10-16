@@ -23,6 +23,7 @@ export type LogFields = {
   purgedEvents?: number;
   matchesDeleted?: number;
   faceDeleted?: boolean;
+  cleanupComplete?: boolean;
   photoCount?: number;
   recordCount?: number;
   failedCount?: number;
@@ -55,6 +56,7 @@ const ALLOWED_FIELDS = [
   'purgedEvents',
   'matchesDeleted',
   'faceDeleted',
+  'cleanupComplete',
   'photoCount',
   'recordCount',
   'failedCount',

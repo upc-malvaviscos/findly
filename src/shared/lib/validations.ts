@@ -33,3 +33,13 @@ export const photoUploadRequestSchema = z.object({
     .min(1)
     .max(50),
 });
+
+export const updateAdminEventSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    date: z.string().datetime({ offset: true }).optional(),
+    retentionDays: z.number().int().min(1).max(365).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    error: 'At least one field must be provided.',
+  });
