@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 1100" width="1600" height="1100">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#16294a"/>
+    <stop offset="1" stop-color="#4a78c2"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#f59e0b" stop-opacity="0.45"/>
+    <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+  </radialGradient>
+  <g id="person">
+    <circle cx="0" cy="-12" r="15"/>
+    <path d="M -28 30 L -28 18 C -28 2 -14 -2 0 -2 C 14 -2 28 2 28 18 L 28 30 Z"/>
+  </g>
+</defs>
+<rect width="1600" height="1100" fill="url(#bg)"/>
+<circle cx="786.0" cy="494.0" r="260" fill="url(#glow)"/>
+<circle cx="786.0" cy="494.0" r="95" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.5"/>
+<circle cx="786.0" cy="494.0" r="150" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+<circle cx="786.0" cy="494.0" r="215" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.16"/>
+<rect x="400" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.149" stroke="white" stroke-opacity="0.426" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.426" transform="translate(450.0 276.0) scale(1.05)"/>
+<rect x="512" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.131" stroke="white" stroke-opacity="0.374" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.374" transform="translate(562.0 276.0) scale(1.05)"/>
+<rect x="624" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.123" stroke="white" stroke-opacity="0.353" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.353" transform="translate(674.0 276.0) scale(1.05)"/>
+<rect x="736" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.107" stroke="white" stroke-opacity="0.305" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.305" transform="translate(786.0 276.0) scale(1.05)"/>
+<rect x="848" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.103" stroke="white" stroke-opacity="0.294" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.294" transform="translate(898.0 276.0) scale(1.05)"/>
+<rect x="960" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.075" stroke="white" stroke-opacity="0.215" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.215" transform="translate(1010.0 276.0) scale(1.05)"/>
+<rect x="1072" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.073" stroke="white" stroke-opacity="0.209" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.209" transform="translate(1122.0 276.0) scale(1.05)"/>
+<rect x="1296" y="220.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.044" stroke="white" stroke-opacity="0.126" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.126" transform="translate(1346.0 276.0) scale(1.05)"/>
+<rect x="400" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.152" stroke="white" stroke-opacity="0.435" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.435" transform="translate(450.0 388.0) scale(1.05)"/>
+<rect x="512" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.107" stroke="white" stroke-opacity="0.306" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.306" transform="translate(562.0 388.0) scale(1.05)"/>
+<rect x="624" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.099" stroke="white" stroke-opacity="0.284" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.284" transform="translate(674.0 388.0) scale(1.05)"/>
+<rect x="736" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.096" stroke="white" stroke-opacity="0.275" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.275" transform="translate(786.0 388.0) scale(1.05)"/>
+<rect x="848" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.092" stroke="white" stroke-opacity="0.263" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.263" transform="translate(898.0 388.0) scale(1.05)"/>
+<rect x="960" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.089" stroke="white" stroke-opacity="0.255" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.255" transform="translate(1010.0 388.0) scale(1.05)"/>
+<rect x="1072" y="332.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.070" stroke="white" stroke-opacity="0.200" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.200" transform="translate(1122.0 388.0) scale(1.05)"/>
+<rect x="400" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.175" stroke="white" stroke-opacity="0.500" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.500" transform="translate(450.0 500.0) scale(1.05)"/>
+<rect x="624" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.129" stroke="white" stroke-opacity="0.368" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.368" transform="translate(674.0 500.0) scale(1.05)"/>
+<rect x="848" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.085" stroke="white" stroke-opacity="0.241" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.241" transform="translate(898.0 500.0) scale(1.05)"/>
+<rect x="960" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.069" stroke="white" stroke-opacity="0.197" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.197" transform="translate(1010.0 500.0) scale(1.05)"/>
+<rect x="1184" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.059" stroke="white" stroke-opacity="0.168" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.168" transform="translate(1234.0 500.0) scale(1.05)"/>
+<rect x="1296" y="444.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.044" stroke="white" stroke-opacity="0.126" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.126" transform="translate(1346.0 500.0) scale(1.05)"/>
+<rect x="400" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.129" stroke="white" stroke-opacity="0.367" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.367" transform="translate(450.0 612.0) scale(1.05)"/>
+<rect x="512" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.131" stroke="white" stroke-opacity="0.374" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.374" transform="translate(562.0 612.0) scale(1.05)"/>
+<rect x="736" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.090" stroke="white" stroke-opacity="0.256" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.256" transform="translate(786.0 612.0) scale(1.05)"/>
+<rect x="848" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.102" stroke="white" stroke-opacity="0.293" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.293" transform="translate(898.0 612.0) scale(1.05)"/>
+<rect x="960" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.069" stroke="white" stroke-opacity="0.199" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.199" transform="translate(1010.0 612.0) scale(1.05)"/>
+<rect x="1072" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.076" stroke="white" stroke-opacity="0.218" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.218" transform="translate(1122.0 612.0) scale(1.05)"/>
+<rect x="1296" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.039" stroke="white" stroke-opacity="0.113" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.113" transform="translate(1346.0 612.0) scale(1.05)"/>
+<rect x="1408" y="556.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.028" stroke="white" stroke-opacity="0.080" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.080" transform="translate(1458.0 612.0) scale(1.05)"/>
+<rect x="400" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.127" stroke="white" stroke-opacity="0.362" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.362" transform="translate(450.0 724.0) scale(1.05)"/>
+<rect x="512" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.130" stroke="white" stroke-opacity="0.371" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.371" transform="translate(562.0 724.0) scale(1.05)"/>
+<rect x="624" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.130" stroke="white" stroke-opacity="0.372" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.372" transform="translate(674.0 724.0) scale(1.05)"/>
+<rect x="736" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.112" stroke="white" stroke-opacity="0.320" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.320" transform="translate(786.0 724.0) scale(1.05)"/>
+<rect x="848" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.091" stroke="white" stroke-opacity="0.259" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.259" transform="translate(898.0 724.0) scale(1.05)"/>
+<rect x="960" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.074" stroke="white" stroke-opacity="0.212" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.212" transform="translate(1010.0 724.0) scale(1.05)"/>
+<rect x="1296" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.044" stroke="white" stroke-opacity="0.125" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.125" transform="translate(1346.0 724.0) scale(1.05)"/>
+<rect x="1408" y="668.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.028" stroke="white" stroke-opacity="0.080" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.080" transform="translate(1458.0 724.0) scale(1.05)"/>
+<rect x="400" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.154" stroke="white" stroke-opacity="0.440" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.440" transform="translate(450.0 836.0) scale(1.05)"/>
+<rect x="512" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.158" stroke="white" stroke-opacity="0.452" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.452" transform="translate(562.0 836.0) scale(1.05)"/>
+<rect x="624" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.108" stroke="white" stroke-opacity="0.310" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.310" transform="translate(674.0 836.0) scale(1.05)"/>
+<rect x="736" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.100" stroke="white" stroke-opacity="0.285" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.285" transform="translate(786.0 836.0) scale(1.05)"/>
+<rect x="848" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.079" stroke="white" stroke-opacity="0.227" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.227" transform="translate(898.0 836.0) scale(1.05)"/>
+<rect x="960" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.082" stroke="white" stroke-opacity="0.236" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.236" transform="translate(1010.0 836.0) scale(1.05)"/>
+<rect x="1072" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.069" stroke="white" stroke-opacity="0.198" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.198" transform="translate(1122.0 836.0) scale(1.05)"/>
+<rect x="1184" y="780.0" width="100" height="100" rx="20" fill="white" fill-opacity="0.054" stroke="white" stroke-opacity="0.153" stroke-width="2.5"/>
+<use xlink:href="#person" fill="white" fill-opacity="0.153" transform="translate(1234.0 836.0) scale(1.05)"/>
+<rect x="736" y="444.0" width="100" height="100" rx="20" fill="#f59e0b"/>
+<use xlink:href="#person" fill="white" transform="translate(786.0 500.0) scale(1.05)"/>
+<path d="M 719.0 453.0 V 427.0 H 745.0 M 827.0 427.0 H 853.0 V 453.0 M 853.0 535.0 V 561.0 H 827.0 M 745.0 561.0 H 719.0 V 535.0" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="842" cy="438.0" r="22" fill="#22a06b" stroke="white" stroke-width="4"/><path d="M 833 439.0 L 840 446.0 L 852 431.0" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="190" cy="494.0" r="100" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+<circle cx="190" cy="494.0" r="140" fill="none" stroke="#f59e0b" stroke-width="3" opacity="0.22"/>
+<circle cx="190" cy="494.0" r="64" fill="#f59e0b"/>
+<clipPath id="idclip"><circle cx="190" cy="494.0" r="64"/></clipPath>
+<g clip-path="url(#idclip)">
+<use xlink:href="#person" fill="white" transform="translate(190 502.0) scale(1.7)"/>
+</g>
+<line x1="260" y1="494.0" x2="714" y2="494.0" stroke="#f59e0b" stroke-width="5" stroke-dasharray="4 14" stroke-linecap="round"/>
+<circle cx="1216" cy="47" r="42" fill="white" opacity="0.05"/>
+<circle cx="1324" cy="49" r="37" fill="white" opacity="0.05"/>
+<circle cx="1290" cy="61" r="30" fill="white" opacity="0.05"/>
+<circle cx="1554" cy="110" r="53" fill="white" opacity="0.05"/>
+<circle cx="1446" cy="79" r="48" fill="white" opacity="0.05"/>
+<circle cx="903" cy="36" r="24" fill="white" opacity="0.05"/>
+<circle cx="119" cy="95" r="34" fill="white" opacity="0.05"/>
+<circle cx="1555" cy="120" r="43" fill="white" opacity="0.08"/>
+<circle cx="901" cy="106" r="49" fill="white" opacity="0.08"/>
+<circle cx="1105" cy="52" r="22" fill="white" opacity="0.05"/>
+</svg>

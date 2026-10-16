@@ -133,3 +133,9 @@ entornos conserva `COGNITO_DEFAULT` por defecto. Se mantienen plantilla
 estándar, usuarios, contraseña temporal y challenge; no se añaden invitaciones,
 SMS ni permisos. ADR-021 registra la actualización. La herramienta acepta sólo
 la configuración estándar o los valores SES exactos aprobados.
+
+El plan 38780832909 conservó el pool y su remitente. El
+[despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
+terminó SUCCESS y la lectura posterior confirmó Cognito `DEVELOPER` con la
+identidad regional y el remitente acordados. No se enviaron nuevas invitaciones;
+la recepción y primer acceso de #105 conservan su seguimiento independiente.

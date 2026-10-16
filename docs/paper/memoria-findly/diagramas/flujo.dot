@@ -1,0 +1,27 @@
+digraph flujo {
+  rankdir=TB;
+  bgcolor="white";
+  pad=0.4;
+  nodesep=0.6;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=15,
+        width=3.0, height=1.5, margin="0.25,0.18",
+        color="#2b4c7e", fillcolor="#eef3fb", penwidth=1.4];
+  edge [color="#2b4c7e", penwidth=1.8, arrowsize=1.0, fontname="Helvetica", fontsize=12];
+
+  p1 [label="1. Inscripción\n\nEl asistente acepta el\nconsentimiento biométrico\ny sube una selfie"];
+  p2 [label="2. Carga de fotos\n\nEl organizador (autenticado)\nsube las fotos del evento"];
+  p3 [label="3. Coincidencias\n\nFindly busca el rostro del\nasistente en las fotos"];
+  p4 [label="4. Galería privada\n\nEl asistente recibe un enlace\ntemporal a sus fotos"];
+  p5 [label="Retirada de datos\n\nBorrado automático al caducar\no a petición del asistente",
+      fillcolor="#fdf1e3", color="#b36b00"];
+
+  { rank=same; p1; p2; p3; }
+  { rank=same; p5; p4; }
+
+  p1 -> p2;
+  p2 -> p3;
+  p3 -> p4;
+  p5 -> p4 [dir=back, style=dashed, color="#b36b00", label="  caducidad"];
+}

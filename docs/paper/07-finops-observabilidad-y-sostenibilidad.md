@@ -58,8 +58,19 @@ una cuenta real. El desvío a la DLQ y la alarma sí están verificados en AWS
 real (capítulo 8), con entrega SNS real. La persona responsable decidió
 (2026-10-14) aceptar ese canal SNS ya acreditado como evidencia suficiente en
 vez de exigir observar el disparo propio del servicio Budgets, dado que
-forzarlo exige gasto real (descartado) o una cuenta persistente (inexistente).
+forzarlo exige gasto real adicional, descartado por el responsable.
 Detalle en `docs/evidence/issue-13-observability-finops.md`.
+
+### Correo desplegado y consumo persistente — 2026-10-15
+
+El correo manual añade consumo SES, Lambda, SQS y SNS, sin solicitar IP
+dedicadas ni complementos de entregabilidad. Las
+[tarifas de SES](https://aws.amazon.com/ses/pricing/) dependen del plan y del
+volumen. El modelo debe incluir también datos almacenados y horas de
+existencia de alarmas según las
+[tarifas de CloudWatch](https://aws.amazon.com/cloudwatch/pricing/): pueden
+generar consumo sin tráfico de usuarios, sujeto a la capa gratuita aplicable.
+Esta entrega no acredita una factura real ni un coste nulo en reposo.
 
 ### Principios FinOps aplicados, por spec de origen
 
@@ -67,14 +78,14 @@ Cada principio de coste de Findly viene de una spec explícita del Well-Architec
 Framework, no de una convención genérica; el capítulo 4 detalla dónde vive cada
 uno en el código:
 
-| Principio                                            | Spec de origen | Mecanismo                                                                          |
-| ---------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
-| Cero coste fijo por hora                             | 00, 11         | Sin RDS, EC2, NAT ni VPC dedicada (ADR-002); sólo servicios facturados por uso.    |
-| Facturación por petición, no por capacidad reservada | 02             | DynamoDB `PAY_PER_REQUEST`; Lambda por invocación y duración.                      |
-| Purga automática de datos que ya no aportan valor    | 02, 09         | TTL de DynamoDB + `retentionPurger` programado, no acumulación indefinida.         |
-| Retención de logs acotada                            | 12             | 14 días en cada grupo de CloudWatch Logs; sin retención infinita por omisión.      |
-| Aislamiento de coste por entorno efímero             | 15 (ADR-008)   | Cada PR crea y destruye su propio stack; nada queda facturando entre ejecuciones.  |
-| Alerta antes de exceder el presupuesto, no después   | 12             | AWS Budgets al 80 % del gasto real (pendiente de confirmación en AWS, ver arriba). |
+| Principio                                            | Spec de origen | Mecanismo                                                                                     |
+| ---------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------- |
+| Sin cómputo/red aprovisionados                       | 00, 11         | Sin RDS, EC2, NAT ni VPC dedicada (ADR-002); almacenamiento y alarmas se contabilizan aparte. |
+| Facturación por petición, no por capacidad reservada | 02             | DynamoDB `PAY_PER_REQUEST`; Lambda por invocación y duración.                                 |
+| Purga automática de datos que ya no aportan valor    | 02, 09         | TTL de DynamoDB + `retentionPurger` programado, no acumulación indefinida.                    |
+| Retención de logs acotada                            | 12             | 14 días en cada grupo de CloudWatch Logs; sin retención infinita por omisión.                 |
+| Aislamiento de coste por entorno efímero             | 15 (ADR-008)   | Cada PR crea y destruye su propio stack; nada queda facturando entre ejecuciones.             |
+| Alerta antes de exceder el presupuesto, no después   | 12             | AWS Budgets al 80 % del gasto real (pendiente de confirmación en AWS, ver arriba).            |
 
 ### Sostenibilidad
 

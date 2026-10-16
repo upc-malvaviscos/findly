@@ -198,8 +198,12 @@ tras verificar SES; el build recibe `VITE_GALLERY_EMAIL_ENABLED` con el mismo
 valor y oculta el control de envío cuando está deshabilitado.
 
 El módulo de correo se habilita por entorno con identidad SES verificada,
-remitente y origen HTTPS propio. Está desactivado por defecto; SES/DNS Acens y
-entregabilidad real quedan pendientes. Diseño aprobado en
+remitente y origen HTTPS propio. Está desactivado por defecto; en producción se
+habilitó el 2026-10-15 mediante el
+[despliegue OIDC 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488),
+tras verificar identidad, DKIM, MAIL FROM y acceso regional SES. La aceptación
+AWS y la recepción/apertura requieren su evidencia específica; una prueba
+parcial con un buzón no completa el requisito de dos proveedores. Diseño aprobado en
 [ADR-019](docs/adr/ADR-019-manual-gallery-email-capabilities.md), configuración en
 [runbook SES](docs/runbooks/gallery-email-ses-acens.md) y pruebas/pendientes en
 [evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 permanece

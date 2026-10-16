@@ -148,6 +148,71 @@ esta entrega: aquí sólo se documenta ese resultado ya ocurrido. No se ha
 aplicado ningún cambio a `docs/adr/` ni a la numeración de ADRs, que sigue sin
 resolver.
 
+## Actualización posterior: memoria unificada en PDF (`docs/paper/memoria-findly/`)
+
+Se añade un documento pandoc único, en lenguaje natural y sin
+referencias cruzadas a los ficheros de `docs/paper/00-11*.md`, pensado como
+la memoria/tesis final a entregar en el postgrado UPC. Se alimenta del
+contenido ya escrito en esos capítulos, de `docs/adr/` y de `docs/evidence/`,
+pero reescribe cada sección como prosa continua en vez de citar o enlazar el
+árbol interno de documentación del repositorio. No sustituye ni reestructura
+`docs/paper/00-11*.md`, que sigue siendo la fuente de verdad trazada por la
+spec 17 y por esta issue.
+
+Contenido:
+
+- `docs/paper/memoria-findly/memoria-postgrado.md` (renombrado desde
+  `proyecto-postgrado.md` por la persona responsable): documento único con
+  YAML de Pandoc (metadatos, numeración de secciones, `pandoc-crossref` para
+  figuras), siguiendo la estructura de capítulos de la plantilla aportada
+  por el equipo (Introducción, Cuentas AWS/GitOps, Implementación, Privacidad,
+  Costes y FinOps, Conclusiones, Referencias). Las referencias bibliográficas
+  reproducen las 24 entradas de `docs/paper/10-referencias.md`.
+- `docs/paper/memoria-findly/diagramas/arquitectura.py`: diagrama de
+  arquitectura con iconos oficiales de AWS, generado con la librería Python
+  `diagrams` (ya existente en el repositorio, sin cambios de contenido).
+- `docs/paper/memoria-findly/diagramas/flujo.dot`: diagrama de flujo de
+  usuario en Graphviz (ya existente, sin cambios de contenido).
+- `docs/paper/memoria-findly/img/upc-logo.svg` / `upc-logo.pdf`: logo oficial
+  de la UPC aportado por el equipo, convertido a PDF vectorial (`cairosvg`)
+  e incluido en la portada (`portada.tex`), porque XeLaTeX no admite SVG
+  directamente.
+- `docs/paper/memoria-findly/Makefile`, `requirements.txt`: pipeline
+  reproducible nuevo (`make diagrams`, `make pdf`, `make docx`), con el
+  entorno Python (`diagrams==0.25.1`, `cairosvg==2.9.1`) y las dependencias
+  de sistema (`graphviz`, `pandoc`, `pandoc-crossref`, `xelatex`)
+  documentadas. El `.gitignore` raíz del repositorio se amplió con `.venv/`
+  y los artefactos de build (`memoria.pdf`, `memoria.docx`), que no se
+  versionan; sólo se versionan las imágenes PNG/SVG/PDF generadas porque el
+  PDF final las necesita y no todo el mundo tendrá el toolchain instalado.
+- `docs/paper/memoria-findly/README.md`: guía de instalación y de uso
+  (pandoc/diagrams/Makefile) para que el equipo complete colaborativamente
+  la memoria con más imágenes, diagramas, evidencia y pruebas.
+- `docs/paper/memoria-findly/.markdownlint-cli2.yaml`: excepción local a
+  `MD025`/`MD024` (varios capítulos de nivel `#` en un único fichero
+  pandoc, con subtítulos como "DynamoDB" repetidos a propósito en capítulos
+  distintos); no cambia la configuración raíz de `markdownlint`.
+
+Validación:
+
+```text
+make diagrams   OK (arquitectura.png, flujo.png, portada.png, portada_abstracta.png, upc-logo.pdf)
+make pdf        OK — 18 páginas A4, sin warnings de xelatex
+npm run lint:markdown (repo completo, 124 ficheros)   PASS
+npm run sync:check                                     PASS
+```
+
+No se ejecutó `npm run test`, `npm run build` ni `npm run terraform:*`: esta
+entrega no toca código de aplicación ni infraestructura. El PDF resultante no
+se adjunta como evidencia binaria en `docs/evidence/`; se reproduce con
+`make diagrams && make pdf` sobre el commit de esta entrega.
+
+La sección "Equipo y roles" no asigna un rol individual a cada integrante:
+no hay un reparto de responsabilidades por disciplina documentado en el
+repositorio más allá de los cuatro nombres, y esta entrega no lo inventa. Si
+el equipo quiere detallarlo, es un ajuste de contenido pendiente, no una
+corrección de evidencia.
+
 ## Actualización posterior: cierres de #10/#11/#61/#13/#15/#22 y nuevas issues #88/#107/#125/#98 (2026-10-15)
 
 El bloqueador anterior (SPA `demo` publicada, dependiente de #15/#61) quedó
