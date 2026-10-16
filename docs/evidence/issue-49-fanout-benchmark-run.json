@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-10-16T18:13:57.351Z",
+  "scenarios": {
+    "A_fanout_100": {
+      "eventId": "evt-2d9d8f94b3f091d97bfcdf81",
+      "photoId": "a4633543-b67e-49ce-a647-39a9e3eeb2a6",
+      "matchCount": 100,
+      "deleteResponseStatus": 500,
+      "mirrorItemsBeforeDelete": 100,
+      "mirrorItemsAfterDelete": 100,
+      "sampledMatchKeysSurviving": 0,
+      "photoItemSurvives": true,
+      "deleteLatencyMs": 3809,
+      "error": "delete returned 500"
+    },
+    "A_fanout_1000": {
+      "eventId": "evt-f92b5ee392b92fc5d579fbb2",
+      "photoId": "562d1344-6d56-4201-af41-be1ff2355413",
+      "matchCount": 1000,
+      "deleteResponseStatus": 500,
+      "mirrorItemsBeforeDelete": 1000,
+      "mirrorItemsAfterDelete": 1000,
+      "sampledMatchKeysSurviving": 5,
+      "photoItemSurvives": true,
+      "deleteLatencyMs": 3535,
+      "error": "delete returned 500"
+    },
+    "B_delete_during_match_race": {
+      "eventId": "evt-3f119f421f78b4f829df74ad",
+      "registrationId": "4ebb1d22-7318-4303-96f1-6f5090c7508c",
+      "photoId": "99cc0425-1f28-494a-95fb-bab6ae2f09bb",
+      "deleteResponseStatus": 204,
+      "matchSurvived": false,
+      "mirrorSurvived": false,
+      "photoItemSurvived": false,
+      "photoMatcherLogSample": null
+    }
+  },
+  "failures": [
+    "Scenario A (100): delete returned 500",
+    "Scenario A (1000): delete returned 500"
+  ]
+}

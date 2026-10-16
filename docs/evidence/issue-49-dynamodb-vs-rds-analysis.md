@@ -3,8 +3,11 @@
 <!-- requirement: REQ-DATABASE-DECISION-INVENTORY -->
 
 Estado: **motor de persistencia y contratos de acceso decididos (ADR-022,
-2026-10-12); #49 sigue abierta hasta ejecutar y documentar el benchmark de
-convergencia/fan-out de la fila "Prototipos/benchmarks" de la sección 9.**
+2026-10-12); #87 y el ítem espejo de #89 ya están implementados; el
+benchmark de convergencia/fan-out que mantenía #49 abierta (sección 9) ya
+se ejecutó y está documentado en la sección 7 (2026-10-16). #49 puede
+cerrarse; el resto de #89 (edición de evento, UI, autorización de los
+nuevos endpoints) sigue como tarea propia de esa issue, no de ésta.**
 ADR-002 sigue vigente. ADR-019 mantiene DynamoDB únicamente para #86.
 [ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md) confirma DynamoDB
 para todo el backlog abierto por motivos técnicos independientes de la
@@ -18,8 +21,13 @@ independiente, con la prohibición de AGENTS.md sobre servicios de coste fijo
 proponía esta revisión en su sección 7 — mediría una diferencia que el
 diseño de ambos motores ya hace predecible. ADR-022 también fija los
 contratos de acceso de #87 (backfill tras ENROLLED) y #89 (ítem espejo
-foto→match). No cambia código, claves, índices, Terraform, IAM ni AWS; la
-implementación de #87/#89 sigue pendiente.
+foto→match); ambos están implementados y verificados con AWS real (PR #120,
+PR #129 y PR #139). El benchmark de fan-out (sección 7) confirma que el
+ítem espejo resuelve la integridad de datos, pero descubre un hallazgo
+operativo real para #89: `deleteEventPhoto` agota su timeout de Lambda
+(3 s) ya con 100 matches en una sola foto, dejando ítems huérfanos — un
+problema de implementación (timeout/algoritmo de borrado), no del motor
+elegido.
 
 ## 1. Fuentes, alcance e instantánea
 
@@ -221,47 +229,108 @@ completo. Esto justifica diseñar una prueba comparable, no autoriza recursos.
 | Cambios de fecha/retención con tokens y correo en cola.                          | Cumplir política de compatibilidad aprobada; no ampliar retención implícitamente.                                                                                       |
 | Ciclo efímero del candidato RDS.                                                 | Aprovisionar, migrar, probar y destruir; tiempos, coste y limpieza demostrados dentro de límites previamente acordados.                                                 |
 
-No se han ejecutado estos escenarios. Antes de recursos AWS nuevos deben
-aprobarse contratos, límites de coste/tiempo, permisos y limpieza. Una prueba
-PostgreSQL local puede comparar integridad/consultas, pero no prueba operación
-ni coste RDS. SES sigue requiriendo su aceptación específica de #98 cualquiera
-que sea la base elegida.
+### Resultado del benchmark real de fan-out y borrado concurrente (2026-10-16)
 
-## 8. Recomendación provisional y criterio de decisión
+Ejecutados el primer y el tercer escenario de la tabla anterior (ya con el
+ítem espejo de ADR-022 implementado) contra el sandbox real (cuenta
+`912415493378`), con `scripts/deployed-issue-49-fanout-benchmark.mjs`. Los
+escenarios de coste/migración de RDS y los de correo/retención no aplican:
+RDS quedó descartado por diseño en ADR-022, y correo/retención no cambian
+con el ítem espejo. Salida completa en
+[`docs/evidence/issue-49-fanout-benchmark-run.json`](issue-49-fanout-benchmark-run.json).
 
-Mantener la implementación actual mientras se resuelve #49 evita una migración
-sin evidencia; **no equivale a decidir DynamoDB para todo el backlog**.
+- **Fan-out a escala (100 y 1.000 matches en una sola foto):** se sembraron
+  directamente en DynamoDB los pares match+espejo (no vía Rekognition, que
+  habría exigido cientos/miles de inscripciones reales) y se llamó al
+  `DELETE /admin/events/{eventId}/photos/{photoId}` real. **Las dos
+  ejecuciones devolvieron `500` por timeout de Lambda**, confirmado en el
+  log real:
 
-El inventario no demuestra una necesidad de SQL para informes/personas globales.
-Sí aumenta el coste de diseño e integridad de DynamoDB en #87/#89. PostgreSQL
-puede simplificar especialmente el acceso inverso y las relaciones, a cambio
-de migración, conexiones, red y operación persistente.
+  ```text
+  REPORT RequestId: e8ac46ff-...  Duration: 3000.00 ms  Billed Duration: 3412 ms  Status: timeout
+  REPORT RequestId: 79fe52ee-...  Duration: 3000.00 ms  Billed Duration: 3000 ms  Status: timeout
+  ```
 
-Antes de elegir definitivamente:
+  `infra/modules/admin-api/main.tf` da a `delete_photo` un timeout de **3 s**
+  (frente a 60 s para `delete_event`), y `deleteEventPhoto`
+  (`src/lambdas/adminEvents.ts`) borra cada match y su espejo con dos
+  `DeleteCommand` individuales por inscripción dentro de un `Promise.all`,
+  no con `BatchWriteCommand`. Con 100 matches ya no da tiempo a completar
+  las ~200 escrituras de borrado: la consulta posterior mostró 100 ítems
+  espejo y la fila de la foto todavía presentes (huérfanos reales, no
+  hipotéticos), aunque una muestra de 5 claves de match sí se habían
+  borrado — confirma limpieza parcial, no atómica, ante el timeout.
 
-1. Acordar contratos de #87/#89 y edición/retención, con garantías precisas.
-2. Comparar diseños completos, incluida limpieza de datos existentes.
-3. Resolver la incertidumbre de fan-out/convergencia con evidencia sintética y
-   objetivos de volumen/latencia/coste acordados.
-4. Verificar factibilidad operativa/CI del candidato RDS si sigue siendo viable.
-5. Obtener decisión explícita; sólo entonces confirmar/sustituir ADR-002 y
-   crear el trabajo de implementación/migración correspondiente.
+- **Borrado real durante un match real en curso:** una inscripción
+  `ENROLLED` real, subida de foto real (dispara `photoMatcher.ts`) en
+  carrera (`Promise.all`) con el `DELETE` administrativo de esa misma foto.
+  El borrado devolvió `204` y, 20 s después, ni el match ni su espejo
+  existían — sin resurrección en este caso concreto. No se fuerza aquí la
+  ventana exacta entre `IndexFaces`/`SearchFaces` (ya completados) y
+  `writeMatch` (todavía no comprometido) sin modificar el código de
+  producción para instrumentarla; **`writeMatch` (`src/lambdas/lib/
+matching.ts`) solo valida el estado de la inscripción, nunca si la foto
+  sigue existiendo**, así que esa ventana más estrecha queda como riesgo de
+  diseño identificado, no descartado, para quien implemente el resto de
+  #89.
+
+**Conclusión del benchmark para #49:** el ítem espejo de ADR-022 resuelve la
+pregunta de _integridad de datos_ que motivaba la incertidumbre (fan-out
+foto→matches sin `Scan`, consulta por clave). El hallazgo real es
+_operativo_, no de motor: un timeout de 3 s y un patrón de borrado sin
+`BatchWriteCommand` no escalan más allá de ~100 matches por foto en el
+código actual. Una tabla PostgreSQL con el mismo patrón ingenuo (borrado
+fila a fila dentro de una función con el mismo timeout) tendría el mismo
+problema — no es un argumento a favor de RDS, es una corrección pendiente
+de implementación para #89 (subir el timeout de `delete_photo` y/o sustituir
+el borrado individual por `BatchWriteCommand`, igual que ya hace el
+sembrado de este mismo benchmark).
+
+No se ejecutó el escenario de borrado interrumpido con reentregas tardías
+tras expiración de REG (cuarta fila de la tabla): depende del resto de la
+implementación de #89 (edición/retención), fuera del alcance acotado de
+esta entrega. El ciclo efímero de RDS tampoco se ejecuta, por los motivos ya
+fijados en ADR-022. Antes de recursos AWS nuevos para esos escenarios deben
+aprobarse contratos, límites de coste/tiempo, permisos y limpieza. SES
+sigue requiriendo su aceptación específica de #98 cualquiera que sea la
+base elegida.
+
+## 8. Recomendación final
+
+DynamoDB se mantiene para todo el backlog abierto (ADR-022, 2026-10-12). Con
+el benchmark de la sección 7 ejecutado, **no queda incertidumbre material
+pendiente de resolver para cerrar #49**: la pregunta de integridad
+(fan-out/convergencia) tiene respuesta -- el ítem espejo la resuelve -- y el
+único hallazgo real (timeout de `delete_photo`) es una corrección de
+implementación para #89, no un argumento de motor. El inventario tampoco
+demuestra una necesidad de SQL para informes/personas globales.
+
+Queda para #89, no para #49:
+
+1. Subir el timeout de `delete_photo` y/o sustituir sus `DeleteCommand`
+   individuales por `BatchWriteCommand`, antes de confiar en ese endpoint
+   con eventos reales de más de ~100 matches por foto.
+2. Evaluar si `writeMatch` debe validar también que la foto sigue existiendo
+   (no solo la inscripción) para cerrar la ventana de diseño señalada en la
+   sección 7, o si alguna otra barrera ya acordada la cubre.
+3. El resto de su propio alcance: edición de evento, UI, autorización y
+   pruebas E2E -- sin relación con la elección de motor.
 
 No usar SES pendiente, un bug de refresco o la experiencia de otra aplicación
 como prueba a favor de una base. Tampoco usar CI verde del recorrido anterior
 como prueba de los contratos nuevos.
 
-## 9. Checklist de #49 y pendientes
+## 9. Checklist de #49 -- estado final
 
-| Criterio                                                             | Estado de esta entrega                                                                                                       |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Inventario completo y separación de requisitos/hipótesis             | Actualizado: 12 issues, secciones 1–2.                                                                                       |
-| Matriz de acceso/consistencia y estado trazado a código/tests/IaC    | Actualizada para lo confirmado; contratos de #87/#89 siguen abiertos.                                                        |
-| Alternativas, integridad, privacidad, red, migración, evolución y CI | RDS descartado por patrón de acceso/concurrencia y coste (ADR-022), no por benchmark; coincide con la política de AGENTS.md. |
-| Prototipos/benchmarks ante incertidumbre material                    | Pendiente solo el lado DynamoDB: fan-out/convergencia de #87 (escenarios de la sección 7). RDS ya no aplica.                 |
-| Recomendación con criterios sin cambiar implementación               | Motor y contratos de acceso decididos (ADR-022); no cambia código todavía.                                                   |
-| Responsable aprueba una opción explícita                             | Aprobado 2026-10-12: DynamoDB, ítem espejo (#89) y backfill tras ENROLLED (#87).                                             |
-| ADR e implementación/migración tras aprobación                       | ADR-022 registrado. Implementación de #87/#89 y benchmark de convergencia pendientes; #49 permanece abierta hasta entonces.  |
+| Criterio                                                             | Estado final                                                                                                                                                                    |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inventario completo y separación de requisitos/hipótesis             | Completo: 12 issues, secciones 1-2.                                                                                                                                             |
+| Matriz de acceso/consistencia y estado trazado a código/tests/IaC    | Completa; contratos de #87/#89 implementados y verificados con AWS real.                                                                                                        |
+| Alternativas, integridad, privacidad, red, migración, evolución y CI | RDS descartado por patrón de acceso/concurrencia y coste (ADR-022); coincide con la política de AGENTS.md.                                                                      |
+| Prototipos/benchmarks ante incertidumbre material                    | **Completo (2026-10-16)**: fan-out 100/1.000 y borrado-durante-match real, sección 7. RDS no aplica.                                                                            |
+| Recomendación con criterios sin cambiar implementación               | Motor y contratos de acceso decididos (ADR-022); el hallazgo de timeout queda para #89, no cambia esta decisión.                                                                |
+| Responsable aprueba una opción explícita                             | Aprobado 2026-10-12: DynamoDB, ítem espejo (#89) y backfill tras ENROLLED (#87).                                                                                                |
+| ADR e implementación/migración tras aprobación                       | ADR-022 registrado. #87 (PR #129/#139) y el ítem espejo de #89 (PR #120) implementados y verificados con AWS real. #49 cierra; el resto de #89 sigue abierto como issue propia. |
 
 ## 10. Referencias técnicas primarias
 
