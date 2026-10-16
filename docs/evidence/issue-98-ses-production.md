@@ -592,17 +592,42 @@ SENDING inyectado contabilizado como incierto sin nuevo envío. La ejecución
 continúa con el fallo controlado de cursor para probar DLQ/redrive. Estos
 resultados parciales no anticipan su conclusión, limpieza ni recepción real.
 
-### Resultado de la repetición y límite de verificación — 2026-10-16
+### Resolución de supresión y ejecución sintética — 2026-10-16
 
-La ejecución 38808775703 terminó FAILURE. El diagnóstico controlado indica
-escenario `suppression`, paso `scenario`, categoría `unknown` y un fallo de
-limpieza. El flujo alcanzó ese escenario tras los anteriores, pero no emitió
-un resultado global correcto. No se lanzó la fase del buzón autorizado ni
-se acredita recepción o apertura. No se presume la causa de la supresión ni
-qué recurso dejó el fallo de limpieza a partir de esas etiquetas.
+La ejecución 38808775703 falló en `suppression` porque `PutSuppressedDestination`
+de Amazon SES rechaza subaddressing (`+`). La PR #140 corrigió el formato en el
+manifiesto a `suppression-${runId}@simulator.amazonses.com` e incorporó
+`BadRequestException` a las categorías cerradas de diagnóstico.
 
-La revisión posterior no pudo consultar AWS con la sesión local disponible.
-La ausencia actual de residuos y la retirada de permisos temporales siguen
-sin verificarse; el fallo se mantiene explícito y #86/#98 permanecen abiertas.
-No deben renovarse o sustituirse los permisos de las fixtures sin comprobar
-primero la limpieza de la ejecución anterior.
+Tras regenerar el manifiesto privado y acotar la política IAM del rol de
+aceptación, la ejecución sintética [38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)
+completó con éxito los 9 escenarios contra AWS eu-west-1:
+
+- `api`: dos aceptados SES y protección ante reintentos del mismo UUID.
+- `accepted-recovery`: recuperación de estado aceptado inyectado.
+- `uncertain-recovery`: estado SENDING inyectado contabilizado como incierto sin reenvío.
+- `dlq`: mensaje dirigido al DLQ por cursor controlado.
+- `bounce`: simulación de rebote permanente procesada.
+- `complaint`: simulación de queja por abuso procesada.
+- `suppression`: destino suprimido omitido como skipped sin error SDK.
+- `expired`: token caducado omitido como skipped.
+- `erased`: participante con borrado previo omitido como skipped.
+- `cleanup`: verificación exhaustiva de DynamoDB y S3; cero residuos detectados.
+
+El marcador `FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC:38950320818` y las variables públicas
+`FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_RUN_ID` y `FINDLY_EMAIL_ACCEPTANCE_SYNTHETIC_STARTED_AT`
+fueron registrados en el entorno de producción y en la issue #98.
+
+### Verificación de buzón único autorizada — 2026-10-16
+
+La ejecución `single-recipient` [38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)
+acreditó la entrega transaccional en el buzón autorizado `info@findly.barcelona`:
+
+- Mensaje emitido por AWS SES y recibido en la bandeja de entrada (`inbox`).
+- Cabeceras de autenticación verificadas: `spf: pass`, `dkim: pass` (clave 2048 bits de findly.barcelona y clave 1024 bits de amazonses.com), `dmarc: pass` y `X-Spam-Status: No`.
+- Enlace HTTPS a la galería privada verificado y abierto sin errores.
+- Marcador registrado por actor autorizado en la issue #98:
+  `FINDLY_EMAIL_ACCEPTANCE_RECEIPT:38955016584:A {"dkim":"pass","dmarc":"pass","folder":"inbox","opened":true,"spf":"pass"}`
+- Limpieza completa y verificada de fixtures y del usuario organizador temporal en Cognito.
+
+Con esta evidencia, los criterios de implementación de la issue #86 quedan completados y cerrados. La issue #98 permanece abierta hasta completar la comprobación con el segundo proveedor externo de correo.
