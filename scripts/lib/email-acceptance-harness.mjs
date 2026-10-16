@@ -39,6 +39,7 @@ const diagnosticCategories = new Set([
   'TransactionCanceledException',
   'ValidationException',
   'InvalidParameterException',
+  'BadRequestException',
   'ResourceNotFoundException',
   'NotFoundException',
   'ThrottlingException',
