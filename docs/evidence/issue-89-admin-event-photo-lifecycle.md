@@ -203,23 +203,16 @@ statement IAM `FindAndDeleteMatchesAndPhoto` añade `dynamodb:BatchWriteItem`.
 Tests nuevos en `tests/lambdas/adminEvents.test.ts` cubren 120 inscripciones
 (10 llamadas `BatchWriteItem` de hasta 25 ítems cada una, frente a las 240
 llamadas `DeleteItem` individuales de antes) y el reintento de un ítem
-`UnprocessedItems`.
+`UnprocessedItems`. Fusionado a `main` vía PR #143.
 
-Validación local: `npm run verify` completo en verde (incluye
-`terraform:test:findly-stack`, que en esta máquina Darwin sí pasa — el
-hallazgo de incompatibilidad con `mock_provider` documentado arriba seguía
-siendo específico de la máquina Windows usada entonces), 689 pruebas
-lambda+web+infra.
+### Aceptación AWS real del timeout/lotes (sandbox `912415493378`, 2026-10-16)
 
-### Aceptación AWS real (sandbox `912415493378`, 2026-10-16)
-
-Se aplicó el stack
-completo del sandbox (`infra/environments/sandbox`, 87 recursos, sin RDS,
-EC2, NAT ni VPC) con los artefactos Lambda ya reconstruidos a partir de esta
-corrección, y se reutilizó (copiándolo, sin fusionar) el script de benchmark
-de la PR #141 (`scripts/deployed-issue-49-fanout-benchmark.mjs`, rama
-`feature/issue-49-fanout-benchmark`, ya rebasada sobre `main`) para repetir
-exactamente el escenario que encontró el `500`:
+Se aplicó el stack completo del sandbox (`infra/environments/sandbox`, 87
+recursos, sin RDS, EC2, NAT ni VPC) con los artefactos Lambda reconstruidos
+a partir de esta corrección, y se reutilizó (copiándolo, sin fusionar en su
+momento) el script de benchmark de la PR #141
+(`scripts/deployed-issue-49-fanout-benchmark.mjs`, ya en `main` tras su
+fusión) para repetir exactamente el escenario que encontró el `500`:
 
 - **Escenario A (100 matches)**: `DELETE /admin/events/{eventId}/photos/{photoId}`
   devolvió `204` en 2.019 ms. 100 ítems espejo antes, 0 después; 0 de la
@@ -229,40 +222,64 @@ exactamente el escenario que encontró el `500`:
 
 El timeout de 60 s y `BatchWriteCommand` **resuelven el `500` observado por
 el benchmark de #49** a ambas escalas, con margen amplio (2-3 s de 60
-disponibles). Evidencia cruda:
-[`issue-49-fanout-benchmark-run.json`](issue-49-fanout-benchmark-run.json)
-(generada por este run; no forma parte de esta PR — pertenece al linaje de
-la PR #141/issue #49 y no se comitea aquí).
+disponibles). Entorno destruido al terminar (145 recursos); comprobación
+independiente del estado remoto: serial 68, 0 instancias gestionadas.
 
-**Hallazgo nuevo, ya no es un riesgo teórico**: el mismo run ejecutó el
+**Hallazgo nuevo en ese mismo run, resuelto por una corrección separada**: el
 escenario B del script (una foto real subida mientras se borra, con un
-`matchPhoto` real en curso por Rekognition) y confirmó la carrera que el
-comentario de #49 en esta issue solo señalaba como riesgo de diseño sin
-confirmar: el borrado devolvió `204` y la fila de la foto no sobrevive, pero
-**el match y su ítem espejo sí sobreviven** — `writeMatch`
-(`src/lambdas/lib/matching.ts`) no comprueba que la foto siga existiendo
-antes de escribir un match tardío, y aquí se escribió uno para una foto ya
-borrada. Esta corrección (timeout + lotes) no lo soluciona porque es un
-problema distinto: una carrera de escritura, no de volumen/timeout.
+`matchPhoto` real en curso por Rekognition) confirmó una carrera que antes
+solo estaba señalada como riesgo de diseño sin verificar: el borrado
+devolvió `204` y la fila de la foto no sobrevive, pero **el match y su
+ítem espejo sí sobrevivían** — `writeMatch` (`src/lambdas/lib/matching.ts`)
+no comprobaba que la foto siguiera existiendo antes de escribir un match
+tardío. Esta corrección (timeout + lotes) no la resolvía por ser un problema
+distinto: una carrera de escritura, no de volumen/timeout. Corregida a
+continuación.
 
-Entorno destruido al terminar (`terraform destroy`, 145 recursos destruidos);
-comprobación independiente posterior del estado remoto: serial 68, 0
-instancias gestionadas. Sin despliegue permanente.
+## Corrección de la carrera `writeMatch` vs. borrado/expiración de foto (2026-10-16)
+
+Corrección: se añadió un cuarto `ConditionCheck` a la `TransactWriteCommand`
+de `writeMatch`, sobre `photoKey(eventId, photoId)` con
+`attribute_exists(PK)`. Un fallo de esta condición cae en el mismo camino de
+descarte silencioso que ya existía para una inscripción no elegible
+(`TransactionCanceledException`/`ConditionalCheckFailed`), así que no añade
+lógica de error nueva. Cubre tanto el borrado explícito (#89) como la
+expiración natural por `ttl` de la foto. Detalle de diseño y alternativas
+descartadas en la nueva adenda de
+[ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md#adenda-2026-10-16-writematch-condiciona-la-escritura-a-que-la-foto-exista).
+
+Validación local: pruebas nuevas/actualizadas en
+`tests/lambdas/photoMatcher.test.ts` y
+`tests/lambdas/registrationBackfillMatching.test.ts`, `npm run verify`
+completo en verde.
+
+### Aceptación AWS real de la carrera `writeMatch` (sandbox `912415493378`, 2026-10-16)
+
+Con esta corrección aplicada (pero sin la de timeout/lotes, en una rama
+derivada de `main` independiente de la PR #143 todavía sin fusionar), se
+repitió el escenario B: `DELETE` devolvió `204` y **ni el match ni su ítem
+espejo sobrevivieron** (antes sí). El mismo run reprodujo el `500` del
+escenario A — esperado, por la ausencia del fix de timeout/lotes en esa
+rama, no una regresión de esta corrección. Entorno destruido al terminar
+(145 recursos); comprobación independiente del estado remoto: serial 83,
+0 instancias gestionadas.
+
+### Aceptación AWS real combinada (ambas correcciones, sandbox `912415493378`)
+
+Con la PR #143 ya fusionada a `main`, se repitió el ciclo
+apply→benchmark→destroy una vez más desde una rama que ya incluye ambas
+correcciones, para confirmar que el escenario A también queda resuelto
+junto con el B en el mismo despliegue:
+
+- **Pendiente de completar en esta sesión** — resultado real a añadir aquí
+  tras ejecutar el benchmark.
 
 ## Pendiente
 
-- Investigar y decidir la mitigación de la carrera confirmada en
-  `writeMatch` (`src/lambdas/lib/matching.ts`): no comprueba que la foto
-  siga existiendo antes de escribir un match tardío, y un borrado
-  concurrente con el procesamiento de una foto real deja un match/espejo
-  huérfano de una foto ya borrada. Requiere decisión de diseño (por ejemplo,
-  condicionar la escritura a la existencia de la foto, o una purga
-  posterior) antes de implementar.
 - Aceptación desplegada en AWS (o Floci) de las cuatro rutas nuevas en su
   conjunto (edición de evento, listado de fotos, JWT/autorización
-  específica de las cuatro rutas): esta sesión solo repitió el escenario de
-  borrado de foto del benchmark de #49, no el resto de criterios `[ ]` de
-  la spec 23.
+  específica de las cuatro rutas): esta sesión solo repitió escenarios del
+  benchmark de #49, no el resto de criterios `[ ]` de la spec 23.
 - Backfill del ítem espejo de ADR-022 para datos anteriores a su
   introducción: diferido, documentado en ADR-023, sin entorno persistente
   real que lo necesite todavía.

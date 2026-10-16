@@ -67,7 +67,7 @@ it('writes the gallery match and photo deletion index atomically through the rea
   const writes = dynamoMock.commandCalls(TransactWriteCommand);
   expect(writes).toHaveLength(1);
   const transaction = writes[0]?.args[0].input.TransactItems;
-  expect(transaction).toHaveLength(3);
+  expect(transaction).toHaveLength(4);
   expect(transaction?.[0]?.ConditionCheck?.Key).toEqual({
     PK: 'EVENT#demo',
     SK: `REG#${registrationId}`,
@@ -90,4 +90,10 @@ it('writes the gallery match and photo deletion index atomically through the rea
   expect(transaction?.[2]?.Put?.ConditionExpression).toBe(
     'attribute_not_exists(PK)',
   );
+  // #89: guards against this backfill match surviving the photo's own
+  // deletion or TTL expiry.
+  expect(transaction?.[3]?.ConditionCheck).toMatchObject({
+    Key: { PK: 'EVENT#demo', SK: 'PHOTO#photo-1' },
+    ConditionExpression: 'attribute_exists(PK)',
+  });
 });

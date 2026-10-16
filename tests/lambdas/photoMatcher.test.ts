@@ -143,6 +143,14 @@ describe('photoMatcher', () => {
     expect(
       putCalls[0]?.args[0].input.TransactItems?.[2]?.Put?.ConditionExpression,
     ).toBe('attribute_not_exists(PK)');
+    // Guards against a late match write surviving the photo's own deletion
+    // or TTL expiry (#89).
+    expect(
+      putCalls[0]?.args[0].input.TransactItems?.[3]?.ConditionCheck,
+    ).toMatchObject({
+      Key: { PK: 'EVENT#demo-2026', SK: 'PHOTO#photo-1' },
+      ConditionExpression: 'attribute_exists(PK)',
+    });
 
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);
     expect(deleteCalls).toHaveLength(1);
@@ -358,6 +366,45 @@ describe('photoMatcher', () => {
       CancellationReasons: [
         { Code: 'ConditionalCheckFailed' },
         { Code: 'None' },
+      ],
+    });
+    dynamoMock.on(TransactWriteCommand).rejects(conditionalError);
+
+    const result = await photoMatcher({
+      Records: [sqsRecord('msg-1', 'photo-1')],
+    });
+
+    expect(result.batchItemFailures).toEqual([]);
+  });
+
+  it('does not write a match for a photo deleted or expired before indexing finished', async () => {
+    rekognitionMock.on(IndexFacesCommand).resolves({
+      FaceRecords: [{ Face: { FaceId: 'detected-face-1' } }],
+    });
+    rekognitionMock.on(SearchFacesCommand).resolves({
+      FaceMatches: [{ Face: { FaceId: 'enrolled-face-1' }, Similarity: 98 }],
+    });
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [
+        {
+          GSI1SK: 'REG#reg-1',
+          eventId: 'demo-2026',
+          status: 'ENROLLED',
+          ttl: 4102444800,
+        },
+      ],
+    });
+    // Only the photo's own ConditionCheck (the 4th TransactItem) fails,
+    // simulating deleteEventPhoto (#89) or TTL removing the row while this
+    // photo's match was still being resolved.
+    const conditionalError = new Error('conditional check failed');
+    conditionalError.name = 'TransactionCanceledException';
+    Object.assign(conditionalError, {
+      CancellationReasons: [
+        { Code: 'None' },
+        { Code: 'None' },
+        { Code: 'None' },
+        { Code: 'ConditionalCheckFailed' },
       ],
     });
     dynamoMock.on(TransactWriteCommand).rejects(conditionalError);
