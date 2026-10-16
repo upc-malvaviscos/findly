@@ -127,8 +127,8 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
   real — ver la adenda de
   [ADR-022](../docs/adr/ADR-022-confirm-dynamodb-persistence.md#adenda-2026-10-16-writematch-condiciona-la-escritura-a-que-la-foto-exista)
   y `docs/evidence/issue-89-admin-event-photo-lifecycle.md`. Verificado por
-  unitarias; la repetición de ese escenario contra AWS real con la
-  corrección aplicada queda pendiente.
+  unitarias y, contra AWS real, repitiendo ese mismo escenario de carrera
+  con la corrección aplicada: el match y su ítem espejo ya no sobreviven.
 
 ### `DELETE /admin/events/{eventId}` (borrar evento completo)
 
