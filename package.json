@@ -76,7 +76,7 @@
     "@types/node": "26.5.1",
     "@types/react": "19.2.8",
     "@types/react-dom": "19.2.3",
-    "@vitest/coverage-v8": "5.0.1",
+    "@vitest/coverage-v8": "5.0.5",
     "aws-sdk-client-mock": "4.1.0",
     "esbuild": "0.28.2",
     "eslint": "10.11.0",
@@ -91,6 +91,6 @@
     "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
-    "vitest": "5.0.1"
+    "vitest": "5.0.5"
   }
 }
