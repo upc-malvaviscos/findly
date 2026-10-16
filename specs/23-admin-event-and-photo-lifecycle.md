@@ -194,9 +194,15 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
       real ni el endpoint público desplegado.)_
 - [ ] Listado paginado de fotos y eliminación de una foto confirmada, con
       limpieza de ambos ítems de match por cada registro afectado.
-      _(Unitaria; sin AWS real.)_
+      _(Eliminación y limpieza de match/espejo confirmadas contra AWS real a
+      escala — 100 y 1.000 matches, `docs/evidence/issue-89-admin-event-photo-lifecycle.md`,
+      2026-10-16, tras corregir el timeout de `delete_photo` y el borrado
+      individual que el benchmark de #49 encontró; el listado paginado en sí
+      sigue sin probarse contra AWS real.)_
 - [ ] Foto ausente en S3/metadatos y en la galería de todos los participantes
-      afectados tras su borrado. _(Requiere AWS real o Floci; no ejecutado.)_
+      afectados tras su borrado. _(Metadatos DynamoDB confirmados ausentes
+      contra AWS real a escala (ver arriba); objeto S3 y endpoint de galería
+      pública no verificados en ese mismo run.)_
 - [ ] Evento borrado: nuevas inscripciones/subidas rechazadas de inmediato;
       objetos S3, registros, coincidencias, tokens y colección limpios al
       terminar la petición síncrona. _(Lógica unitaria verificada contra la

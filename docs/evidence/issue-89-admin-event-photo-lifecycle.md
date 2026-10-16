@@ -178,10 +178,91 @@ verify`, para aislar el fallo exclusivamente al último. No se ejecuta
 esta entrega no modifica un flujo E2E existente y no se ha desplegado ningún
 entorno AWS/Floci para validarla.
 
+## Corrección posterior: timeout y borrado por lotes en `deleteEventPhoto` (2026-10-16)
+
+El benchmark de #49 (PR #141, comentario del 2026-10-16 en la issue #89)
+sembró 100 y 1.000 pares match+ítem-espejo para una sola foto y llamó al
+`DELETE /admin/events/{eventId}/photos/{photoId}` real contra el sandbox AWS:
+ambos casos devolvieron `500` por timeout, confirmados por log de CloudWatch
+y por consulta posterior que mostró ítems espejo huérfanos y la fila de la
+foto sobreviviendo al borrado.
+
+Causa doble, corregida aquí:
+
+- `infra/modules/admin-api/main.tf` daba a `delete_photo` un timeout de 3 s
+  frente a los 60 s de `delete_event`, insuficiente para las ~200 escrituras
+  de borrado que ya exige un solo centenar de matches.
+- `deleteEventPhoto` (`src/lambdas/adminEvents.ts`) borraba cada match y su
+  ítem espejo con dos `DeleteCommand` individuales por inscripción dentro de
+  un `Promise.all`, en vez de agruparlos.
+
+Corrección: `delete_photo` pasa a 60 s (igual que `delete_event`); el nuevo
+`batchDeleteItems` agrupa las claves de match+espejo en lotes de 25 con
+`BatchWriteCommand`, reintentando `UnprocessedItems` hasta vaciarlos, y el
+statement IAM `FindAndDeleteMatchesAndPhoto` añade `dynamodb:BatchWriteItem`.
+Tests nuevos en `tests/lambdas/adminEvents.test.ts` cubren 120 inscripciones
+(10 llamadas `BatchWriteItem` de hasta 25 ítems cada una, frente a las 240
+llamadas `DeleteItem` individuales de antes) y el reintento de un ítem
+`UnprocessedItems`.
+
+Validación local: `npm run verify` completo en verde (incluye
+`terraform:test:findly-stack`, que en esta máquina Darwin sí pasa — el
+hallazgo de incompatibilidad con `mock_provider` documentado arriba seguía
+siendo específico de la máquina Windows usada entonces), 689 pruebas
+lambda+web+infra.
+
+### Aceptación AWS real (sandbox `912415493378`, 2026-10-16)
+
+Se aplicó el stack
+completo del sandbox (`infra/environments/sandbox`, 87 recursos, sin RDS,
+EC2, NAT ni VPC) con los artefactos Lambda ya reconstruidos a partir de esta
+corrección, y se reutilizó (copiándolo, sin fusionar) el script de benchmark
+de la PR #141 (`scripts/deployed-issue-49-fanout-benchmark.mjs`, rama
+`feature/issue-49-fanout-benchmark`, ya rebasada sobre `main`) para repetir
+exactamente el escenario que encontró el `500`:
+
+- **Escenario A (100 matches)**: `DELETE /admin/events/{eventId}/photos/{photoId}`
+  devolvió `204` en 2.019 ms. 100 ítems espejo antes, 0 después; 0 de la
+  muestra de claves de match sobrevive; la fila de la foto no sobrevive.
+- **Escenario A (1.000 matches)**: `204` en 2.732 ms. 1.000 ítems espejo
+  antes, 0 después; misma limpieza completa.
+
+El timeout de 60 s y `BatchWriteCommand` **resuelven el `500` observado por
+el benchmark de #49** a ambas escalas, con margen amplio (2-3 s de 60
+disponibles). Evidencia cruda:
+[`issue-49-fanout-benchmark-run.json`](issue-49-fanout-benchmark-run.json)
+(generada por este run; no forma parte de esta PR — pertenece al linaje de
+la PR #141/issue #49 y no se comitea aquí).
+
+**Hallazgo nuevo, ya no es un riesgo teórico**: el mismo run ejecutó el
+escenario B del script (una foto real subida mientras se borra, con un
+`matchPhoto` real en curso por Rekognition) y confirmó la carrera que el
+comentario de #49 en esta issue solo señalaba como riesgo de diseño sin
+confirmar: el borrado devolvió `204` y la fila de la foto no sobrevive, pero
+**el match y su ítem espejo sí sobreviven** — `writeMatch`
+(`src/lambdas/lib/matching.ts`) no comprueba que la foto siga existiendo
+antes de escribir un match tardío, y aquí se escribió uno para una foto ya
+borrada. Esta corrección (timeout + lotes) no lo soluciona porque es un
+problema distinto: una carrera de escritura, no de volumen/timeout.
+
+Entorno destruido al terminar (`terraform destroy`, 145 recursos destruidos);
+comprobación independiente posterior del estado remoto: serial 68, 0
+instancias gestionadas. Sin despliegue permanente.
+
 ## Pendiente
 
-- Aceptación desplegada en AWS (o Floci) de las cuatro rutas nuevas: no
-  ejecutada en esta sesión (la issue no autoriza aplicar Terraform ni AWS).
+- Investigar y decidir la mitigación de la carrera confirmada en
+  `writeMatch` (`src/lambdas/lib/matching.ts`): no comprueba que la foto
+  siga existiendo antes de escribir un match tardío, y un borrado
+  concurrente con el procesamiento de una foto real deja un match/espejo
+  huérfano de una foto ya borrada. Requiere decisión de diseño (por ejemplo,
+  condicionar la escritura a la existencia de la foto, o una purga
+  posterior) antes de implementar.
+- Aceptación desplegada en AWS (o Floci) de las cuatro rutas nuevas en su
+  conjunto (edición de evento, listado de fotos, JWT/autorización
+  específica de las cuatro rutas): esta sesión solo repitió el escenario de
+  borrado de foto del benchmark de #49, no el resto de criterios `[ ]` de
+  la spec 23.
 - Backfill del ítem espejo de ADR-022 para datos anteriores a su
   introducción: diferido, documentado en ADR-023, sin entorno persistente
   real que lo necesite todavía.
