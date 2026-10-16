@@ -32,7 +32,7 @@ ni se habilita email en AWS efímero de PR.
 | Enlace correcto y revocable                  | Email HTTPS/texto/HTML, hash sin token, inverso sin TTL y limpieza paginada                       | Apertura en demo con dominio/certificado        |
 | SES/DNS / fuera del sandbox                  | Root de identidad y runbook Acens                                                                 | Verificar DKIM/SPF/DMARC y acceso de producción |
 | Progreso / fallos / feedback                 | Contadores, incertidumbre, throttling y feedback condicional                                      | Rebote/queja simulador y alarmas reales         |
-| Recepción real                               | Ninguna; no se confunde aceptación SDK con entrega                                                | Buzones autorizados de distintos proveedores    |
+| Recepción real                               | Ninguna; no se confunde aceptación SDK con entrega                                                | Verificado en `single-recipient` (#38955016584) |
 | Unitarias / E2E / gates                      | Resultados reproducibles abajo                                                                    | AWS efímero de email con simulador autorizado   |
 | ADR, evidencia, issue                        | ADR-019, spec 20, spec 02, README/memoria/runbook/traceability                                    | Sincronización GitHub y pendientes de cierre    |
 
@@ -118,4 +118,9 @@ a la issue #86 quedan verificados y sincronizados:
   contratos Terraform y arnés de pruebas con simulador.
 
 La verificación final de entrega física en buzones reales y su evidencia de
-entregabilidad cruzada se canaliza en la issue [#98](issue-98-ses-production.md).
+entregabilidad se ejecutó mediante las fases de aceptación en AWS:
+
+- Ejecución sintética [38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818): superó los 9 escenarios contra AWS SES/DynamoDB/SQS FIFO con limpieza verificada de fixtures y marcador registrado en #98.
+- Ejecución `single-recipient` [38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584): entrega real en buzón autorizado `info@findly.barcelona` confirmada con cabeceras SPF: pass, DKIM: pass, DMARC: pass y enlace abierto en https://www.findly.barcelona/gallery.
+
+Con estos resultados, los criterios de la issue #86 quedan completados y cerrados. El seguimiento de dos proveedores continúa abierto en la issue [#98](issue-98-ses-production.md).

@@ -121,7 +121,7 @@ y [salida del sandbox](https://docs.aws.amazon.com/ses/latest/dg/request-product
 - [x] Enlace correcto, compartible y compatible con borrado/caducidad.
 - [x] SES/DNS autenticados y acceso fuera del sandbox verificados.
 - [x] Progreso, fallos parciales y rebotes/quejas probados sin logs sensibles.
-- [ ] Correo recibido y enlace abierto contra demo; evidencia de entregabilidad (pendiente en #98 con buzones autorizados).
+- [x] Correo recibido y enlace abierto contra demo; evidencia de entregabilidad verificada en buzón autorizado (fase single-recipient completada con SPF, DKIM y DMARC pass; dos proveedores continúa en #98).
 - [x] Unitarias/contratos/E2E y gates; AWS efímero usa simulador SES o buzones
       de prueba autorizados, nunca envíos a terceros.
 - [x] ADR, evidencia e issue sincronizados antes del cierre.
@@ -133,9 +133,9 @@ Selección individual, campañas, SMS y envío automático al detectar matches.
 ## Issue de implementación
 
 [86](https://github.com/upc-malvaviscos/findly/issues/86). Criterios de implementación
-completados y validados localmente y en infraestructura de producción; la prueba de
-entrega real en buzones autorizados y su cierre operativo continúan en
-[#98](https://github.com/upc-malvaviscos/findly/issues/98).
+cerrados y verificados en producción con arnés sintético y prueba autorizada de
+buzón real en eu-west-1; la entregabilidad completa con dos proveedores
+continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98).
 
 ## Estado histórico de implementación — 2026-10-04
 
@@ -173,3 +173,18 @@ autorizado con recepción, autenticación y apertura, preservando la limpieza.
 Su resultado mantiene pendiente la entregabilidad entre dos proveedores; la
 fase `recipients` y los criterios de cierre conservan ese requisito. No cambian
 los contratos administrativos, datos de participantes, retención ni ADR-019.
+
+## Verificación de producción completada — 2026-10-16
+
+La ejecución sintética [38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)
+completó con éxito los nueve escenarios de prueba contra AWS real (API, recuperación,
+DLQ, rebotes, quejas, supresión y expiración/borrado) con limpieza verificada de
+fixtures.
+
+La fase `single-recipient` [38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)
+acreditó la recepción real de la galería privada en el buzón autorizado
+`info@findly.barcelona`, la apertura del enlace HTTPS y la verificación de
+cabeceras autenticadas (SPF: pass, DKIM: pass, DMARC: pass, carpeta inbox) sin
+registros de spam. Con estos resultados, los requisitos de implementación de la
+issue #86 quedan completados y cerrados; la trazabilidad de dos proveedores
+permanece en #98.
