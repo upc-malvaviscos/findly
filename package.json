@@ -54,7 +54,7 @@
     "@aws-sdk/client-s3": "^3.1141.0",
     "@aws-sdk/client-sesv2": "^3.1146.0",
     "@aws-sdk/client-sqs": "^3.1146.0",
-    "@aws-sdk/lib-dynamodb": "^3.1126.0",
+    "@aws-sdk/lib-dynamodb": "^3.1147.0",
     "@aws-sdk/s3-request-presigner": "^3.1131.0",
     "@vitejs/plugin-react": "6.1.1",
     "react": "19.2.8",
@@ -88,7 +88,7 @@
     "jsdom": "30.1.2",
     "markdownlint-cli2": "0.23.3",
     "prettier": "3.9.6",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "typescript-eslint": "8.69.0",
     "vitest": "5.0.1"
