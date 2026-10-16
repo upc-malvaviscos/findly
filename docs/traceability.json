@@ -517,7 +517,7 @@
     },
     {
       "id": "REQ-MATCHING-BOTH-ORDERS",
-      "description": "Matching convergente tras subir selfies o fotos en cualquier orden, con backfill post-ENROLLED sobre fotos existentes; verificado con unitarias y aceptación AWS efimera real de los tres órdenes de subida.",
+      "description": "Matching convergente tras subir selfies o fotos en cualquier orden, con backfill post-ENROLLED sobre fotos existentes; verificado con unitarias y aceptación AWS efímera real de los tres órdenes de subida, sin rostro/bajo umbral/otro evento, paginación real y revocación/caducidad/borrado concurrente.",
       "issues": [87],
       "spec": "specs/21-matching-from-selfie-and-photo-uploads.md",
       "implementation": [

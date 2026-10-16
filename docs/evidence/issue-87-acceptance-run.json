@@ -1,58 +1,102 @@
 {
-  "generatedAt": "2026-10-14T20:47:19.897Z",
+  "generatedAt": "2026-10-16T16:53:12.705Z",
   "scenarios": {
     "A_selfie_then_photo": {
-      "eventId": "evt-6a07d40ff6d3fe0d18f9f9c9",
-      "registrationId": "68b6dde1-840d-4055-b534-5e9c933d7633",
-      "photoId": "0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
-      "enrolledAfterMs": 10233,
+      "eventId": "evt-520fb0de431c3ad5ea4a8ba9",
+      "registrationId": "f361a14d-c621-4136-b75c-8096d01b963f",
+      "photoId": "031cfc03-dc7b-4472-bfd0-ccc995244f3e",
+      "enrolledAfterMs": 4981,
       "match": {
-        "SK": "MATCH#0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
-        "PK": "REG#68b6dde1-840d-4055-b534-5e9c933d7633",
         "similarity": 100,
-        "eventId": "evt-6a07d40ff6d3fe0d18f9f9c9",
-        "matchedAt": "2026-10-14T20:47:33.668Z",
-        "ttl": 1792097243,
-        "photoId": "0e4a8b47-44a9-428d-87cf-26067c7eb9f4",
-        "matchId": "9320a59e-06ba-42b4-8512-6eaba0999334",
-        "registrationId": "68b6dde1-840d-4055-b534-5e9c933d7633"
+        "registrationId": "f361a14d-c621-4136-b75c-8096d01b963f",
+        "SK": "MATCH#031cfc03-dc7b-4472-bfd0-ccc995244f3e",
+        "eventId": "evt-520fb0de431c3ad5ea4a8ba9",
+        "ttl": 1792255996,
+        "PK": "REG#f361a14d-c621-4136-b75c-8096d01b963f",
+        "photoId": "031cfc03-dc7b-4472-bfd0-ccc995244f3e",
+        "matchId": "67273a88-3137-4924-96c8-909b727c5551",
+        "matchedAt": "2026-10-16T16:53:20.473Z"
       }
     },
     "B_photo_then_selfie": {
-      "eventId": "evt-2738843b780ff0540e28f586",
-      "registrationId": "4c3c015e-477e-4231-b277-2fae0ba1127b",
-      "photoId": "488cf94c-6c75-4aee-9d98-0a81acd74eb3",
-      "enrolledAfterMs": 5768,
+      "eventId": "evt-234345e7fc8903740182e036",
+      "registrationId": "a76c6928-fa8f-4411-92f1-2503050c6384",
+      "photoId": "cd896e8a-d6e1-4c61-9802-e0c7a068c6ed",
+      "enrolledAfterMs": 5621,
       "match": {
-        "photoId": "488cf94c-6c75-4aee-9d98-0a81acd74eb3",
-        "matchedAt": "2026-10-14T20:47:42.124Z",
+        "photoId": "cd896e8a-d6e1-4c61-9802-e0c7a068c6ed",
+        "SK": "MATCH#cd896e8a-d6e1-4c61-9802-e0c7a068c6ed",
+        "matchId": "2e622eb8-29c6-488c-9020-9f44707903fa",
+        "PK": "REG#a76c6928-fa8f-4411-92f1-2503050c6384",
+        "ttl": 1792256001,
+        "eventId": "evt-234345e7fc8903740182e036",
+        "matchedAt": "2026-10-16T16:53:29.449Z",
         "similarity": 100,
-        "matchId": "94e16d66-5226-4288-8474-79f5c94089c3",
-        "ttl": 1792097254,
-        "registrationId": "4c3c015e-477e-4231-b277-2fae0ba1127b",
-        "SK": "MATCH#488cf94c-6c75-4aee-9d98-0a81acd74eb3",
-        "PK": "REG#4c3c015e-477e-4231-b277-2fae0ba1127b",
-        "eventId": "evt-2738843b780ff0540e28f586"
+        "registrationId": "a76c6928-fa8f-4411-92f1-2503050c6384"
       },
       "backfillLogSample": null,
       "backfillLogsMentionRegistrationId": false
     },
     "C_concurrent": {
-      "eventId": "evt-2e7e8bb034726d819a7956b4",
-      "registrationId": "d5c20275-add3-49d1-944f-4dd70de37e42",
-      "photoId": "d98f2978-72f3-47f2-9e6c-df73ed14929e",
-      "startedAt": "2026-10-14T20:47:45.035Z",
+      "eventId": "evt-6bf23498e46530a6a5d84886",
+      "registrationId": "daca005d-4b38-47ef-ab4c-ab6252174de8",
+      "photoId": "37044dbf-f794-48d5-b538-7546d20639e3",
+      "startedAt": "2026-10-16T16:53:31.765Z",
       "matchCount": 1,
       "match": {
+        "photoId": "37044dbf-f794-48d5-b538-7546d20639e3",
+        "matchedAt": "2026-10-16T16:53:33.351Z",
+        "registrationId": "daca005d-4b38-47ef-ab4c-ab6252174de8",
+        "ttl": 1792256011,
+        "matchId": "b3101c1a-2c1e-41b4-9e03-ad3edb107b9d",
+        "eventId": "evt-6bf23498e46530a6a5d84886",
         "similarity": 100,
-        "photoId": "d98f2978-72f3-47f2-9e6c-df73ed14929e",
-        "PK": "REG#d5c20275-add3-49d1-944f-4dd70de37e42",
-        "matchId": "58994686-ea6c-4cbc-b16f-fecbfe420223",
-        "eventId": "evt-2e7e8bb034726d819a7956b4",
-        "ttl": 1792097265,
-        "matchedAt": "2026-10-14T20:47:47.159Z",
-        "SK": "MATCH#d98f2978-72f3-47f2-9e6c-df73ed14929e",
-        "registrationId": "d5c20275-add3-49d1-944f-4dd70de37e42"
+        "SK": "MATCH#37044dbf-f794-48d5-b538-7546d20639e3",
+        "PK": "REG#daca005d-4b38-47ef-ab4c-ab6252174de8"
+      }
+    },
+    "D_no_incorrect_matches": {
+      "eventId": "evt-3da9fc056cf3fb8fa8f4d489",
+      "registrationId": "68112efd-bdd8-402b-8f85-56aecaf0aaf7",
+      "noFace": {
+        "photoId": "d5478b85-4e4e-4f03-818e-1f1538bf547b",
+        "match": null
+      },
+      "belowThreshold": {
+        "photoId": "791160db-d228-446b-b96f-fbfabe7f5e97",
+        "match": null
+      },
+      "otherEvent": {
+        "otherEventId": "evt-15b4c20e70d112398e47acef",
+        "photoId": "5a3f0196-d548-4945-8632-e4616bf363fb",
+        "match": null,
+        "collectionSeededWithDifferentPerson": true,
+        "seedRegistrationId": "7e951c89-f5c9-468a-a555-23542c82c869"
+      }
+    },
+    "E_pagination": {
+      "eventId": "evt-69444376da8b61317abae9c8",
+      "registrationId": "b1d3e97b-1dc3-4667-ac78-949c7b972bdb",
+      "photoCount": 26,
+      "matchCount": 26,
+      "backfillInvocations": 2,
+      "backfillLogs": [
+        "2026-10-16T16:55:41.268Z\te0aafc09-d803-5ea8-befc-9f45813b1a0f\tINFO\t{\"level\":\"INFO\",\"event\":\"registration_backfill_processed\",\"correlationId\":\"cd0ac796-3ae8-4f51-bdef-1c6fbf4482ee\",\"eventId\":\"evt-69444376da8b61317abae9c8\",\"photoCount\":25}",
+        "2026-10-16T16:55:41.696Z\t454244d0-694e-5e46-bc0d-279c3070013c\tINFO\t{\"level\":\"INFO\",\"event\":\"registration_backfill_processed\",\"correlationId\":\"ddf938a8-18e2-4eff-9ab6-c8359b873458\",\"eventId\":\"evt-69444376da8b61317abae9c8\",\"photoCount\":1}"
+      ]
+    },
+    "F_revocation_expiry_concurrency": {
+      "concurrentErasure": {
+        "eventId": "evt-c107160d109016a66e646577",
+        "registrationId": "3dea61e5-8225-410a-be16-16e35eccefd3",
+        "photoId": "fe2fd77c-83b9-436f-bc59-35fe9c40877b",
+        "matchCountAfterErasure": 0
+      },
+      "expiredTtl": {
+        "eventId": "evt-20175932a15e77b46a5f027f",
+        "registrationId": "9c256072-aa74-4bdf-a667-41f2ccd0e027",
+        "photoId": "51dfc5fa-5929-48ed-a679-23157a529233",
+        "match": null
       }
     }
   }

@@ -157,36 +157,103 @@ Pruebas nuevas/reescritas relevantes:
   inicializa y valida junto al resto del stack sin romper las pruebas
   existentes de permissions-boundary.
 
+## Resultado de la ejecución AWS efímera de los tres criterios restantes (2026-10-16)
+
+Mismo sandbox (`infra/environments/sandbox`, cuenta `912415493378`), mismo
+script extendido con los escenarios D, E y F. Salida completa en
+[`docs/evidence/issue-87-acceptance-run.json`](issue-87-acceptance-run.json).
+
+- **D — sin rostro / bajo umbral / otro evento**: una inscripción `ENROLLED`
+  recibió tres fotos, ninguna produjo match:
+  - D1 _sin rostro_: PNG sólido sin caras (generado en memoria, válido para
+    Rekognition pero sin ningún rostro detectable). Cero `FaceRecords`, cero
+    match.
+  - D2 _bajo umbral_: `e2e/fixtures/synthetic-adult-face-2.jpg`, una segunda
+    persona ficticia distinta de la primera. Cero match — confirma que
+    Rekognition las trata como personas distintas por debajo del 95 % de
+    similitud exigido.
+  - D3 _otro evento_: la misma cara registrada en el evento original se subió
+    como foto en un segundo evento. La primera ejecución de este escenario
+    dejó esa segunda colección sin crear (ningún selfie inscrito ahí),
+    `IndexFaces` falló con `ResourceNotFoundException` y el `null` resultante
+    no acreditaba aislamiento real, solo una colección ausente. Se corrigió
+    inscribiendo primero una segunda persona (la misma fixture de D2) en el
+    segundo evento, para que su colección existiera de verdad; con la
+    colección poblada por una persona distinta, la cara original sigue sin
+    matchear (`collectionSeededWithDifferentPerson: true`, `match: null`),
+    acreditando aislamiento real por colección (ADR-015).
+- **E — paginación con varias páginas reales**: 26 fotos subidas a un evento
+  (`PHOTO_PAGE_SIZE` es 25) antes de inscribir la selfie. El backfill generó
+  **dos invocaciones reales** confirmadas por log
+  (`/aws/lambda/findly-sandbox-registration-backfill`):
+
+  ```json
+  {"event":"registration_backfill_processed","eventId":"evt-69444376da8b61317abae9c8","photoCount":25}
+  {"event":"registration_backfill_processed","eventId":"evt-69444376da8b61317abae9c8","photoCount":1}
+  ```
+
+  26 matches persistidos, confirmando que `ExclusiveStartKey`/
+  `LastEvaluatedKey` reencola la continuación real, no solo en el diseño.
+
+- **F — revocación/caducidad/borrado concurrente**:
+  - F1 _borrado concurrente_: `DELETE` de la inscripción lanzado en paralelo
+    (`Promise.all`) con la subida de la foto que la matchearía. 15 s después
+    de que ambas promesas resuelven, cero matches (`matchCountAfterErasure:
+0`) — la condición `attribute_not_exists(erasureRequestedAt)` de
+    `writeMatch` bloquea la escritura si la erasure gana la carrera, y el
+    propio `DELETE` borra cualquier match que haya ganado la carrera
+    (`deleteRegistration.ts`, borrado síncrono de `MATCH#*` antes de
+    devolver `204`).
+  - F2 _caducidad_: `ttl` de una inscripción `ENROLLED` adelantado
+    manualmente a una hora en el pasado (simula caducidad sin esperar al TTL
+    nativo de DynamoDB); una foto subida después no matchea
+    (`findRegistrationForFace` descarta inscripciones con `ttl` vencido).
+
+### Hallazgo de la propia prueba: retraso de ingesta de CloudWatch Logs
+
+La primera ejecución de esta ronda falló el escenario E con "backfill did
+not show more than one page/invocation" pese a que los 26 matches ya
+existían: `FilterLogEventsCommand` se consultó una sola vez justo cuando el
+segundo match se escribió, antes de que CloudWatch terminara de indexar esa
+línea de log (confirmado reconsultando minutos después: las dos líneas
+existían). No es un defecto de `registrationBackfill.ts` — es un fallo de
+temporización de la propia prueba, corregido reintentando esa consulta hasta
+20 s en vez de leerla una sola vez.
+
+### Teardown de esta ronda
+
+Dos ejecuciones adicionales del script (una fallida por el hallazgo anterior,
+una exitosa) crearon 20 colecciones Rekognition en total a lo largo de la
+sesión. `terraform destroy` no las gestiona; se borraron explícitamente una
+a una con `aws rekognition delete-collection`, confirmado con
+`aws rekognition list-collections` vacío antes del `terraform destroy` del
+stack (145 recursos destruidos, estado remoto vacío).
+
 ## Pendiente — no demostrado todavía
 
-- **Sin rostro / bajo umbral / otro evento**, **paginación con varias
-  páginas reales** y **revocación/caducidad/borrado concurrente durante el
-  matching** siguen demostrados solo por las suites unitarias citadas
-  arriba, no por el run AWS de esta entrega (que usó un evento y una foto
-  por escenario, y borró cada inscripción después de matchear, no durante).
-  No se presentan aquí como evidencia AWS real de esos tres criterios.
 - El benchmark sintético de fan-out/convergencia que
   [ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md) exige para cerrar
   la issue #49 pide medir coste/latencia bajo ese fan-out; el escenario
   "subidas simultáneas" de este run aporta una carrera real documentada
   (ver más arriba) pero no las medidas de coste/capacidad que el checklist
-  de #49 pide todavía — no se presenta aquí como ese benchmark completo.
+  de #49 pide todavía — no se presenta aquí como ese benchmark completo. Es
+  un entregable propio de #49, independiente de esta spec.
 - El ítem espejo de ADR-022 para #89 (ver corrección arriba) sigue sin
   implementar.
 
-## Checklist de aceptación de #87 — estado tras esta entrega
+## Checklist de aceptación de #87 — estado final
 
-| Criterio                                                                   | Estado                                                                                                                 |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Selfie antes de foto produce match y galería                               | **AWS real**: match 100 % (`docs/evidence/issue-87-acceptance-run.json`, escenario A)                                  |
-| Foto antes de selfie produce match sin resubir fotografía                  | **AWS real**: backfill matcheó sin re-subir (escenario B)                                                              |
-| Subidas simultáneas convergen sin intervención administrativa              | **AWS real**: un único `Match` tras la carrera (escenario C)                                                           |
-| Duplicados/reintentos no multiplican matches/trabajo innecesario           | **AWS real**: la carrera de C y el reintento SQS de B no duplicaron el match                                           |
-| Sin rostro, bajo umbral y otro evento no generan coincidencias incorrectas | Unitario (`photoMatcher.test.ts`); sin re-verificación AWS en esta entrega                                             |
-| Paginación y límites probados con varias páginas de datos                  | Unitario (`registrationBackfill.test.ts`, cursor); sin re-verificación AWS en esta entrega                             |
-| Revocación/caducidad/borrado concurrente no resucita matches               | Unitario (4 casos); el run AWS solo probó borrado _después_ de matchear, no concurrente                                |
-| Unitarias/contrato y AWS efímero sintético con teardown                    | **Completo**: 626 unitarias + run AWS real (117 recursos destruidos, colecciones Rekognition borradas, estado vacío)   |
-| Spec 07, ADR, evidencia e issue sincronizados; gates en verde              | Spec 21 y esta evidencia actualizadas; `npm run verify` en verde; comentario pendiente en issue #87 con este resultado |
+| Criterio                                                                   | Estado                                                                                                                                      |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selfie antes de foto produce match y galería                               | **AWS real**: match 100 % (`docs/evidence/issue-87-acceptance-run.json`, escenario A)                                                       |
+| Foto antes de selfie produce match sin resubir fotografía                  | **AWS real**: backfill matcheó sin re-subir (escenario B)                                                                                   |
+| Subidas simultáneas convergen sin intervención administrativa              | **AWS real**: un único `Match` tras la carrera (escenario C)                                                                                |
+| Duplicados/reintentos no multiplican matches/trabajo innecesario           | **AWS real**: la carrera de C y el reintento SQS de B no duplicaron el match                                                                |
+| Sin rostro, bajo umbral y otro evento no generan coincidencias incorrectas | **AWS real (2026-10-16)**: tres fotos, cero matches; "otro evento" con colección poblada por una persona distinta (D)                       |
+| Paginación y límites probados con varias páginas de datos                  | **AWS real (2026-10-16)**: 26 fotos, 26 matches, dos invocaciones confirmadas por log (E)                                                   |
+| Revocación/caducidad/borrado concurrente no resucita matches               | **AWS real (2026-10-16)**: borrado concurrente con la subida y `ttl` expirado, cero matches en ambos casos (F)                              |
+| Unitarias/contrato y AWS efímero sintético con teardown                    | **Completo**: 626 unitarias + dos rondas de run AWS real (262 recursos destruidos en total, colecciones Rekognition borradas, estado vacío) |
+| Spec 07, ADR, evidencia e issue sincronizados; gates en verde              | Spec 21 y esta evidencia actualizadas; `npm run verify` en verde; comentario de sincronización añadido a la issue #87                       |
 
 ## Revisión de permisos CI del 2026-10-16
 
