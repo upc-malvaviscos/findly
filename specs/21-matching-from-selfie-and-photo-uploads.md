@@ -15,19 +15,22 @@ envía emails: spec 20 reserva el envío al botón administrativo.
 Implementación de la issue
 [#87](https://github.com/upc-malvaviscos/findly/issues/87) (código +
 Terraform + pruebas unitarias/contrato), **más aceptación AWS efímera real**
-de los tres órdenes de subida (2026-10-14): sandbox desplegado, los tres
-recorridos ejecutados contra Rekognition/DynamoDB/SQS reales con
-`scripts/deployed-issue-87-acceptance.mjs`, y stack destruido con
-colecciones Rekognition borradas explícitamente. Véase la
+de los tres órdenes de subida (2026-10-14) y de los tres criterios que
+seguían pendientes (2026-10-16): sandbox desplegado, los seis escenarios
+(A-F) ejecutados contra Rekognition/DynamoDB/SQS reales con
+`scripts/deployed-issue-87-acceptance.mjs`, y stack destruido con las 20
+colecciones Rekognition creadas por los handlers a lo largo de las dos
+sesiones borradas explícitamente, una a una. Véase la
 [evidencia](../docs/evidence/issue-87-matching-convergence.md) para el
-detalle, incluido un hallazgo real (el trigger S3 falla su primer intento si
-ningún selfie ha sido indexado todavía para el evento; el backfill
-converge). **No incluye** evidencia AWS de "sin rostro/bajo umbral/otro
-evento", paginación con varias páginas reales ni borrado concurrente
-_durante_ el matching — esos tres criterios siguen solo con evidencia
-unitaria. El benchmark de coste/capacidad que ADR-022 exige para cerrar #49
-tampoco queda satisfecho por este run (aporta una carrera real documentada,
-no las medidas de coste que pide el checklist de #49).
+detalle, incluidos dos hallazgos reales: el trigger S3 falla su primer
+intento si ningún selfie ha sido indexado todavía para el evento (el
+backfill converge); y el escenario "otro evento" solo demuestra aislamiento
+real de colecciones si esa otra colección existe de verdad (una colección
+ausente rechaza `IndexFaces` con `ResourceNotFoundException`, lo que daría un
+falso positivo si el otro evento no tuviera ninguna selfie inscrita). Los
+nueve criterios de aceptación de la issue quedan acreditados con AWS real. El
+benchmark de coste/capacidad que ADR-022 exige para cerrar #49 sigue
+pendiente — es un entregable propio de #49, no de esta spec.
 
 ## Alineación con AWS Well-Architected Framework
 
@@ -160,10 +163,24 @@ ADR-022 — y coordinada, sin bloquear, con #86/#88/#89.
       #87 (selfie→foto, foto→selfie, simultáneo): sandbox desplegado,
       ejecutado con `scripts/deployed-issue-87-acceptance.mjs` y destruido
       (117 recursos, colecciones Rekognition borradas explícitamente).
-      Mocks no presentados como esta evidencia; "sin rostro/bajo umbral/otro
-      evento", paginación con varias páginas reales y borrado concurrente
-      durante el matching siguen solo con evidencia unitaria.
-- [ ] Spec 07, ADR, evidencia e issue #87 sincronizados y cerrados — esta
-      entrega sincroniza ADR-022/spec 02/spec 21 y añade evidencia AWS real;
-      #87 permanece abierta hasta registrar el resultado en la issue (fase
-      Sync) y #49 hasta su benchmark de coste/capacidad propio.
+- [x] Sin rostro, bajo umbral y otro evento no generan coincidencias
+      incorrectas — **AWS real (2026-10-16)**: foto sin rostro detectable,
+      foto de una segunda cara sintética distinta y foto de la misma cara en
+      otro evento cuya colección Rekognition fue poblada de antemano con una
+      tercera persona (para que el `null` acredite aislamiento real, no una
+      colección ausente). Los tres produjeron cero matches. Detalle en
+      [issue-87-matching-convergence.md](../docs/evidence/issue-87-matching-convergence.md),
+      escenario D.
+- [x] Paginación y límites probados con varias páginas de datos — **AWS
+      real**: 26 fotos (una más que `PHOTO_PAGE_SIZE`), 26 matches y dos
+      invocaciones reales de `registration-backfill` confirmadas por log
+      (`photoCount: 25` y `photoCount: 1`), escenario E.
+- [x] Revocación/caducidad/borrado concurrente no resucita matches — **AWS
+      real**: `DELETE` de la inscripción lanzado en paralelo con la subida
+      de su foto coincidente deja cero matches tras la carrera, y una
+      inscripción con `ttl` expirado manualmente no matchea una foto subida
+      después, escenario F.
+- [x] Spec 07, ADR, evidencia e issue #87 sincronizados — esta entrega añade
+      la aceptación AWS real de los tres criterios restantes y sincroniza
+      esta spec, la evidencia y un comentario en la issue #87. #49 conserva
+      su benchmark de coste/capacidad propio, pendiente e independiente.
