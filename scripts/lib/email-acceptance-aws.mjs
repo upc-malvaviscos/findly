@@ -34,7 +34,7 @@ const services = {
   s3api: [
     s3,
     'S3Client',
-    ['get-bucket-versioning', 'delete-object', 'head-object'],
+    ['get-bucket-versioning', 'delete-object', 'list-objects-v2'],
   ],
   sqs: [
     sqs,

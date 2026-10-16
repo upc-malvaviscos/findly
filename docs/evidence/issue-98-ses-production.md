@@ -384,3 +384,101 @@ ejecutor excluye variables AWS/TF_VAR heredadas, usa ficheros de configuración
 y credenciales vacíos y deshabilita metadatos. No se añaden credenciales a CI ni
 se retira el gate. Los mocks siguen sin acreditar AWS real; véase la
 [documentación de HashiCorp](https://developer.hashicorp.com/terraform/language/tests/mocking).
+
+### Primera aceptación sintética y URL de API — 2026-10-15
+
+Tras el despliegue, la [aceptación 38781756643](https://github.com/upc-malvaviscos/findly/actions/runs/38781756643)
+falló en la comprobación previa de pertenencia de la API. CloudTrail confirma
+OIDC, ACM, SES, lectura del estado y `GetApi` correctos, sin creación del
+organizador ni de fixtures. La lectura posterior prueba que las dos URLs
+difieren únicamente en la barra final: Terraform publica `invoke_url` del stage
+`$default`, mientras `GetApi` devuelve `ApiEndpoint` sin barra.
+
+El arnés normaliza únicamente esa barra opcional después de validar ambas
+URLs como raíces HTTPS de API Gateway en eu-west-1. Mantiene el mismo host
+exacto y rechaza otras APIs, regiones, HTTP, rutas, query, fragmentos y barras
+adicionales. La regresión cubre las dos posiciones de entrada; el coordinador
+identifica la etapa del fallo mediante etiquetas constantes, sin publicar
+mensajes de excepción, cuerpos, URLs ni credenciales. No cambia recursos ni
+permisos de producción. La ejecución fallida no acredita recuperación, feedback,
+recepción ni apertura; deben repetirse tras integrar la corrección.
+
+La revisión adicional reprodujo otro fallo del arnés: la prueba de feedback
+tardío borra dos inscripciones y revoca sus capacidades; la limpieza intentaba
+reutilizarlas y recibía correctamente 404. Una regresión que reproduce esa
+revocación falla antes de la corrección. El ledger registra únicamente borrados
+confirmados por la API y evita repetirlos; mantiene la verificación posterior
+de ausencia, el rechazo de un 404 no acreditado y la conservación de referencias
+si falla un borrado. No cambia la API ni amplía permisos.
+
+### Aceptación con permisos S3 restringidos — 2026-10-15
+
+La PR #134 se integró después de los cinco checks obligatorios, incluida AWS
+efímera y limpieza. La [repetición 38792981786](https://github.com/upc-malvaviscos/findly/actions/runs/38792981786)
+superó la pertenencia de API, autenticación y preflight; creó y eliminó la
+primera colección, pero abortó antes de crear la operación de envío. La
+consulta de estado posterior no encuentra metadatos/operaciones de las fixtures
+y Cognito no conserva el usuario de ese run. No acredita envío ni recuperación.
+
+La política temporal concede ListBucket sólo con `s3:prefix` propio. El simulador
+IAM rechaza el listado sin ese contexto y permite la clave exacta. Según el
+[contrato de HeadObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html),
+una clave inexistente puede devolver 403 en lugar de 404 sin ListBucket. Es
+coherente con el punto de fallo, después de CreateCollection y antes de subir
+la foto. La comprobación pasa a ListObjectsV2 con prefijo de la clave exacta,
+MaxKeys 1 y cuenta propietaria esperada; no amplía IAM ni interpreta un 403
+como ausencia. Las regresiones cubren clave ausente, existente, vecina y fallo
+de permisos, además de resolver el comando SDK. La aceptación real debe
+repetirse tras integrar esta corrección.
+
+### Contrato de fixture y consulta de logs — 2026-10-15
+
+La PR #135 se integró con los cinco checks obligatorios correctos. El
+[run 38797927817](https://github.com/upc-malvaviscos/findly/actions/runs/38797927817)
+creó foto/metadata y llegó más lejos, pero abortó antes de crear la operación
+de correo. La inspección privada posterior confirma cero filas, objetos,
+colecciones y supresión propios; el usuario temporal se limpió. No demuestra
+envío ni recepción.
+
+Se identifican dos incompatibilidades del arnés con los contratos desplegados:
+las fixtures usaban `.jpg`, mientras la notificación S3 sólo entrega
+`.photo.jpg`; y FilterLogEvents recibía propiedades con inicial mayúscula,
+cuando el SDK de CloudWatch Logs exige `logGroupName`, `startTime`,
+`filterPattern` y `limit`. La regresión del adaptador reproduce el segundo
+fallo antes de corregirlo. El contrato de manifiesto comprueba ahora la misma
+clave que usa la aplicación y el sufijo real de Terraform. Se requiere un
+manifiesto compatible y volver a generar los permisos temporales antes de
+repetir; no se amplía su alcance ni se modifican recursos permanentes.
+
+El diagnóstico publica sólo escenario, paso, categoría y número de fallos de
+limpieza mediante listas cerradas. Se descartan mensajes/cuerpos originales,
+campos desconocidos y contadores inválidos; tampoco se conserva la excepción
+original como causa. Las pruebas comprueban esas fronteras de privacidad y la
+propagación del paso de siembra fallido. No se acreditan escenarios sólo por
+mejorar el diagnóstico: la aceptación AWS debe repetirse desde main.
+
+### Condiciones DynamoDB del worker — 2026-10-15
+
+La [aceptación 38803054411](https://github.com/upc-malvaviscos/findly/actions/runs/38803054411)
+alcanzó la primera operación administrativa, con foto procesada, y el worker
+registró `gallery_email_work_failed`. La lectura privada muestra cero aceptados
+y ninguna reclamación de destinatario ni capacidad adicional. El arnés revoca
+las fixtures y ejecuta su limpieza; no es evidencia de recepción.
+
+La revisión encuentra `ttl` sin alias en dos ConditionCheck de la transacción
+que reclama el destinatario. AWS incluye TTL en su
+[lista de palabras reservadas](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html):
+las condiciones requieren ExpressionAttributeNames. Una regresión que rechaza
+esas expresiones como DynamoDB falla antes de la corrección y pasa al usar
+`#ttl` enlazado a `ttl` en las dos condiciones. Conserva las mismas barreras
+de consentimiento, caducidad, borrado y reclamación atómica; no cambia IAM,
+datos, retención ni el contrato de ADR-019.
+
+El worker conserva su excepción pública genérica. El log admite únicamente
+cinco categorías SDK constantes de validación, permisos, recurso inexistente
+y limitación de peticiones; nombres desconocidos y mensajes originales siguen
+excluidos. Las regresiones comprueban tanto la categoría permitida como el
+descarte de un nombre arbitrario y del mensaje sensible. La expresión inválida
+es un defecto verificable del código, pero el log anterior no permite atribuir
+por sí solo el fallo observado a una categoría SDK concreta. La corrección
+requiere integrar, revisar el plan y publicar mediante OIDC antes de repetir.
