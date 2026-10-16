@@ -7,10 +7,11 @@
 La configuración externa continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
 y ADR-020: `www.findly.barcelona`
 para web/galerías, DNS en Acens, identidad SES compartida y certificado ACM
-separado. El bootstrap manual por OIDC sólo prepara estos recursos. No acredita
-salida del sandbox, permisos del stack, recepción ni apertura; estos criterios
-permanecen pendientes. El responsable autorizó publicar web/backend sin correo
-el 2026-10-05; el envío se activa explícitamente cuando SES esté listo.
+separado. El bootstrap manual por OIDC sólo prepara estos recursos. El acceso
+regional SES se confirmó concedido el 2026-10-15 y el correo se habilitó mediante
+el despliegue OIDC 38781070488, después de revisar un plan sin cambios de
+Cognito ni borrados. Recepción, apertura y aceptación de recuperación/feedback
+siguen requiriendo sus pruebas específicas.
 Evidencia: [configuración SES y producción](../docs/evidence/issue-98-ses-production.md).
 La preparación del despliegue añade aislamiento OIDC/estado/buckets y un límite
 de permisos obligatorio para las funciones de producción. SES/DKIM/MAIL FROM,
@@ -19,8 +20,9 @@ El certificado emitido se exige también para desplegar sin correo;
 el smoke HTTPS posterior no sustituye las pruebas reales de entregabilidad.
 El operador temporal y el workflow de aceptación de #98 están preparados para
 fixtures sintéticas, recuperación durable, DLQ y feedback, con limpieza propia
-y permisos de seis horas. La recepción/apertura requiere confirmación de ambos
-proveedores antes de revocar los enlaces. Su implementación local no completa
+y permisos de seis horas. La fase completa requiere confirmación de ambos
+proveedores antes de revocar los enlaces; la fase parcial confirma sólo el
+buzón autorizado y conserva el criterio completo pendiente. Su implementación local no completa
 estos criterios de AWS ni acredita un crash original durante el envío.
 
 ## Objetivo
@@ -34,7 +36,9 @@ El matching no envía correos automáticamente.
 
 Backlog aprobado el 2026-10-03; implementación descrita al final de esta spec. SES debe permitir
 cualquier dirección válida, no solo destinatarios verificados. Dominio y remitente elegidos: `findly.barcelona` e `info@findly.barcelona`;
-verificación SES/DNS pendiente. La selección individual
+identidad, DKIM y MAIL FROM verificados, SPF/DMARC publicados y acceso regional
+concedido el 2026-10-15. La autenticación en cabeceras reales requiere comprobar
+el buzón. La selección individual
 de usuarios queda fuera de este MVP.
 
 Esta ampliación autoriza envío manual de galerías del evento a sus participantes
@@ -128,10 +132,11 @@ Selección individual, campañas, SMS y envío automático al detectar matches.
 
 ## Issue de implementación
 
-[86](https://github.com/upc-malvaviscos/findly/issues/86). Implementación preparada;
-los criterios que requieren AWS y recepción real siguen pendientes.
+[86](https://github.com/upc-malvaviscos/findly/issues/86). Implementación desplegada
+en producción; los criterios de aceptación AWS y recepción real siguen
+pendientes de sus resultados, recogidos en #98.
 
-## Implementación y verificación — 2026-10-04
+## Estado histórico de implementación — 2026-10-04
 
 Diseño aprobado para #86 en ADR-019; #49 permanece abierta por instrucción del
 responsable. Dominio `findly.barcelona`, remitente `info@findly.barcelona`, DNS

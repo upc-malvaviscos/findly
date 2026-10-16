@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       '.next/**',
+      '**/.venv/**',
       'artifacts/**',
       'build/**',
       'coverage/**',

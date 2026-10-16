@@ -385,6 +385,39 @@ y credenciales vacíos y deshabilita metadatos. No se añaden credenciales a CI 
 se retira el gate. Los mocks siguen sin acreditar AWS real; véase la
 [documentación de HashiCorp](https://developer.hashicorp.com/terraform/language/tests/mocking).
 
+### Integración y despliegue permanente — 2026-10-15
+
+La [PR #133](https://github.com/upc-malvaviscos/findly/pull/133) se integró
+tras los cinco checks obligatorios. La aceptación AWS de su revisión final
+[38775433285](https://github.com/upc-malvaviscos/findly/actions/runs/38775433285)
+terminó SUCCESS, incluido el destroy del entorno efímero. Esta suite mantiene
+el correo desactivado y no acredita SES.
+
+El nuevo [plan OIDC 38780832909](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909)
+calculó 36 altas, 14 modificaciones y cero borrados, sin cambios en Cognito.
+Se revisaron las actualizaciones de artefactos de 13 Lambdas existentes y la
+reevaluación de la política del matcher. Respecto a la publicación del 5 de
+octubre, main incorpora la descarga autorizada de galería y la respuesta
+estructurada ante errores de borrado. Las rutas nuevas requieren JWT; SES
+queda limitado a la identidad y al remitente aprobados.
+
+El [despliegue OIDC 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
+terminó SUCCESS sobre main `aa8ae565`: 36 recursos creados, 13 modificados y
+cero destruidos (la política reevaluada no necesitó cambio). Se publicaron la
+SPA y las cuatro Lambdas de correo, colas, feedback SES/SNS y alarmas. El gate
+confirmó HTTPS y `/gallery`. La lectura posterior de Cognito conserva
+`DEVELOPER`, la identidad regional del dominio y el remitente acordado. No se
+enviaron invitaciones administrativas. El despliegue todavía no acredita
+recepción, apertura ni recuperación del correo; esas pruebas se registran
+por separado.
+
+Lecturas posteriores: dos rutas administrativas `JWT`, dos mappings SQS
+`Enabled` con batch 1, destino SES de rebotes/quejas a SNS habilitado y dos
+alarmas DLQ. `SimulatePrincipalPolicy` sobre los roles desplegados permite
+`ses:SendEmail` al worker con el remitente revisado; lo deniega con otro
+remitente y desde el rol de solicitud. Es evidencia de configuración/IAM,
+no ejecución de los escenarios de entrega ni del disparo real de alarmas.
+
 ### Primera aceptación sintética y URL de API — 2026-10-15
 
 Tras el despliegue, la [aceptación 38781756643](https://github.com/upc-malvaviscos/findly/actions/runs/38781756643)
@@ -457,6 +490,50 @@ original como causa. Las pruebas comprueban esas fronteras de privacidad y la
 propagación del paso de siembra fallido. No se acreditan escenarios sólo por
 mejorar el diagnóstico: la aceptación AWS debe repetirse desde main.
 
+### Repetición tras la PR #136 — 2026-10-15
+
+La [PR #136](https://github.com/upc-malvaviscos/findly/pull/136) se integró con
+los cinco checks obligatorios correctos, incluida la
+[AWS efímera 38799641801](https://github.com/upc-malvaviscos/findly/actions/runs/38799641801)
+y su destrucción. Los gates locales pasan con 651 pruebas. La revisión privada
+cambió únicamente el sufijo de las fotos del manifiesto: conservó identificadores,
+capacidades y caducidad. Las políticas regeneradas son idénticas a los documentos
+IAM vigentes; no se renovaron ni ampliaron permisos. La inspección previa confirma
+cero filas, objetos, colecciones y supresión propios de los intentos anteriores.
+Se lanzó la [aceptación 38803054411](https://github.com/upc-malvaviscos/findly/actions/runs/38803054411)
+desde main; su resultado se registra al terminar y no se presume por el éxito
+de los checks de la PR.
+
+La ejecución 38803054411 terminó sin completar el primer escenario. Su
+diagnóstico controlado fue `api` / `scenario` / `Error`, con cero fallos de
+limpieza. La inspección posterior confirma cero filas, objetos, colecciones
+y supresión propios; ninguna fila de las dos capacidades observadas y ningún
+usuario Cognito temporal de esa ejecución. No hubo aceptación por SES.
+
+La [PR #137](https://github.com/upc-malvaviscos/findly/pull/137) prepara la
+corrección de las condiciones TTL del worker. La regresión reproduce el
+rechazo antes del cambio y pasa después; los gates locales completan 653
+pruebas y cero vulnerabilidades de producción. Los checks remotos y la
+publicación OIDC se verifican por separado.
+
+Después de acreditar la ausencia de los datos anteriores se activó un
+manifiesto nuevo, limitado a otra ventana de seis horas. Las políticas
+conservan acciones y recursos salvo identificadores propios y fecha de
+caducidad; Access Analyzer no encontró incidencias. La lectura de IAM
+confirma los documentos revisados y sesiones máximas de una hora. La
+simulación permite la fixture nueva y deniega la anterior, la operación
+posterior a caducidad y el envío SES directo del operador. No se crearon
+fixtures nuevas al actualizar este bootstrap temporal.
+
+Una comprobación adicional de sólo lectura en AWS, sobre la partición propia
+ya vacía, confirma el contrato de expresiones: Query Select=COUNT con
+`ttl > :now` devuelve ValidationException e identifica TTL como palabra
+reservada; con `#ttl` enlazado correctamente devuelve Count=0. No se crearon
+ni modificaron datos. Se registra en el
+[comentario de la PR #137](https://github.com/upc-malvaviscos/findly/pull/137#issuecomment-6201920299).
+Esta consulta valida el contrato del servicio, sin convertir el log genérico
+anterior en una atribución concluyente del fallo del worker.
+
 ### Condiciones DynamoDB del worker — 2026-10-15
 
 La [aceptación 38803054411](https://github.com/upc-malvaviscos/findly/actions/runs/38803054411)
@@ -482,3 +559,50 @@ descarte de un nombre arbitrario y del mensaje sensible. La expresión inválida
 es un defecto verificable del código, pero el log anterior no permite atribuir
 por sí solo el fallo observado a una categoría SDK concreta. La corrección
 requiere integrar, revisar el plan y publicar mediante OIDC antes de repetir.
+
+### Integración del worker y nuevo plan OIDC — 2026-10-15
+
+La PR #137 se integró tras los cinco checks obligatorios. Su
+[AWS efímera 38804296206](https://github.com/upc-malvaviscos/findly/actions/runs/38804296206)
+terminó correctamente, incluido el recorrido desplegado y la destrucción
+del entorno. Main quedó en `11c5229`. Los gates locales completos pasan
+653 pruebas y cero vulnerabilidades de producción.
+
+El [plan OIDC 38807808954](https://github.com/upc-malvaviscos/findly/actions/runs/38807808954)
+terminó SUCCESS, sin aplicar: cero altas, 18 modificaciones y cero borrados.
+La revisión identifica 17 actualizaciones de artefactos Lambda (hash y fecha)
+y una reevaluación de la política del matcher. El módulo y el agregador no
+cambian respecto al primer despliegue; las seis sentencias de la política
+vigente coinciden exactamente con la plantilla acotada para esta cuenta,
+región y entorno. No amplía permisos ni modifica Cognito. Se lanzó el
+[despliegue OIDC 38808198446](https://github.com/upc-malvaviscos/findly/actions/runs/38808198446)
+autorizado; su resultado se registra por separado.
+
+El despliegue 38808198446 terminó SUCCESS: cero altas, 17 actualizaciones y
+cero borrados; la política reevaluada no necesitó cambios. SPA, HTTPS y
+`/gallery` superaron su gate. La inspección de sólo lectura del artefacto
+publicado confirma las dos condiciones TTL con alias, worker activo y
+actualización correcta. Cognito conserva SES y el remitente acordado.
+
+La [repetición 38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703)
+alcanza los escenarios de correo: primera operación completada con dos
+aceptados SES y reintento del mismo UUID sin modificar destinatarios ni
+capacidades; recuperación de estado aceptado inyectado completada; estado
+SENDING inyectado contabilizado como incierto sin nuevo envío. La ejecución
+continúa con el fallo controlado de cursor para probar DLQ/redrive. Estos
+resultados parciales no anticipan su conclusión, limpieza ni recepción real.
+
+### Resultado de la repetición y límite de verificación — 2026-10-16
+
+La ejecución 38808775703 terminó FAILURE. El diagnóstico controlado indica
+escenario `suppression`, paso `scenario`, categoría `unknown` y un fallo de
+limpieza. El flujo alcanzó ese escenario tras los anteriores, pero no emitió
+un resultado global correcto. No se lanzó la fase del buzón autorizado ni
+se acredita recepción o apertura. No se presume la causa de la supresión ni
+qué recurso dejó el fallo de limpieza a partir de esas etiquetas.
+
+La revisión posterior no pudo consultar AWS con la sesión local disponible.
+La ausencia actual de residuos y la retirada de permisos temporales siguen
+sin verificarse; el fallo se mantiene explícito y #86/#98 permanecen abiertas.
+No deben renovarse o sustituirse los permisos de las fixtures sin comprobar
+primero la limpieza de la ejecución anterior.

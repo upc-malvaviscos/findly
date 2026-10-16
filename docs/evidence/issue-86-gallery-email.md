@@ -63,11 +63,29 @@ La PR #97 está lista para revisión por autorización del responsable. Sus chec
 incluyen AWS efímero con email desactivado; consultar el resultado remoto en la
 PR. Ese flujo no sustituye las pruebas SES/recepción pendientes.
 
+## Despliegue de producción — 2026-10-15
+
+La [PR #133](https://github.com/upc-malvaviscos/findly/pull/133) se integró con
+los cinco checks obligatorios en verde. SES concede acceso de producción;
+identidad, DKIM y MAIL FROM están verificados y SPF/DMARC publicados. El
+[despliegue OIDC 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
+habilitó el módulo y publicó la SPA: 36 altas, 13 modificaciones, ningún
+borrado. HTTPS y `/gallery` pasan; Cognito conserva SES. Lecturas posteriores
+confirman rutas JWT, consumidores SQS habilitados, feedback SES/SNS y alarmas.
+La simulación IAM permite el remitente revisado al worker y rechaza otro
+remitente o el envío directo desde la Lambda de solicitud. La matriz anterior
+describe la evidencia local del 4 de octubre; estos avances no acreditan aún
+recepción, apertura, recuperación real ni sus carreras.
+
+Sólo hay un buzón autorizado para la prueba parcial. El criterio completo
+de dos proveedores sigue abierto. La primera aceptación sintética abortó en
+una comparación de URL antes de crear fixtures; véase el diagnóstico y los
+resultados posteriores en [#98](issue-98-ses-production.md).
+
 ## Límites y cierre
 
-No cerrar #86 con esta evidencia. Falta habilitar identidad y origen HTTPS,
-publicar DNS en Acens, verificar salida del sandbox y revisar permisos del rol
-externo; después pruebas AWS, simulador y recepción real sin publicar PII.
+No cerrar #86 con el despliegue. Faltan las pruebas de aceptación AWS,
+simulador y recepción real sin publicar PII, incluidos dos proveedores.
 La issue #49 sigue abierta por instrucción del responsable. La selección de DynamoDB
 para #86 no cierra ni reemplaza su análisis global.
 

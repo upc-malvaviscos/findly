@@ -3,11 +3,12 @@
 <!-- requirement: REQ-ADMIN-AUTH -->
 <!-- requirement: REQ-ADMIN-INVITATIONS -->
 
-## Configuración reproducible, pendiente de aceptación AWS
+## Configuración inicial de #106 (histórica)
 
-La configuración de Terraform propone `allow_admin_create_user_only = true`
-sobre el pool existente, sin plantilla personalizada ni configuración SES:
-Cognito utiliza su invitación estándar. El operador comunica la URL pública de
+La revisión inicial propuso `allow_admin_create_user_only = true`
+sobre el pool existente, sin plantilla personalizada ni configuración SES.
+La decisión posterior del 15 de octubre conserva SES en producción, como se
+documenta al final. Cognito utiliza su invitación estándar. El operador comunica la URL pública de
 `/admin/login` por separado; la herramienta la muestra tras una solicitud de envío
 aceptada. Mantiene el nombre y el cliente del pool,
 la política de contraseña de 12 caracteres y exige completar el cambio de
@@ -105,3 +106,15 @@ identidades, cuentas, regiones o remitentes distintos. No se envían invitacione
 nuevas ni se amplían permisos. ADR-021 y spec 04 registran la decisión; la
 [evidencia de #98](issue-98-ses-production.md) conservará el nuevo plan y
 la verificación desplegada. Esto no acredita recepción de invitaciones.
+
+## Conservación desplegada de Cognito — 2026-10-15
+
+La PR #133 se integró con cinco checks obligatorios correctos. El
+[plan 38780832909](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909)
+ya no modifica Cognito; el
+[despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
+terminó SUCCESS. La lectura posterior de `EmailConfiguration` confirma
+`DEVELOPER`, la identidad SES regional del dominio y el remitente acordado.
+No se enviaron nuevas invitaciones administrativas. Esta conservación no prueba
+recepción ni primer acceso del destinatario anterior de #105; esa issue sigue
+abierta y su evidencia es independiente del correo de galerías.
