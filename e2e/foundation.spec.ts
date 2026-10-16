@@ -458,6 +458,11 @@ test('admin confirms gallery email, retries the same operation and intentionally
           },
         ],
       });
+    // EventPhotoManager fetches this on every admin page load; without a
+    // case here it falls through to the gallery-email status catch-all
+    // below and gets the wrong shape entirely.
+    if (path === '/admin/events/synthetic-event/photos')
+      return json({ photos: [] });
     if (request.method() === 'POST') {
       const operationId = String(request.postDataJSON().operationId);
       operations.push(operationId);

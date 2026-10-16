@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureLogs } from './lib/logCapture';
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 
 const signMock = vi.hoisted(() =>
@@ -20,10 +28,15 @@ vi.mock('../../src/lambdas/lib/presignedUpload', () => ({
 import {
   createAdminEvent,
   createPhotoUploads,
+  deleteAdminEvent,
+  deleteEventPhoto,
   listAdminEvents,
+  listEventPhotos,
+  updateAdminEvent,
 } from '../../src/lambdas/adminEvents';
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
+const s3Mock = mockClient(S3Client);
 const openEvent = {
   eventId: 'evt-1',
   createdAt: new Date().toISOString(),
@@ -32,6 +45,7 @@ const openEvent = {
 };
 afterEach(() => {
   dynamoMock.reset();
+  s3Mock.reset();
   signMock.mockClear();
 });
 
@@ -238,5 +252,176 @@ describe('admin events structured logging', () => {
       }),
     ]);
     expect(logs.lines.join('')).not.toContain('Secret Gala');
+  });
+});
+
+describe('updateAdminEvent', () => {
+  it('rejects an empty payload', async () => {
+    const result = await updateAdminEvent({
+      pathParameters: { eventId: 'evt-1' },
+      body: '{}',
+    });
+    expect(result.statusCode).toBe(400);
+    expect(dynamoMock.commandCalls(UpdateCommand)).toHaveLength(0);
+  });
+  it('returns 404 for an unknown event without a prior read', async () => {
+    dynamoMock
+      .on(UpdateCommand)
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    const result = await updateAdminEvent({
+      pathParameters: { eventId: 'missing' },
+      body: JSON.stringify({ retentionDays: 10 }),
+    });
+    expect(result.statusCode).toBe(404);
+  });
+  it('updates only retentionDays without touching GSI2SK', async () => {
+    dynamoMock.on(UpdateCommand).resolves({
+      Attributes: { ...openEvent, retentionDays: 10 },
+    });
+    const result = await updateAdminEvent({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({ retentionDays: 10 }),
+    });
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body)).toMatchObject({
+      eventId: 'evt-1',
+      retentionDays: 10,
+    });
+    const input = dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input;
+    expect(input?.UpdateExpression).toBe('SET retentionDays = :retentionDays');
+    expect(input?.ExpressionAttributeValues).toEqual({ ':retentionDays': 10 });
+  });
+  it('recomputes GSI2SK when the date changes', async () => {
+    dynamoMock.on(UpdateCommand).resolves({ Attributes: openEvent });
+    await updateAdminEvent({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({ date: '2026-11-01T00:00:00.000Z' }),
+    });
+    const input = dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input;
+    expect(input?.ExpressionAttributeValues?.[':gsi2sk']).toBe(
+      '2026-11-01T00:00:00.000Z#evt-1',
+    );
+  });
+});
+
+describe('listEventPhotos', () => {
+  it('returns 404 for an unknown event', async () => {
+    dynamoMock.on(GetCommand).resolves({});
+    const result = await listEventPhotos({
+      pathParameters: { eventId: 'missing' },
+    });
+    expect(result.statusCode).toBe(404);
+    expect(dynamoMock.commandCalls(QueryCommand)).toHaveLength(0);
+  });
+  it('rejects a malformed cursor', async () => {
+    const result = await listEventPhotos({
+      pathParameters: { eventId: 'evt-1' },
+      queryStringParameters: { cursor: 'not-base64url-json!!' },
+    });
+    expect(result.statusCode).toBe(400);
+  });
+  it('lists photos and encodes a cursor when more pages remain', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: { eventId: 'evt-1' } });
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [{ photoId: 'p1', uploadedAt: '2026-01-01T00:00:00.000Z' }],
+      LastEvaluatedKey: { PK: 'EVENT#evt-1', SK: 'PHOTO#p1' },
+    });
+    const result = await listEventPhotos({
+      pathParameters: { eventId: 'evt-1' },
+    });
+    expect(result.statusCode).toBe(200);
+    const body = JSON.parse(result.body);
+    expect(body.photos).toEqual([
+      { photoId: 'p1', uploadedAt: '2026-01-01T00:00:00.000Z' },
+    ]);
+    expect(typeof body.nextCursor).toBe('string');
+    const decoded = JSON.parse(
+      Buffer.from(body.nextCursor, 'base64url').toString('utf8'),
+    );
+    expect(decoded).toEqual({ PK: 'EVENT#evt-1', SK: 'PHOTO#p1' });
+  });
+});
+
+describe('deleteEventPhoto', () => {
+  it('deletes both match items per affected registration, the photo and its object', async () => {
+    dynamoMock.on(QueryCommand).resolves({
+      Items: [{ registrationId: 'reg-1' }, { registrationId: 'reg-2' }],
+    });
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    const result = await deleteEventPhoto({
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    });
+    expect(result.statusCode).toBe(204);
+    const queryInput = dynamoMock.commandCalls(QueryCommand)[0]?.args[0].input;
+    expect(queryInput?.ExpressionAttributeValues).toEqual({
+      ':pk': 'PHOTO#evt-1#photo-1',
+    });
+    const deleteKeys = dynamoMock
+      .commandCalls(DeleteCommand)
+      .map((call) => call.args[0].input.Key);
+    expect(deleteKeys).toContainEqual({ PK: 'REG#reg-1', SK: 'MATCH#photo-1' });
+    expect(deleteKeys).toContainEqual({
+      PK: 'PHOTO#evt-1#photo-1',
+      SK: 'MATCH#reg-1',
+    });
+    expect(deleteKeys).toContainEqual({ PK: 'REG#reg-2', SK: 'MATCH#photo-1' });
+    expect(deleteKeys).toContainEqual({
+      PK: 'PHOTO#evt-1#photo-1',
+      SK: 'MATCH#reg-2',
+    });
+    expect(deleteKeys).toContainEqual({
+      PK: 'EVENT#evt-1',
+      SK: 'PHOTO#photo-1',
+    });
+    expect(
+      s3Mock.commandCalls(DeleteObjectCommand)[0]?.args[0].input,
+    ).toMatchObject({
+      Key: 'events/evt-1/photos/photo-1.photo.jpg',
+    });
+  });
+  it('is idempotent when the photo object is already gone', async () => {
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(DeleteObjectCommand).rejects({ name: 'NoSuchKey' });
+    const result = await deleteEventPhoto({
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    });
+    expect(result.statusCode).toBe(204);
+  });
+});
+
+describe('deleteAdminEvent', () => {
+  it('is idempotent when the event is already gone', async () => {
+    dynamoMock.on(GetCommand).resolves({});
+    const result = await deleteAdminEvent({
+      pathParameters: { eventId: 'evt-1' },
+    });
+    expect(result.statusCode).toBe(204);
+    expect(dynamoMock.commandCalls(UpdateCommand)).toHaveLength(0);
+    expect(dynamoMock.commandCalls(QueryCommand)).toHaveLength(0);
+  });
+  it('closes the event and cleans up, without destroying the collection synchronously', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: {} });
+    dynamoMock.on(UpdateCommand).resolves({});
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    dynamoMock.on(DeleteCommand).resolves({});
+    s3Mock.on(ListObjectsV2Command).resolves({ Contents: [] });
+    const result = await deleteAdminEvent({
+      pathParameters: { eventId: 'evt-1' },
+    });
+    expect(result.statusCode).toBe(204);
+    const markInput = dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input;
+    expect(markInput?.ExpressionAttributeValues?.[':closed']).toBe('CLOSED');
+    expect(s3Mock.commandCalls(DeleteObjectsCommand)).toHaveLength(0);
+    // deadline is anchored on "now" + the ADR-013 margin, always in the
+    // future relative to "now": the final event-row delete must not run yet.
+    const eventRowDeletes = dynamoMock
+      .commandCalls(DeleteCommand)
+      .filter(
+        (call) =>
+          (call.args[0].input.Key as { SK?: string })?.SK === 'METADATA',
+      );
+    expect(eventRowDeletes).toHaveLength(0);
   });
 });

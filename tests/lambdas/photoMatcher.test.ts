@@ -128,6 +128,21 @@ describe('photoMatcher', () => {
       similarity: 98.2,
       ttl: 4102444800,
     });
+    // ADR-022: the photo->match mirror item, written in the same transaction.
+    expect(
+      putCalls[0]?.args[0].input.TransactItems?.[2]?.Put?.Item,
+    ).toMatchObject({
+      PK: 'PHOTO#demo-2026#photo-1',
+      SK: 'MATCH#reg-1',
+      eventId: 'demo-2026',
+      registrationId: 'reg-1',
+      photoId: 'photo-1',
+      similarity: 98.2,
+      ttl: 4102444800,
+    });
+    expect(
+      putCalls[0]?.args[0].input.TransactItems?.[2]?.Put?.ConditionExpression,
+    ).toBe('attribute_not_exists(PK)');
 
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);
     expect(deleteCalls).toHaveLength(1);

@@ -71,6 +71,22 @@ export interface PhotoUploadResponse {
   }>;
 }
 
+export interface UpdateAdminEventRequest {
+  name?: string;
+  date?: string;
+  retentionDays?: number;
+}
+
+export interface EventPhoto {
+  photoId: string;
+  uploadedAt: string;
+}
+
+export interface EventPhotosResponse {
+  photos: EventPhoto[];
+  nextCursor?: string;
+}
+
 export interface GalleryEmailOperation {
   operationId: string;
   status: 'RUNNING' | 'COMPLETED' | 'STALLED';
