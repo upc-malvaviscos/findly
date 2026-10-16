@@ -49,7 +49,10 @@ locals {
       statements = [
         # ADR-022 mirror-item query (PHOTO#eventId#photoId) plus both match
         # items and the Photo row itself all live in the same table.
-        { sid = "FindAndDeleteMatchesAndPhoto", actions = ["dynamodb:Query", "dynamodb:DeleteItem"], resources = [var.table_arn] },
+        # BatchWriteItem clears match/mirror pairs in chunks of 25 instead of
+        # one DeleteItem per key (issue #89: that round-trip count blew past
+        # this function's timeout under realistic match volume).
+        { sid = "FindAndDeleteMatchesAndPhoto", actions = ["dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem"], resources = [var.table_arn] },
         { sid = "DeletePhotoObject", actions = ["s3:DeleteObject"], resources = ["${var.uploads_bucket_arn}/events/*/photos/*"] },
       ]
       extra_env = {}
@@ -109,13 +112,15 @@ resource "aws_iam_role_policy" "function" {
 }
 
 resource "aws_lambda_function" "function" {
-  for_each         = local.functions
-  function_name    = "${var.project}-${var.environment}-admin-${each.key}"
-  role             = aws_iam_role.function[each.key].arn
-  handler          = each.value.handler
-  runtime          = "nodejs24.x"
-  memory_size      = 256
-  timeout          = each.key == "delete_event" ? 60 : 3
+  for_each      = local.functions
+  function_name = "${var.project}-${var.environment}-admin-${each.key}"
+  role          = aws_iam_role.function[each.key].arn
+  handler       = each.value.handler
+  runtime       = "nodejs24.x"
+  memory_size   = 256
+  # delete_photo needs the same headroom as delete_event: cleaning up a
+  # photo's matches can mean hundreds of items (issue #89).
+  timeout          = contains(["delete_event", "delete_photo"], each.key) ? 60 : 3
   filename         = var.lambda_artifact_path
   source_code_hash = filebase64sha256(var.lambda_artifact_path)
   environment { variables = merge({ FINDLY_TABLE_NAME = var.table_name, FINDLY_PHOTO_BUCKET = var.uploads_bucket_name }, each.value.extra_env) }

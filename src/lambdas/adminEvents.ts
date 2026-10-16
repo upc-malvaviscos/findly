@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
+  BatchWriteCommand,
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
@@ -419,6 +420,38 @@ export async function listEventPhotos(
   );
 }
 
+// DynamoDB's hard limit per BatchWriteItem call.
+const DYNAMO_BATCH_WRITE_LIMIT = 25;
+
+// Deletes any number of keys with one BatchWriteCommand per 25-item chunk
+// instead of one DeleteCommand per key: a photo's match cleanup can touch
+// hundreds of items, and that round-trip count is what blew past
+// delete_photo's Lambda timeout under realistic match volume.
+async function batchDeleteItems(
+  keys: Array<Record<string, unknown>>,
+): Promise<void> {
+  const chunks: Array<Array<Record<string, unknown>>> = [];
+  for (let start = 0; start < keys.length; start += DYNAMO_BATCH_WRITE_LIMIT)
+    chunks.push(keys.slice(start, start + DYNAMO_BATCH_WRITE_LIMIT));
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      let requestItems: Array<{
+        DeleteRequest: { Key: Record<string, unknown> };
+      }> = chunk.map((Key) => ({ DeleteRequest: { Key } }));
+      while (requestItems.length > 0) {
+        const response = await dynamo.send(
+          new BatchWriteCommand({
+            RequestItems: { [tableName]: requestItems },
+          }),
+        );
+        requestItems =
+          (response.UnprocessedItems?.[tableName] as typeof requestItems) ?? [];
+      }
+    }),
+  );
+}
+
 export async function deleteEventPhoto(
   event: HttpEvent,
   context?: LambdaContextLike,
@@ -460,21 +493,11 @@ export async function deleteEventPhoto(
         const registrationIds = (page.Items ?? [])
           .map((item) => item.registrationId)
           .filter((id): id is string => typeof id === 'string');
-        await Promise.all(
-          registrationIds.map(async (registrationId) => {
-            await dynamo.send(
-              new DeleteCommand({
-                TableName: tableName,
-                Key: matchKey(registrationId, photoId),
-              }),
-            );
-            await dynamo.send(
-              new DeleteCommand({
-                TableName: tableName,
-                Key: matchMirrorKey(eventId, photoId, registrationId),
-              }),
-            );
-          }),
+        await batchDeleteItems(
+          registrationIds.flatMap((registrationId) => [
+            matchKey(registrationId, photoId),
+            matchMirrorKey(eventId, photoId, registrationId),
+          ]),
         );
         matchesDeleted += registrationIds.length;
         matchCursor = page.LastEvaluatedKey as
