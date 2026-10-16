@@ -271,8 +271,15 @@ apply→benchmark→destroy una vez más desde una rama que ya incluye ambas
 correcciones, para confirmar que el escenario A también queda resuelto
 junto con el B en el mismo despliegue:
 
-- **Pendiente de completar en esta sesión** — resultado real a añadir aquí
-  tras ejecutar el benchmark.
+- **Escenario A (100 matches)**: `204` en 2.020 ms, 0 huérfanos.
+- **Escenario A (1.000 matches)**: `204` en 3.082 ms, 0 huérfanos.
+- **Escenario B (carrera subida/borrado)**: `204`; ni el match ni su ítem
+  espejo sobreviven.
+
+Las tres aristas del benchmark de #49 pasan en el mismo despliegue, sin
+fallos (`"failures": []`). Entorno destruido al terminar (145 recursos);
+comprobación independiente del estado remoto: serial 99, 0 instancias
+gestionadas. Sin despliegue permanente.
 
 ## Pendiente
 
