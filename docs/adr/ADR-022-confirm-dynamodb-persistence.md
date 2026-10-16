@@ -104,6 +104,38 @@ patrón de cursor que `galleryEmail.ts`/`retentionPurger.ts`) para no truncar
 eventos con muchas fotos; el diseño del cursor concreto, su cola y sus
 reintentos quedan para la implementación de #87, no para este ADR.
 
+## Adenda (2026-10-16): `writeMatch` condiciona la escritura a que la foto exista
+
+El benchmark de fan-out de #49 (sección 7 del análisis de evidencia) confirmó
+contra AWS real una carrera que este ADR no había cubierto: `matchPhoto` es
+asíncrono (Rekognition `IndexFaces`/`SearchFaces` tras un evento S3, o el
+backfill de #87) y puede terminar de resolver un match _después_ de que la
+foto que lo originó ya no exista — borrada por `deleteEventPhoto` (#89) o
+expirada por su propio `ttl` (`PhotoEntity.ttl`). `writeMatch`
+(`src/lambdas/lib/matching.ts`) solo condicionaba la escritura al estado de la
+inscripción (`ENROLLED`, `faceId`, `ttl`, sin `erasureRequestedAt`); nunca a
+la existencia de la foto. El resultado observado: un match y su ítem espejo
+huérfanos de una foto ya borrada, con el borrado ya confirmado `204` al
+administrador.
+
+Se añade un cuarto `ConditionCheck` a la misma `TransactWriteCommand` que ya
+escribe el match y su espejo, sobre `photoKey(eventId, photoId)` con
+`attribute_exists(PK)`. Un fallo de esta condición cae en el mismo camino que
+ya existía para "inscripción ya no elegible": `writeMatch` captura
+`TransactionCanceledException` por `ConditionalCheckFailed` en cualquier ítem
+de la transacción y descarta el match en silencio, sin lógica nueva de
+error. La condición cubre ambas causas de ausencia (borrado explícito y
+expiración por `ttl`), no solo el caso que #89 dispara.
+
+No introduce una barrera temporal (como ADR-013 para inscripciones) ni un
+paso de reconciliación posterior: esta condición evita la escritura huérfana
+en origen, dentro de la misma transacción atómica que ya existía, sin coste
+de llamadas AWS adicionales ni cambio de contrato público. Verificado por
+unitarias (`tests/lambdas/photoMatcher.test.ts`,
+`tests/lambdas/registrationBackfillMatching.test.ts`); la repetición del
+escenario de carrera del benchmark de #49 contra AWS real queda pendiente
+(ver `docs/evidence/issue-89-admin-event-photo-lifecycle.md`).
+
 ## Qué no decide este ADR
 
 - No implementa #87 ni #89; fija su contrato de acceso para que su

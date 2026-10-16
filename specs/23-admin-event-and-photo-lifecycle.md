@@ -117,9 +117,18 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
   `PHOTO#{eventId}#{photoId}/MATCH#{registrationId}` para cada uno.
 - Idempotente: repetir el borrado sobre una foto ya ausente devuelve `204` sin
   fallar (mismo criterio que `deleteRegistration`).
-- No reactiva ni recrea nada si un evento S3 tardío llega después: el
-  consumidor de `photoMatcher` ya trata una foto sin `Photo` persistido o un
-  evento cerrado como no accionable (a verificar/reforzar si hiciera falta).
+- No reactiva ni recrea nada si un evento S3 tardío llega después:
+  `writeMatch` (`src/lambdas/lib/matching.ts`) condiciona la escritura del
+  match y su ítem espejo a que el ítem `Photo` siga existiendo
+  (`attribute_exists(PK)` en la misma transacción); un `matchPhoto` tardío
+  (vía S3 o el backfill de #87) que termine después del borrado o la
+  expiración por `ttl` de la foto se descarta en silencio. Reforzado el
+  2026-10-16 tras que el benchmark de #49 confirmara la carrera contra AWS
+  real — ver la adenda de
+  [ADR-022](../docs/adr/ADR-022-confirm-dynamodb-persistence.md#adenda-2026-10-16-writematch-condiciona-la-escritura-a-que-la-foto-exista)
+  y `docs/evidence/issue-89-admin-event-photo-lifecycle.md`. Verificado por
+  unitarias; la repetición de ese escenario contra AWS real con la
+  corrección aplicada queda pendiente.
 
 ### `DELETE /admin/events/{eventId}` (borrar evento completo)
 

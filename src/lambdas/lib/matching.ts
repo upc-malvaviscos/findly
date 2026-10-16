@@ -16,6 +16,7 @@ import {
   faceGsi1PartitionKey,
   matchKey,
   matchMirrorKey,
+  photoKey,
   registrationKey,
   parseRegistrationId,
 } from '../../shared/lib/dynamoKeys';
@@ -134,6 +135,20 @@ export async function writeMatch(
                 ...match,
               },
               ConditionExpression: 'attribute_not_exists(PK)',
+            },
+          },
+          {
+            // A late matchPhoto (S3 redelivery or #87's backfill) can finish
+            // indexing/searching after deleteEventPhoto (#89) or the photo's
+            // own TTL already removed its row; without this check the match
+            // and its mirror would still get written for a photo that no
+            // longer exists. Failing this condition lands in the same
+            // ConditionalCheckFailed-swallow path below as the ENROLLED/ttl
+            // check already did.
+            ConditionCheck: {
+              TableName: tableName,
+              Key: photoKey(eventId, photoId),
+              ConditionExpression: 'attribute_exists(PK)',
             },
           },
         ],
