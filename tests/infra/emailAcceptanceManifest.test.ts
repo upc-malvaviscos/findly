@@ -48,7 +48,7 @@ describe('private AWS email acceptance manifest', () => {
       }
     expect(JSON.stringify(manifest)).not.toContain('@gmail');
     expect(manifest.suppressionAddress).toBe(
-      `success+${manifest.runId}@simulator.amazonses.com`,
+      `suppression-${manifest.runId}@simulator.amazonses.com`,
     );
   });
   it('refuses arbitrary token hashes, broader partitions or foreign event IDs', () => {

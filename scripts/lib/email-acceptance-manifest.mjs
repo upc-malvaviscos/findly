@@ -61,7 +61,7 @@ export function createEmailAcceptanceManifest({
     expiresAt: new Date(now + ttl).toISOString(),
     fixtures,
     leadingKeys: keys(fixtures),
-    suppressionAddress: `success+${runId}@simulator.amazonses.com`,
+    suppressionAddress: `suppression-${runId}@simulator.amazonses.com`,
   };
   validateEmailAcceptanceManifest(manifest, { now });
   return manifest;
@@ -143,7 +143,7 @@ export function validateEmailAcceptanceManifest(
   );
   assert(
     manifest.suppressionAddress ===
-      `success+${manifest.runId}@simulator.amazonses.com`,
+      `suppression-${manifest.runId}@simulator.amazonses.com`,
     'Only the unique synthetic suppression destination is authorized',
   );
   return manifest;
