@@ -32,6 +32,7 @@ const diagnosticCategories = new Set([
   'unknown',
   'Error',
   'ERR_ASSERTION',
+  'AssertionError',
   'AccessDenied',
   'AccessDeniedException',
   'ConditionalCheckFailedException',

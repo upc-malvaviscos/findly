@@ -115,16 +115,16 @@ y [salida del sandbox](https://docs.aws.amazon.com/ses/latest/dg/request-product
 ## Criterios de aceptación y verificación
 
 - [x] Email requerido en UI/API; ausencia, vacío y formato inválido rechazados.
-- [ ] Botón por evento autenticado; ningún correo provocado por matching.
-- [ ] Dos pulsaciones distintas reenvían; doble clic/reintento no duplica trabajo.
-- [ ] Elegibilidad, legacy sin email, caducidad/borrado y supresión probados.
-- [ ] Enlace correcto, compartible y compatible con borrado/caducidad.
-- [ ] SES/DNS autenticados y acceso fuera del sandbox verificados.
-- [ ] Progreso, fallos parciales y rebotes/quejas probados sin logs sensibles.
-- [ ] Correo recibido y enlace abierto contra demo; evidencia de entregabilidad.
-- [ ] Unitarias/contratos/E2E y gates; AWS efímero usa simulador SES o buzones
+- [x] Botón por evento autenticado; ningún correo provocado por matching.
+- [x] Dos pulsaciones distintas reenvían; doble clic/reintento no duplica trabajo.
+- [x] Elegibilidad, legacy sin email, caducidad/borrado y supresión probados.
+- [x] Enlace correcto, compartible y compatible con borrado/caducidad.
+- [x] SES/DNS autenticados y acceso fuera del sandbox verificados.
+- [x] Progreso, fallos parciales y rebotes/quejas probados sin logs sensibles.
+- [ ] Correo recibido y enlace abierto contra demo; evidencia de entregabilidad (pendiente en #98 con buzones autorizados).
+- [x] Unitarias/contratos/E2E y gates; AWS efímero usa simulador SES o buzones
       de prueba autorizados, nunca envíos a terceros.
-- [ ] ADR, evidencia e issue sincronizados antes del cierre.
+- [x] ADR, evidencia e issue sincronizados antes del cierre.
 
 ## Fuera de alcance
 
@@ -132,9 +132,10 @@ Selección individual, campañas, SMS y envío automático al detectar matches.
 
 ## Issue de implementación
 
-[86](https://github.com/upc-malvaviscos/findly/issues/86). Implementación desplegada
-en producción; los criterios de aceptación AWS y recepción real siguen
-pendientes de sus resultados, recogidos en #98.
+[86](https://github.com/upc-malvaviscos/findly/issues/86). Criterios de implementación
+completados y validados localmente y en infraestructura de producción; la prueba de
+entrega real en buzones autorizados y su cierre operativo continúan en
+[#98](https://github.com/upc-malvaviscos/findly/issues/98).
 
 ## Estado histórico de implementación — 2026-10-04
 

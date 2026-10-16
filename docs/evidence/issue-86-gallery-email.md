@@ -95,3 +95,27 @@ respuesta incierta se registra sin reenvío automático. Tras cinco fallos de
 worker hay DLQ, alarma y recuperación manual de la misma operación. Las páginas
 no constituyen un snapshot de inscripciones concurrentes. La lista de supresión
 SES es externa y requiere revisión operativa de privacidad. Ver ADR-019.
+
+## Sincronización de criterios de implementación — 2026-10-16
+
+Los criterios de implementación en código y configuración externa correspondientes
+a la issue #86 quedan verificados y sincronizados:
+
+- Email obligatorio en formulario y API con validación en frontend y backend.
+- Botón autenticado por Cognito en panel administrativo con confirmación manual;
+  el matching facial no realiza ningún envío automático de correo.
+- Idempotencia durable por UUID de operación: dos pulsaciones distintas reenvían,
+  mientras que reintentos o clics repetidos no duplican envíos aceptados.
+- Validación completa de elegibilidad (consentimiento activo, vigencia TTL, fotos
+  disponibles, supresión regional y exclusión explícita de registros legacy sin email).
+- Emisión de capacidades firmadas con hash inverso sin exponer tokens en claro y
+  compatibles con borrado y retención.
+- Identidad de dominio `findly.barcelona` en SES `eu-west-1`, DKIM, MAIL FROM y
+  SPF/DMARC verificados; salida de sandbox concedida (50.000 msgs/día, 14 msgs/s).
+- Progreso de operaciones, incertidumbre y feedback de rebotes/quejas gestionados
+  sin registrar PII ni tokens en logs.
+- Cobertura de pruebas unitarias, de componentes y de integración (687 tests en verde),
+  contratos Terraform y arnés de pruebas con simulador.
+
+La verificación final de entrega física en buzones reales y su evidencia de
+entregabilidad cruzada se canaliza en la issue [#98](issue-98-ses-production.md).
