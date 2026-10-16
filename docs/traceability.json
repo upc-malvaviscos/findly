@@ -514,6 +514,43 @@
         }
       ],
       "documentation": ["specs/08-private-gallery-links-and-image-delivery.md"]
+    },
+    {
+      "id": "REQ-ADMIN-EVENT-PHOTO-LIFECYCLE",
+      "description": "Edición y borrado administrativo de eventos y fotografías, reutilizando la limpieza compartida con retentionPurger.",
+      "issues": [89],
+      "spec": "specs/23-admin-event-and-photo-lifecycle.md",
+      "implementation": [
+        "src/lambdas/adminEvents.ts",
+        "src/lambdas/lib/eventCleanup.ts",
+        "src/lambdas/lib/pagination.ts",
+        "src/lambdas/photoMatcher.ts",
+        "src/lambdas/retentionPurger.ts",
+        "src/shared/lib/dynamoKeys.ts",
+        "infra/modules/admin-api/main.tf",
+        "src/web/adminApi.ts",
+        "src/web/components/admin/AdminEvents.tsx",
+        "src/web/components/admin/EventPhotoManager.tsx"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/adminEvents.test.ts",
+            "tests/lambdas/photoMatcher.test.ts",
+            "tests/lambdas/retentionPurger.test.ts",
+            "tests/web/adminEvents.test.tsx"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-89-admin-event-photo-lifecycle.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": ["docs/adr/ADR-023-synchronous-admin-event-deletion.md"]
     }
   ]
 }

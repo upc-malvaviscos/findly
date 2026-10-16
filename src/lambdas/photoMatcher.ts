@@ -15,6 +15,7 @@ import {
 import {
   faceGsi1PartitionKey,
   matchKey,
+  matchMirrorKey,
   registrationKey,
   parseRegistrationId,
 } from '../shared/lib/dynamoKeys';
@@ -170,6 +171,19 @@ async function writeMatch(
             Put: {
               TableName: tableName,
               Item: { ...matchKey(registrationId, photoId), ...match },
+              ConditionExpression: 'attribute_not_exists(PK)',
+            },
+          },
+          {
+            // ADR-022: written in the same transaction as the match itself,
+            // so both exist or neither does. #89 queries this to find every
+            // registration affected by a deleted photo without a Scan.
+            Put: {
+              TableName: tableName,
+              Item: {
+                ...matchMirrorKey(eventId, photoId, registrationId),
+                ...match,
+              },
               ConditionExpression: 'attribute_not_exists(PK)',
             },
           },

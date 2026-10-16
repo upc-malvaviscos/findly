@@ -246,6 +246,85 @@ try {
   );
   assert.equal(duplicates.Items.length, 1);
   assert.equal(duplicates.Items[0].matchId, match.matchId);
+  console.log(
+    'Public acceptance: duplicate delivery passed; checking admin event/photo management.',
+  );
+  const authHeader = { authorization: `Bearer ${idToken}` };
+  const renamed = await call(`/admin/events/${eventId}`, {
+    method: 'PATCH',
+    headers: { ...authHeader, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: `Synthetic public acceptance ${randomUUID()} (renamed)`,
+    }),
+  });
+  assert.equal(renamed.eventId, eventId);
+  assert.match(renamed.name, /\(renamed\)$/);
+  const photosPage = await call(`/admin/events/${eventId}/photos`, {
+    headers: authHeader,
+  });
+  assert(
+    photosPage.photos.some((photo) => photo.photoId === upload.photoId),
+    'Photo listing did not include the matched synthetic photo.',
+  );
+  // A disposable second photo, not upload.photoId: deleting it must not
+  // disturb the duplicate-delivery/erasure checks that still depend on it.
+  const disposablePhoto = (
+    await admin(`/admin/events/${eventId}/photos/uploads`, {
+      files: [
+        { fileName: 'synthetic-disposable.jpg', contentType: 'image/jpeg' },
+      ],
+    })
+  ).uploads[0];
+  assert.equal(
+    (
+      await fetch(disposablePhoto.uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg' },
+        body: jpeg,
+      })
+    ).status,
+    200,
+  );
+  await call(
+    `/admin/events/${eventId}/photos/${disposablePhoto.photoId}`,
+    { method: 'DELETE', headers: authHeader },
+    204,
+  );
+  assert.equal(
+    await item(`EVENT#${eventId}`, `PHOTO#${disposablePhoto.photoId}`),
+    undefined,
+    'Deleted photo still has a DynamoDB row.',
+  );
+  // A disposable second event, not eventId: ADR-023 closes it immediately
+  // (status=CLOSED) but defers the Rekognition collection/event-row delete
+  // to the next retention pass, so this must not run against the primary
+  // event the rest of this script still depends on.
+  const disposableEvent = await admin(
+    '/admin/events',
+    {
+      name: `Synthetic disposable event ${randomUUID()}`,
+      date: '2030-01-01T12:00:00.000Z',
+      retentionDays: 1,
+    },
+    201,
+  );
+  await call(
+    `/admin/events/${disposableEvent.eventId}`,
+    { method: 'DELETE', headers: authHeader },
+    204,
+  );
+  const closedEvent = await item(
+    `EVENT#${disposableEvent.eventId}`,
+    'METADATA',
+  );
+  assert.equal(
+    closedEvent?.status,
+    'CLOSED',
+    'Deleted event was not marked CLOSED (ADR-023).',
+  );
+  console.log(
+    'Public acceptance: admin event/photo management passed; checking erasure.',
+  );
   await call(
     `/registrations/${enrolled.registrationId}`,
     { method: 'DELETE', headers: { 'X-Gallery-Token': enrolled.galleryToken } },
