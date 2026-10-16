@@ -6,6 +6,8 @@ import {
   requireAcceptanceInputs,
   requireAcceptanceRecipients,
   acceptanceProviders,
+  requireAcceptanceApiEndpoint,
+  acceptanceFailureDiagnostic,
   runEmailAcceptance,
 } from '../../scripts/lib/email-acceptance-harness.mjs';
 import type {
@@ -27,6 +29,37 @@ const outputs = {
   },
 };
 const jwt = 'private-synthetic-organizer-credential';
+
+describe('deployed API endpoint ownership', () => {
+  const endpoint = 'https://synthetic.execute-api.eu-west-1.amazonaws.com';
+  it.each([
+    [endpoint, endpoint],
+    [endpoint, `${endpoint}/`],
+    [`${endpoint}/`, endpoint],
+  ])(
+    'accepts the default-stage trailing slash: %s against %s',
+    (actual, expected) =>
+      expect(() =>
+        requireAcceptanceApiEndpoint(actual, expected),
+      ).not.toThrow(),
+  );
+  it.each([
+    'https://foreign.execute-api.eu-west-1.amazonaws.com',
+    endpoint.replace('eu-west-1', 'us-east-1'),
+    endpoint.replace('https:', 'http:'),
+    `${endpoint}/stage`,
+    `${endpoint}/?token=private`,
+    `${endpoint}/#private`,
+    `${endpoint}//`,
+    undefined,
+  ])(
+    'rejects a different or non-root endpoint in either position',
+    (foreign) => {
+      expect(() => requireAcceptanceApiEndpoint(foreign, endpoint)).toThrow();
+      expect(() => requireAcceptanceApiEndpoint(endpoint, foreign)).toThrow();
+    },
+  );
+});
 const fixture = manifest.fixtures.find((item) => item.scenario === 'dlq')!;
 
 function harness() {
@@ -143,6 +176,73 @@ function harness() {
   return { adapter, rows, photos, collections, suppressions };
 }
 const wait = async () => {};
+
+describe('private acceptance failure diagnostics', () => {
+  it('emits only reviewed labels and a bounded cleanup count', () => {
+    const result = acceptanceFailureDiagnostic({
+      acceptanceScenario: 'api',
+      acceptanceStep: 'write-registration',
+      acceptanceCategory: 'AccessDeniedException',
+      acceptanceCleanupFailures: 2,
+      message: 'person@example.test private-capability-do-not-log',
+    });
+    expect(result).toEqual({
+      scenario: 'api',
+      step: 'write-registration',
+      category: 'AccessDeniedException',
+      cleanupFailures: 2,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/person@|private-capability/);
+  });
+  it('drops arbitrary exception fields instead of printing them', () => {
+    const secret = 'private-capability-do-not-log';
+    expect(
+      acceptanceFailureDiagnostic({
+        acceptanceScenario: secret,
+        acceptanceStep: secret,
+        acceptanceCategory: secret,
+        acceptanceCleanupFailures: secret,
+        message: secret,
+      }),
+    ).toEqual({
+      scenario: 'unknown',
+      step: 'unknown',
+      category: 'unknown',
+      cleanupFailures: null,
+    });
+  });
+  it.each([-1, 1.5, 101])(
+    'does not publish an invalid cleanup count',
+    (count) => {
+      expect(
+        acceptanceFailureDiagnostic({ acceptanceCleanupFailures: count })
+          .cleanupFailures,
+      ).toBeNull();
+    },
+  );
+  it('preserves the failed seed step without retaining the original exception', async () => {
+    const { adapter } = harness();
+    const secret = 'person@example.test private-capability-do-not-log';
+    vi.mocked(adapter.put).mockRejectedValueOnce(
+      Object.assign(new Error(secret), { code: 'AccessDeniedException' }),
+    );
+    let failure: unknown;
+    try {
+      await runEmailAcceptance({ manifest, outputs, jwt, adapter, wait });
+    } catch (cause) {
+      failure = cause;
+    }
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toHaveProperty('cause');
+    expect(acceptanceFailureDiagnostic(failure)).toEqual({
+      scenario: 'api',
+      step: 'write-event',
+      category: 'AccessDeniedException',
+      cleanupFailures: 0,
+    });
+    if (failure instanceof Error) expect(failure.message).not.toContain(secret);
+  });
+});
 
 describe('email acceptance orchestration (local adapters, not AWS evidence)', () => {
   it('requires explicit partial mode and preserves the full two-provider gate', () => {
@@ -465,6 +565,20 @@ describe('email acceptance orchestration (local adapters, not AWS evidence)', ()
       manifest.fixtures.filter((item) => item.scenario !== 'recipients'),
       expect.any(Number),
     );
+  });
+  it('does not reuse revoked capabilities after successful late-feedback erasure', async () => {
+    const { adapter, rows, photos, collections } = harness();
+    const erase = vi.mocked(adapter.erase).getMockImplementation()!;
+    const revoked = new Set<string>();
+    vi.mocked(adapter.erase).mockImplementation(async (id, capability) => {
+      if (revoked.has(id)) throw new Error('Revoked capability returns 404');
+      await erase(id, capability);
+      revoked.add(id);
+    });
+    await expect(
+      runEmailAcceptance({ manifest, outputs, jwt, adapter, wait }),
+    ).resolves.toMatchObject({ cleanup: 'verified' });
+    expect(rows.size + photos.size + collections.size).toBe(0);
   });
   it('stops cleanup on its shared deadline and preserves references for retry', async () => {
     const { adapter, rows } = harness();

@@ -414,8 +414,8 @@ async function sendRecipient(
               TableName: table(),
               Key: registrationKey(eventId, registrationId),
               ConditionExpression:
-                '#status = :enrolled AND attribute_not_exists(erasureRequestedAt) AND ttl > :now AND email = :email AND consentTimestamp = :consent',
-              ExpressionAttributeNames: { '#status': 'status' },
+                '#status = :enrolled AND attribute_not_exists(erasureRequestedAt) AND #ttl > :now AND email = :email AND consentTimestamp = :consent',
+              ExpressionAttributeNames: { '#status': 'status', '#ttl': 'ttl' },
               ExpressionAttributeValues: {
                 ':enrolled': 'ENROLLED',
                 ':now': now,
@@ -429,7 +429,8 @@ async function sendRecipient(
               TableName: table(),
               Key: photoKey(eventId, candidate.photoId),
               ConditionExpression:
-                'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND ttl > :now',
+                'attribute_exists(PK) AND attribute_not_exists(erasureRequestedAt) AND #ttl > :now',
+              ExpressionAttributeNames: { '#ttl': 'ttl' },
               ExpressionAttributeValues: { ':now': now },
             },
           },
@@ -608,9 +609,17 @@ export async function processGalleryEmail(
       recordCount: event.Records.length,
       durationMs: Date.now() - startedAt,
     });
-  } catch {
+  } catch (error) {
+    // Fixed SDK categories aid diagnosis without exposing arbitrary names/messages.
+    const errorName = [
+      'ValidationException',
+      'AccessDeniedException',
+      'ResourceNotFoundException',
+      'ProvisionedThroughputExceededException',
+      'ThrottlingException',
+    ].find((name) => error instanceof Error && error.name === name);
     emitLog('ERROR', 'gallery_email_work_failed', correlationId, {
-      errorName: 'GalleryEmailProcessingFailed',
+      errorName: errorName ?? 'GalleryEmailProcessingFailed',
       durationMs: Date.now() - startedAt,
     });
     throw new Error('GalleryEmailProcessingFailed');
