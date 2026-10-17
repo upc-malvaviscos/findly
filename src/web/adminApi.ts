@@ -142,8 +142,10 @@ export async function requestPhotoUploads(
 ): Promise<PhotoUploadResponse> {
   if (executionMode === 'mock')
     return {
+      // photoId mirrors the client-generated operationId (issue #121), so a
+      // retry of the same file in mock mode also keeps the same photoId.
       uploads: request.files.map((file) => ({
-        photoId: crypto.randomUUID(),
+        photoId: file.operationId,
         uploadUrl: `mock://findly/events/${eventId}/photos/${encodeURIComponent(file.fileName)}`,
         expiresInSeconds: 300,
       })),

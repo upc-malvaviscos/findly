@@ -279,6 +279,7 @@ export function AdminEvents({ onLogout }: { onLogout: () => void }) {
               token={session?.idToken ?? ''}
             />
             <BulkPhotoUploader
+              key={selectedEventId}
               eventId={selectedEventId}
               token={session?.idToken ?? ''}
             />

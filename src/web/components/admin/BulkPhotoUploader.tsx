@@ -3,7 +3,17 @@ import { uploadFileToS3 } from '../../s3Uploader';
 import { requestPhotoUploads } from '../../adminApi';
 import type { UploadProgress } from '../../types';
 
-type UploadItem = { file: File; progress: UploadProgress; error?: string };
+type UploadStatus = 'pending' | 'uploading' | 'completed' | 'failed';
+
+type UploadItem = {
+  file: File;
+  operationId: string;
+  status: UploadStatus;
+  progress: UploadProgress;
+  error?: string;
+};
+
+const CONCURRENCY = 3;
 
 export function BulkPhotoUploader({
   eventId,
@@ -15,71 +25,114 @@ export function BulkPhotoUploader({
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  function update(index: number, progress: UploadProgress, error?: string) {
+  function update(operationId: string, patch: Partial<UploadItem>) {
     setItems((current) =>
-      current.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, progress, error } : item,
+      current.map((item) =>
+        item.operationId === operationId ? { ...item, ...patch } : item,
       ),
     );
   }
 
-  async function upload(index: number, uploadUrl: string) {
-    const item = items[index];
-    if (!item) return;
+  async function uploadOne(item: UploadItem, uploadUrl: string) {
+    update(item.operationId, { status: 'uploading', error: undefined });
     try {
       await uploadFileToS3(uploadUrl, item.file, (progress) =>
-        update(index, progress),
+        update(item.operationId, { progress }),
       );
+      update(item.operationId, { status: 'completed' });
     } catch {
-      update(
-        index,
-        { loaded: 0, total: Math.max(item.file.size, 1), percentage: 0 },
-        'UPLOAD_FAILED',
-      );
+      update(item.operationId, {
+        status: 'failed',
+        progress: {
+          loaded: 0,
+          total: Math.max(item.file.size, 1),
+          percentage: 0,
+        },
+        error: 'UPLOAD_FAILED',
+      });
     }
   }
 
   async function startUpload() {
     setIsUploading(true);
     try {
-      const accepted = items.filter((item) => item.file.type === 'image/jpeg');
-      if (accepted.length !== items.length) {
+      const pending = items.filter(
+        (item) =>
+          item.status !== 'completed' && item.file.type === 'image/jpeg',
+      );
+      const rejected = items.filter(
+        (item) =>
+          item.status !== 'completed' && item.file.type !== 'image/jpeg',
+      );
+      if (rejected.length > 0) {
         setItems((current) =>
           current.map((item) =>
-            item.file.type === 'image/jpeg'
-              ? item
-              : { ...item, error: 'INVALID_FILE_TYPE' },
+            rejected.includes(item)
+              ? { ...item, status: 'failed', error: 'INVALID_FILE_TYPE' }
+              : item,
           ),
         );
       }
-      if (accepted.length === 0) return;
+      if (pending.length === 0) return;
       const { uploads } = await requestPhotoUploads(token, eventId, {
-        files: accepted.map((item) => ({
+        files: pending.map((item) => ({
+          operationId: item.operationId,
           fileName: item.file.name,
           contentType: 'image/jpeg',
         })),
       });
-      const uploadUrlByName = new Map(
-        uploads.map((item, index) => [accepted[index]?.file, item.uploadUrl]),
+      const outcomeByOperationId = new Map(
+        uploads.map((outcome) => [outcome.photoId, outcome]),
       );
-      const acceptedIndexes = items
-        .map((item, index) => (item.file.type === 'image/jpeg' ? index : -1))
-        .filter((index) => index >= 0);
-      for (let start = 0; start < acceptedIndexes.length; start += 3) {
+      for (let start = 0; start < pending.length; start += CONCURRENCY) {
         await Promise.all(
-          acceptedIndexes
-            .slice(start, start + 3)
-            .map((index) =>
-              upload(index, uploadUrlByName.get(items[index]?.file) ?? ''),
-            ),
+          pending.slice(start, start + CONCURRENCY).map(async (item) => {
+            const outcome = outcomeByOperationId.get(item.operationId);
+            if (!outcome) {
+              update(item.operationId, {
+                status: 'failed',
+                error: 'UPLOAD_REQUEST_FAILED',
+              });
+              return;
+            }
+            if ('status' in outcome && outcome.status === 'COMPLETED') {
+              // Backend-confirmed via S3 HeadObject: a prior PUT already
+              // succeeded even though this client never saw that response.
+              // 100% client-side progress is never treated as confirmation
+              // on its own - only this, or a successful PUT response, is.
+              update(item.operationId, {
+                status: 'completed',
+                progress: {
+                  loaded: item.file.size,
+                  total: Math.max(item.file.size, 1),
+                  percentage: 100,
+                },
+              });
+              return;
+            }
+            if ('error' in outcome) {
+              update(item.operationId, {
+                status: 'failed',
+                error: outcome.error,
+              });
+              return;
+            }
+            if ('uploadUrl' in outcome)
+              await uploadOne(item, outcome.uploadUrl);
+          }),
         );
       }
     } catch {
       setItems((current) =>
-        current.map((item) => ({
-          ...item,
-          error: item.error ?? 'UPLOAD_REQUEST_FAILED',
-        })),
+        current.map((item) =>
+          item.status === 'completed'
+            ? item
+            : {
+                ...item,
+                status: 'failed',
+                error: item.error ?? 'UPLOAD_REQUEST_FAILED',
+              },
+        ),
       );
     } finally {
       setIsUploading(false);
@@ -108,6 +161,8 @@ export function BulkPhotoUploader({
             setItems(
               files.map((file) => ({
                 file,
+                operationId: crypto.randomUUID(),
+                status: 'pending',
                 progress: {
                   loaded: 0,
                   total: Math.max(file.size, 1),
@@ -122,10 +177,7 @@ export function BulkPhotoUploader({
         <div aria-live="polite">
           <p>Progreso global: {overall}%</p>
           {items.map((item) => (
-            <div
-              className="progress-group"
-              key={`${item.file.name}-${item.file.lastModified}`}
-            >
+            <div className="progress-group" key={item.operationId}>
               <div className="progress-label">
                 <span>{item.file.name}</span>
                 <span>{item.progress.percentage}%</span>
@@ -133,7 +185,7 @@ export function BulkPhotoUploader({
               <div className="progress-track">
                 <span style={{ width: `${item.progress.percentage}%` }} />
               </div>
-              {item.error && (
+              {item.status === 'failed' && (
                 <p className="field-error">No se pudo subir esta fotografía.</p>
               )}
             </div>
@@ -144,7 +196,11 @@ export function BulkPhotoUploader({
             disabled={isUploading}
             onClick={() => void startUpload()}
           >
-            {isUploading ? 'Subiendo…' : 'Subir fotografías'}
+            {isUploading
+              ? 'Subiendo…'
+              : items.some((item) => item.status === 'failed')
+                ? 'Reintentar fallidas'
+                : 'Subir fotografías'}
           </button>
         </div>
       )}
