@@ -80,3 +80,40 @@ objeto; una segunda escritura devuelve 412. Las fotos de organizador conservan
 su contrato anterior. El smoke público comprueba omisión de cabecera firmada,
 carga inicial y rechazo de sobrescritura en el origen real; está preparado,
 no ejecutado en AWS.
+
+<!-- requirement: REQ-PHOTO-UPLOAD-RETRY -->
+
+## Reintento selectivo e identificador estable por operación (#121)
+
+[ADR-024](../docs/adr/ADR-024-photo-upload-retry-and-stable-operation-id.md)
+resuelve la duplicación de reintentos descrita en la issue
+[#121](https://github.com/upc-malvaviscos/findly/issues/121):
+`POST /admin/events/{eventId}/photos/uploads` exige ahora un `operationId`
+(UUID) por archivo, generado una vez por el cliente y reenviado sin cambios en
+cada reintento de ese mismo archivo. `photoId = operationId`; la clave S3 no
+cambia (`events/{eventId}/photos/{photoId}.photo.jpg`).
+
+Repetir la misma operación resuelve en uno de tres resultados, nunca en una
+foto nueva: si S3 ya tiene el objeto (verificado con `HeadObjectCommand`, el
+único permiso IAM nuevo y mínimo que añade esta issue), responde
+`{ photoId, status: 'COMPLETED' }` sin firmar un nuevo PUT — un reintento
+nunca sobrescribe una subida ya confirmada, y el 100 % de progreso del
+cliente nunca sustituye esta confirmación; si el objeto no está en S3, renueva
+firmando un PUT nuevo para la misma clave sin modificar el `ttl` ya
+persistido (la renovación no amplía la retención); si el mismo `operationId`
+llega con un `fileName` distinto, se rechaza con `409 OPERATION_MISMATCH` en
+vez de mezclar la operación. `BulkPhotoUploader` (spec 04) solo reenvía los
+archivos de un lote que no han completado, y nombres de archivo iguales no
+colisionan porque cada operación tiene su propio `operationId`.
+
+El borrado de foto (`DELETE .../photos/{photoId}`) deja un tombstone
+(`deletedAt`, sin `s3Key` ni `fileName`) en vez de eliminar la fila, siguiendo
+el mismo patrón que el locator durable de selfies (ADR-014/ADR-013): un
+`operationId` reutilizado contra una foto borrada responde
+`410`-equivalente (`error: 'PHOTO_DELETED'`) en vez de resucitarla, y el
+tombstone no lleva TTL propio — se purga con el resto de la partición del
+evento, sin ampliar la retención. `GET .../photos` excluye los tombstones del
+listado.
+
+Verificación:
+[`docs/evidence/issue-121-photo-upload-retry.md`](../docs/evidence/issue-121-photo-upload-retry.md).
