@@ -29,10 +29,12 @@ const outputs = {
   cognito_client_id: { value: 'synthetic-client' },
 };
 
+let photoUploadCalls = 0;
 beforeEach(() => {
   vi.resetModules();
   dynamo.reset();
   s3.reset();
+  photoUploadCalls = 0;
   processMocks.run.mockReset();
   processMocks.spawn.mockReset();
   vi.stubEnv('FINDLY_TERRAFORM_STATE_BUCKET', 'synthetic-state');
@@ -63,15 +65,22 @@ beforeEach(() => {
         return new Response(JSON.stringify({ eventId: 'synthetic-event' }), {
           status: init?.method === 'POST' ? 200 : 401,
         });
-      if (path.endsWith('/photos/uploads'))
+      if (path.endsWith('/photos/uploads')) {
+        photoUploadCalls += 1;
+        // Issue #121: test-aws-sandbox.mjs repeats this call with the same
+        // operationId after the real PUT to check backend confirmation;
+        // the second call for that fixture is answered as already complete.
         return Response.json({
           uploads: [
-            {
-              photoId: 'synthetic-photo',
-              uploadUrl: 'https://upload.test/file',
-            },
+            photoUploadCalls === 1
+              ? {
+                  photoId: 'synthetic-photo',
+                  uploadUrl: 'https://upload.test/file',
+                }
+              : { photoId: 'synthetic-photo', status: 'COMPLETED' },
           ],
         });
+      }
       if (path === '/file') return new Response('', { status: 200 });
       if (path === '/image')
         return new Response('JPEG', {

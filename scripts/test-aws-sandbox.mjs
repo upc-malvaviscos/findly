@@ -188,13 +188,20 @@ await withCleanup(async (cleanup) => {
       }),
     ),
   );
+  const uploadOperationId = randomUUID();
   const upload = await admin(
     token,
     `/admin/events/${encodeURIComponent(eventId)}/photos/uploads`,
     {
       method: 'POST',
       body: JSON.stringify({
-        files: [{ fileName: 'synthetic.jpg', contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: uploadOperationId,
+            fileName: 'synthetic.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     },
   );
@@ -220,6 +227,34 @@ await withCleanup(async (cleanup) => {
   });
   if (!uploadResponse.ok)
     throw new Error(`Presigned upload returned ${uploadResponse.status}.`);
+  // Issue #121: retrying the same file operation after a successful PUT
+  // must not re-sign a PUT (would risk an overwrite) nor mint a new photo -
+  // the backend confirms completion against real S3 via HeadObject.
+  const retried = await admin(
+    token,
+    `/admin/events/${encodeURIComponent(eventId)}/photos/uploads`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: uploadOperationId,
+            fileName: 'synthetic.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    },
+  );
+  const retriedUpload = retried.uploads?.[0];
+  if (
+    retriedUpload?.photoId !== photo.photoId ||
+    retriedUpload?.status !== 'COMPLETED' ||
+    retriedUpload?.uploadUrl
+  )
+    throw new Error(
+      'Retrying a completed upload operation did not confirm via HeadObject.',
+    );
   const galleryEventId = `evt-gallery-${randomUUID()}`;
   const registrationId = `reg-${randomUUID()}`;
   const galleryPhotoId = randomUUID();

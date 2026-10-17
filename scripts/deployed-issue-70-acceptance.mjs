@@ -198,7 +198,13 @@ try {
     'Public acceptance: enrollment reached ENROLLED; waiting for S3-triggered photo matching (up to 2 minutes).',
   );
   const uploads = await admin(`/admin/events/${eventId}/photos/uploads`, {
-    files: [{ fileName: 'synthetic-matching.jpg', contentType: 'image/jpeg' }],
+    files: [
+      {
+        operationId: randomUUID(),
+        fileName: 'synthetic-matching.jpg',
+        contentType: 'image/jpeg',
+      },
+    ],
   });
   const upload = uploads.uploads[0];
   async function uploadPhoto() {
@@ -408,7 +414,11 @@ try {
       const paginationUpload = (
         await admin(`/admin/events/${paginationEvent.eventId}/photos/uploads`, {
           files: [
-            { fileName: `pagination-${i}.jpg`, contentType: 'image/jpeg' },
+            {
+              operationId: randomUUID(),
+              fileName: `pagination-${i}.jpg`,
+              contentType: 'image/jpeg',
+            },
           ],
         })
       ).uploads[0];
@@ -482,7 +492,11 @@ try {
   const disposablePhoto = (
     await admin(`/admin/events/${eventId}/photos/uploads`, {
       files: [
-        { fileName: 'synthetic-disposable.jpg', contentType: 'image/jpeg' },
+        {
+          operationId: randomUUID(),
+          fileName: 'synthetic-disposable.jpg',
+          contentType: 'image/jpeg',
+        },
       ],
     })
   ).uploads[0];
@@ -601,6 +615,7 @@ try {
     await admin(`/admin/events/${disposableEvent.eventId}/photos/uploads`, {
       files: [
         {
+          operationId: randomUUID(),
           fileName: 'synthetic-disposable-event.jpg',
           contentType: 'image/jpeg',
         },
@@ -700,7 +715,11 @@ try {
     `/admin/events/${disposableEvent.eventId}/photos/uploads`,
     {
       files: [
-        { fileName: 'synthetic-after-close.jpg', contentType: 'image/jpeg' },
+        {
+          operationId: randomUUID(),
+          fileName: 'synthetic-after-close.jpg',
+          contentType: 'image/jpeg',
+        },
       ],
     },
     410,

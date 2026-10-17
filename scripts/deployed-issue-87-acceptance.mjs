@@ -200,7 +200,13 @@ async function uploadPhoto(token, eventId, imageBuffer = face) {
     {
       method: 'POST',
       body: JSON.stringify({
-        files: [{ fileName: `${randomUUID()}.jpg`, contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: randomUUID(),
+            fileName: `${randomUUID()}.jpg`,
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     },
   );

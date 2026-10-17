@@ -140,7 +140,13 @@ async function uploadPhoto(token, eventId) {
     {
       method: 'POST',
       body: JSON.stringify({
-        files: [{ fileName: `${randomUUID()}.jpg`, contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: randomUUID(),
+            fileName: `${randomUUID()}.jpg`,
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     },
   );
@@ -473,7 +479,11 @@ async function main() {
           method: 'POST',
           body: JSON.stringify({
             files: [
-              { fileName: `${randomUUID()}.jpg`, contentType: 'image/jpeg' },
+              {
+                operationId: randomUUID(),
+                fileName: `${randomUUID()}.jpg`,
+                contentType: 'image/jpeg',
+              },
             ],
           }),
         },
