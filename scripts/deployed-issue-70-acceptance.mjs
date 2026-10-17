@@ -15,6 +15,7 @@ import {
   ListFacesCommand,
   RekognitionClient,
 } from '@aws-sdk/client-rekognition';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { runPublicEnrollmentSmoke } from './public-enrollment-smoke.mjs';
 import { SYNTHETIC_CLIENT_REPORTS } from './lib/enrollment-error-metrics.mjs';
 import {
@@ -28,14 +29,16 @@ const api = process.env.EPHEMERAL_API_ENDPOINT?.replace(/\/$/, '');
 const idToken = process.env.EPHEMERAL_ID_TOKEN;
 const table = process.env.EPHEMERAL_DYNAMODB_TABLE_NAME;
 const origin = process.env.EPHEMERAL_FRONTEND_ORIGIN;
+const bucket = process.env.EPHEMERAL_UPLOADS_BUCKET_NAME;
 assert(
-  api && idToken && table && origin,
+  api && idToken && table && origin && bucket,
   'Deployed PR outputs and synthetic organizer token required.',
 );
 const db = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: process.env.AWS_REGION }),
 );
 const rekognition = new RekognitionClient({ region: process.env.AWS_REGION });
+const s3 = new S3Client({ region: process.env.AWS_REGION });
 async function call(path, init = {}, status = 200) {
   const response = await fetch(`${api}${path}`, init);
   assert.equal(
@@ -69,6 +72,22 @@ async function item(PK, SK) {
       }),
     )
   ).Item;
+}
+async function objectExists(key) {
+  const result = await s3.send(
+    new ListObjectsV2Command({ Bucket: bucket, Prefix: key, MaxKeys: 1 }),
+  );
+  return Boolean(result.Contents?.some((object) => object.Key === key));
+}
+async function waitForMatch(registrationId, photoId, budgetMs) {
+  const deadline = Date.now() + budgetMs;
+  let match;
+  while (Date.now() < deadline) {
+    match = await item(`REG#${registrationId}`, `MATCH#${photoId}`);
+    if (match) return match;
+    await setTimeout(1500);
+  }
+  return undefined;
 }
 function runScript(file, env = {}) {
   execFileSync(process.execPath, [file], {
@@ -259,6 +278,88 @@ try {
   });
   assert.equal(renamed.eventId, eventId);
   assert.match(renamed.name, /\(renamed\)$/);
+  console.log(
+    'Public acceptance: checking the public /events listing reflects the admin rename.',
+  );
+  const publicEvents = await call('/events');
+  const publicListedEvent = publicEvents.events.find(
+    (candidate) => candidate.eventId === eventId,
+  );
+  assert(
+    publicListedEvent,
+    'The edited event did not appear in the public /events listing.',
+  );
+  assert.equal(
+    publicListedEvent.name,
+    renamed.name,
+    'The public /events listing did not reflect the admin rename.',
+  );
+  console.log(
+    'Public acceptance: checking JWT rejection on the four new admin routes.',
+  );
+  const invalidAuthHeader = { authorization: 'Bearer not-a-real-jwt' };
+  const adminRouteChecks = [
+    {
+      label: 'PATCH /admin/events/{id}',
+      path: `/admin/events/${eventId}`,
+      init: (headers) => ({
+        method: 'PATCH',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Unauthorized rename attempt' }),
+      }),
+    },
+    {
+      label: 'GET /admin/events/{id}/photos',
+      path: `/admin/events/${eventId}/photos`,
+      init: (headers) => ({ headers }),
+    },
+    {
+      label: 'DELETE /admin/events/{id}/photos/{photoId}',
+      path: `/admin/events/${eventId}/photos/${upload.photoId}`,
+      init: (headers) => ({ method: 'DELETE', headers }),
+    },
+    {
+      label: 'DELETE /admin/events/{id}',
+      path: `/admin/events/${eventId}`,
+      init: (headers) => ({ method: 'DELETE', headers }),
+    },
+  ];
+  for (const { label, path, init } of adminRouteChecks) {
+    const withoutToken = await fetch(`${api}${path}`, init({}));
+    assert.equal(
+      withoutToken.status,
+      401,
+      `${label} must reject a missing JWT.`,
+    );
+    const withInvalidToken = await fetch(
+      `${api}${path}`,
+      init(invalidAuthHeader),
+    );
+    assert.equal(
+      withInvalidToken.status,
+      401,
+      `${label} must reject an invalid JWT.`,
+    );
+  }
+  // Confirm none of the eight rejected attempts above had any effect.
+  const untouchedEvent = await item(`EVENT#${eventId}`, 'METADATA');
+  assert.equal(
+    untouchedEvent.name,
+    renamed.name,
+    'An unauthorized PATCH must not have changed the event.',
+  );
+  assert.equal(
+    untouchedEvent.status,
+    'OPEN',
+    'An unauthorized DELETE must not have closed the primary event.',
+  );
+  assert(
+    await item(`EVENT#${eventId}`, `PHOTO#${upload.photoId}`),
+    'An unauthorized DELETE must not have removed the matched photo.',
+  );
+  console.log(
+    'Public acceptance: JWT rejection passed; checking photo listing.',
+  );
   const photosPage = await call(`/admin/events/${eventId}/photos`, {
     headers: authHeader,
   });
@@ -266,8 +367,97 @@ try {
     photosPage.photos.some((photo) => photo.photoId === upload.photoId),
     'Photo listing did not include the matched synthetic photo.',
   );
+  console.log(
+    'Public acceptance: checking paginated photo listing across two real pages.',
+  );
+  {
+    const paginationEvent = await admin(
+      '/admin/events',
+      {
+        name: `Synthetic pagination event ${randomUUID()}`,
+        date: '2030-01-01T12:00:00.000Z',
+        retentionDays: 1,
+      },
+      201,
+    );
+    // adminEvents.ts PHOTO_PAGE_SIZE = 20; 21 photos force a real second page.
+    const PAGINATION_PHOTO_COUNT = 21;
+    const paginationPhotoIds = [];
+    for (let i = 0; i < PAGINATION_PHOTO_COUNT; i++) {
+      const paginationUpload = (
+        await admin(`/admin/events/${paginationEvent.eventId}/photos/uploads`, {
+          files: [
+            { fileName: `pagination-${i}.jpg`, contentType: 'image/jpeg' },
+          ],
+        })
+      ).uploads[0];
+      assert.equal(
+        (
+          await fetch(paginationUpload.uploadUrl, {
+            method: 'PUT',
+            headers: { 'content-type': 'image/jpeg' },
+            body: jpeg,
+          })
+        ).status,
+        200,
+      );
+      paginationPhotoIds.push(paginationUpload.photoId);
+    }
+    const paginationPage1 = await call(
+      `/admin/events/${paginationEvent.eventId}/photos`,
+      { headers: authHeader },
+    );
+    assert.equal(
+      paginationPage1.photos.length,
+      20,
+      'The first photo page did not return 20 photos.',
+    );
+    assert.equal(
+      typeof paginationPage1.nextCursor,
+      'string',
+      'A 21-photo event did not return a pagination cursor.',
+    );
+    const paginationPage2 = await call(
+      `/admin/events/${paginationEvent.eventId}/photos?cursor=${encodeURIComponent(paginationPage1.nextCursor)}`,
+      { headers: authHeader },
+    );
+    assert.equal(
+      paginationPage2.photos.length,
+      1,
+      'The second photo page did not return the remaining photo.',
+    );
+    assert.equal(
+      paginationPage2.nextCursor,
+      undefined,
+      'The final photo page must not return another cursor.',
+    );
+    const paginatedIds = new Set(
+      [...paginationPage1.photos, ...paginationPage2.photos].map(
+        (photo) => photo.photoId,
+      ),
+    );
+    assert.equal(
+      paginatedIds.size,
+      PAGINATION_PHOTO_COUNT,
+      'Paginated listing did not cover every uploaded photo exactly once.',
+    );
+    for (const photoId of paginationPhotoIds)
+      assert(
+        paginatedIds.has(photoId),
+        'A paginated photo page skipped a photo.',
+      );
+    await call(
+      `/admin/events/${paginationEvent.eventId}`,
+      { method: 'DELETE', headers: authHeader },
+      204,
+    );
+  }
+  console.log('Public acceptance: paginated photo listing passed.');
   // A disposable second photo, not upload.photoId: deleting it must not
   // disturb the duplicate-delivery/erasure checks that still depend on it.
+  console.log(
+    'Public acceptance: checking a matched photo deletion removes S3, matches and the gallery entry.',
+  );
   const disposablePhoto = (
     await admin(`/admin/events/${eventId}/photos/uploads`, {
       files: [
@@ -285,6 +475,24 @@ try {
     ).status,
     200,
   );
+  const disposableMatch = await waitForMatch(
+    enrolled.registrationId,
+    disposablePhoto.photoId,
+    90000,
+  );
+  assert(
+    disposableMatch,
+    'The disposable photo never produced a match to delete against.',
+  );
+  const galleryBeforeDelete = await call(
+    `/gallery?token=${encodeURIComponent(enrolled.galleryToken)}`,
+  );
+  assert(
+    galleryBeforeDelete.photos.some(
+      (photo) => photo.photoId === disposablePhoto.photoId,
+    ),
+    'The gallery did not list the disposable photo before deleting it.',
+  );
   await call(
     `/admin/events/${eventId}/photos/${disposablePhoto.photoId}`,
     { method: 'DELETE', headers: authHeader },
@@ -295,10 +503,40 @@ try {
     undefined,
     'Deleted photo still has a DynamoDB row.',
   );
+  assert.equal(
+    await item(
+      `REG#${enrolled.registrationId}`,
+      `MATCH#${disposablePhoto.photoId}`,
+    ),
+    undefined,
+    'Deleted photo left an orphaned match.',
+  );
+  assert.equal(
+    await objectExists(
+      `events/${eventId}/photos/${disposablePhoto.photoId}.photo.jpg`,
+    ),
+    false,
+    'Deleted photo left its S3 object behind.',
+  );
+  const galleryAfterDelete = await call(
+    `/gallery?token=${encodeURIComponent(enrolled.galleryToken)}`,
+  );
+  assert.equal(
+    galleryAfterDelete.photos.length,
+    1,
+    'The gallery still listed the deleted photo.',
+  );
+  assert.equal(galleryAfterDelete.photos[0].photoId, upload.photoId);
   // A disposable second event, not eventId: ADR-023 closes it immediately
   // (status=CLOSED) but defers the Rekognition collection/event-row delete
   // to the next retention pass, so this must not run against the primary
-  // event the rest of this script still depends on.
+  // event the rest of this script still depends on. It still carries a
+  // real enrolled registration and a real matched photo, so deleting it
+  // exercises deleteEventRecords'/deleteEventObjects' full synchronous
+  // cleanup, not just the CLOSED marker.
+  console.log(
+    'Public acceptance: checking full synchronous cleanup of a deleted event with real data.',
+  );
   const disposableEvent = await admin(
     '/admin/events',
     {
@@ -307,6 +545,65 @@ try {
       retentionDays: 1,
     },
     201,
+  );
+  const disposablePage = await browser.newPage();
+  let disposableGrant;
+  try {
+    const disposableDocument = `${origin}/__findly_public_acceptance_disposable`;
+    await disposablePage.route(disposableDocument, (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><title>Synthetic acceptance</title>',
+      }),
+    );
+    await disposablePage.goto(disposableDocument);
+    await disposablePage.unroute(disposableDocument);
+    await runPublicEnrollmentSmoke({
+      page: disposablePage,
+      apiEndpoint: api,
+      eventId: disposableEvent.eventId,
+      onRegistration: (grant) => {
+        disposableGrant = grant;
+      },
+      syntheticJpeg: jpeg.toString('base64'),
+      expectedStatus: 'ENROLLED',
+    });
+  } finally {
+    await disposablePage.close();
+  }
+  const disposableRegistration = await item(
+    `EVENT#${disposableEvent.eventId}`,
+    `REG#${disposableGrant.registrationId}`,
+  );
+  assert.equal(disposableRegistration.status, 'ENROLLED');
+  const disposableUpload = (
+    await admin(`/admin/events/${disposableEvent.eventId}/photos/uploads`, {
+      files: [
+        {
+          fileName: 'synthetic-disposable-event.jpg',
+          contentType: 'image/jpeg',
+        },
+      ],
+    })
+  ).uploads[0];
+  assert.equal(
+    (
+      await fetch(disposableUpload.uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg' },
+        body: jpeg,
+      })
+    ).status,
+    200,
+  );
+  const disposableEventMatch = await waitForMatch(
+    disposableGrant.registrationId,
+    disposableUpload.photoId,
+    90000,
+  );
+  assert(
+    disposableEventMatch,
+    'The disposable event photo never produced a match to delete against.',
   );
   await call(
     `/admin/events/${disposableEvent.eventId}`,
@@ -321,6 +618,41 @@ try {
     closedEvent?.status,
     'CLOSED',
     'Deleted event was not marked CLOSED (ADR-023).',
+  );
+  assert.equal(
+    await item(
+      `EVENT#${disposableEvent.eventId}`,
+      `REG#${disposableGrant.registrationId}`,
+    ),
+    undefined,
+    'Deleting the event left the registration behind.',
+  );
+  assert.equal(
+    await item(
+      `REG#${disposableGrant.registrationId}`,
+      `MATCH#${disposableUpload.photoId}`,
+    ),
+    undefined,
+    'Deleting the event left an orphaned match.',
+  );
+  assert.equal(
+    await objectExists(
+      `events/${disposableEvent.eventId}/selfies/${disposableGrant.registrationId}.selfie.jpg`,
+    ),
+    false,
+    'Deleting the event left the selfie S3 object behind.',
+  );
+  assert.equal(
+    await objectExists(
+      `events/${disposableEvent.eventId}/photos/${disposableUpload.photoId}.photo.jpg`,
+    ),
+    false,
+    'Deleting the event left the photo S3 object behind.',
+  );
+  await call(
+    `/gallery?token=${encodeURIComponent(disposableGrant.galleryToken)}`,
+    {},
+    404,
   );
   console.log(
     'Public acceptance: admin event/photo management passed; checking erasure.',
