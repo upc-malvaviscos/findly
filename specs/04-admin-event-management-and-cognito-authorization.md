@@ -139,3 +139,16 @@ El plan 38780832909 conservó el pool y su remitente. El
 terminó SUCCESS y la lectura posterior confirmó Cognito `DEVELOPER` con la
 identidad regional y el remitente acordados. No se enviaron nuevas invitaciones;
 la recepción y primer acceso de #105 conservan su seguimiento independiente.
+
+## Reintento selectivo en la subida masiva (#121)
+
+`BulkPhotoUploader` genera un `operationId` (UUID) por archivo al
+seleccionarlo, estable entre reintentos de ese mismo archivo; el contrato de
+`POST /admin/events/{eventId}/photos/uploads` y la verificación backend se
+documentan en spec 05 (ADR-024). Reintentar un lote solo reenvía los archivos
+que no quedaron `completed`; un resultado `COMPLETED` confirmado por el
+backend marca el archivo como subido sin repetir el `PUT`. El componente se
+remonta (`key={eventId}`) al cambiar de evento seleccionado, igual que
+`GalleryEmailSender` y `EventPhotoManager`, para no mezclar resultados entre
+eventos. Se mantiene el máximo de tres subidas simultáneas; recuperar
+subidas tras recargar la página sigue fuera de alcance.

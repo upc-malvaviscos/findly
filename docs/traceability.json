@@ -605,6 +605,52 @@
         }
       ],
       "documentation": ["docs/adr/ADR-023-synchronous-admin-event-deletion.md"]
+    },
+    {
+      "id": "REQ-PHOTO-UPLOAD-RETRY",
+      "description": "Identificador estable por operación, reintento selectivo y verificación backend para evitar duplicados en la subida de fotografías.",
+      "issues": [121],
+      "spec": "specs/05-presigned-upload-and-object-key-policy.md",
+      "implementation": [
+        "src/lambdas/adminEvents.ts",
+        "src/lambdas/lib/awsErrors.ts",
+        "src/shared/lib/validations.ts",
+        "src/shared/types/entities.ts",
+        "src/shared/types/api.ts",
+        "infra/modules/admin-api/main.tf",
+        "src/web/components/admin/BulkPhotoUploader.tsx",
+        "src/web/components/admin/AdminEvents.tsx",
+        "src/web/adminApi.ts"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/adminEvents.test.ts",
+            "tests/web/bulkPhotoUploader.test.tsx"
+          ]
+        },
+        {
+          "command": "test:aws",
+          "environment": "aws",
+          "files": ["scripts/test-aws-sandbox.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-121-photo-upload-retry.md",
+          "environment": "unit"
+        },
+        {
+          "file": "docs/evidence/issue-121-photo-upload-retry.md",
+          "environment": "aws"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-024-photo-upload-retry-and-stable-operation-id.md",
+        "specs/04-admin-event-management-and-cognito-authorization.md"
+      ]
     }
   ]
 }

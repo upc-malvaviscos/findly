@@ -19,7 +19,9 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 - **Event**: `eventId`, `name`, `date`, `retentionDays`, `createdAt`, `status`, `cleanupAfter` (interno, opcional).
 - **Registration**: `registrationId`, `eventId`, `email`, `consentTimestamp`, `selfieS3Key`, `faceId`, `tokenHash` (opcional para registros legacy), `status` (`UPLOAD_PENDING` | `PROCESSING` | `ENROLLED` | `FAILED`), `ttl`.
 - **RetentionLocator**: `eventId`, `registrationId`, `tokenHash`, `collectionId`, `selfieS3Key`, `faceIds`, `uploadExpiresAt`, `cleanupAfter`, `cleanupState`, `erasureRequestedAt`, `cleanupCompletedAt`; campos de recuperación opcionales según estado, sin TTL (ADR-013).
-- **Photo**: `photoId`, `eventId`, `s3Key`, `uploadedAt`, `ttl`.
+- **Photo**: `photoId`, `eventId`, `s3Key`, `fileName`, `uploadedAt`, `ttl`,
+  `deletedAt` (opcional; ver tombstone en issue
+  [#121](https://github.com/upc-malvaviscos/findly/issues/121)).
 - **Match**: `matchId`, `eventId`, `registrationId`, `photoId`, `similarity`, `matchedAt`, `ttl`.
 - **GalleryToken**: `tokenHash` (SHA-256), `registrationId`, `eventId`, `expiresAt`, `ttl`.
 
@@ -27,14 +29,14 @@ Establecer los contratos de datos compartidos entre frontend y backend (DTOs), e
 
 Se aprovisiona una única tabla DynamoDB por entorno (`findly-{env}`) utilizando `PK` (Partition Key) y `SK` (Sort Key) de tipo String:
 
-| Entidad            | Partition Key (`PK`)        | Sort Key (`SK`)          | Atributos Principales / GSIs                                              |
-| ------------------ | --------------------------- | ------------------------ | ------------------------------------------------------------------------- |
-| **Event**          | `EVENT#{eventId}`           | `METADATA`               | `name`, `date`, `retentionDays`, `createdAt`                              |
-| **Registration**   | `EVENT#{eventId}`           | `REG#{registrationId}`   | `email`, `consentTimestamp`, `faceId`, `status`, `ttl`                    |
-| **Photo**          | `EVENT#{eventId}`           | `PHOTO#{photoId}`        | `s3Key`, `uploadedAt`, `ttl`                                              |
-| **Match**          | `REG#{registrationId}`      | `MATCH#{photoId}`        | `eventId`, `similarity`, `matchedAt`, `ttl`                               |
-| **Match (espejo)** | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}` | Mismos atributos que el match; escrito en la misma transacción (ADR-022). |
-| **GalleryToken**   | `TOKEN#{tokenHash}`         | `METADATA`               | `registrationId`, `eventId`, `expiresAt`, `ttl`                           |
+| Entidad            | Partition Key (`PK`)        | Sort Key (`SK`)          | Atributos Principales / GSIs                                               |
+| ------------------ | --------------------------- | ------------------------ | -------------------------------------------------------------------------- |
+| **Event**          | `EVENT#{eventId}`           | `METADATA`               | `name`, `date`, `retentionDays`, `createdAt`                               |
+| **Registration**   | `EVENT#{eventId}`           | `REG#{registrationId}`   | `email`, `consentTimestamp`, `faceId`, `status`, `ttl`                     |
+| **Photo**          | `EVENT#{eventId}`           | `PHOTO#{photoId}`        | `s3Key`, `fileName`, `uploadedAt`, `ttl`, `deletedAt` (tombstone opcional) |
+| **Match**          | `REG#{registrationId}`      | `MATCH#{photoId}`        | `eventId`, `similarity`, `matchedAt`, `ttl`                                |
+| **Match (espejo)** | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}` | Mismos atributos que el match; escrito en la misma transacción (ADR-022).  |
+| **GalleryToken**   | `TOKEN#{tokenHash}`         | `METADATA`               | `registrationId`, `eventId`, `expiresAt`, `ttl`                            |
 
 El locator usa `PK = EVENT#{eventId}` y `SK = RETENTION#{registrationId}`.
 Conserva referencias sensibles de recuperación hasta la purga explícita;
