@@ -7,12 +7,14 @@ Implementación de la spec [05](../../specs/05-presigned-upload-and-object-key-p
 (`BulkPhotoUploader`), según [ADR-024](../adr/ADR-024-photo-upload-retry-and-stable-operation-id.md)
 ([issue #121](https://github.com/upc-malvaviscos/findly/issues/121)).
 
-**No se ha aplicado ni desplegado ningún recurso AWS en esta entrega.** La
-validación local cubre unitarias con `aws-sdk-client-mock`, un componente con
-React Testing Library, `terraform fmt`/`validate` sin desplegar, build y
-lint. La extensión del smoke `scripts/test-aws-sandbox.mjs` que ejercita el
-permiso IAM nuevo contra S3 real está preparada pero no ejecutada; requiere
-autorización operativa para `npm run test:aws`.
+Fusionada en `main` mediante [PR #149](https://github.com/upc-malvaviscos/findly/pull/149)
+y, tras un hallazgo de esa misma fusión (ver más abajo),
+[PR #150](https://github.com/upc-malvaviscos/findly/pull/150). Ambos PR
+desplegaron el entorno efímero real (`provision-test-destroy`,
+`.github/workflows/ephemeral-pr-e2e.yml`) y lo destruyeron al terminar; la
+validación local cubre además unitarias con `aws-sdk-client-mock`, un
+componente con React Testing Library, `terraform fmt`/`validate`, build y
+lint.
 
 ## Alcance
 
@@ -90,21 +92,52 @@ npm run sync:check               PASS
 ```
 
 No se ejecuta `npm run test:e2e` (ningún flujo E2E existente cambia de
-recorrido; la subida masiva no tiene aún un spec Playwright dedicado) ni
-`npm run test:aws` (requiere autorización operativa y un entorno AWS
-desplegado; ver sección siguiente).
+recorrido; la subida masiva no tiene aún un spec Playwright dedicado). El
+sandbox persistente de `npm run test:aws` estaba destruido entre
+ejecuciones (sin recursos en su state) cuando se intentó; la verificación
+real se obtuvo en su lugar contra el entorno efímero de cada PR, con datos
+sintéticos y limpieza automática al terminar — ver siguiente sección.
+
+## Verificación real contra AWS (entorno efímero)
+
+[PR #149](https://github.com/upc-malvaviscos/findly/pull/149) desplegó el
+entorno efímero y
+[corrió `deployed-issue-70-acceptance.mjs`](https://github.com/upc-malvaviscos/findly/actions/runs/39055842481)
+contra AWS real, con dos commits:
+
+1. El primer intento falló: `deployed-issue-70-acceptance.mjs` esperaba que
+   la fila de DynamoDB de una foto borrada desapareciera por completo
+   (contrato previo a esta issue), y ahora queda el tombstone a propósito.
+   Corregido en el mismo PR, verificando contra AWS real el tombstone
+   (`deletedAt`, sin `s3Key`/`fileName`) y el rechazo `PHOTO_DELETED` al
+   reutilizar el `operationId` de la foto borrada.
+2. El `auto-merge` del repositorio (`enable-automerge.yml`) fusionó el PR en
+   cuanto ese run pasó — antes de que un tercer commit, que repetía una
+   subida con el mismo `operationId` tras un PUT real para verificar la
+   confirmación vía `HeadObjectCommand`, llegara a subirse. Ese commit se
+   quedó sin ejecutar en la rama ya cerrada: el permiso IAM nuevo
+   (`s3:GetObject`) nunca se verificó contra AWS real en ese momento.
+
+[PR #150](https://github.com/upc-malvaviscos/findly/pull/150) (rama nueva
+desde `main`, con ese único commit) desplegó el entorno efímero de nuevo y
+[corrió la verificación pendiente](https://github.com/upc-malvaviscos/findly/actions/runs/39067525518)
+contra AWS real: repetir la petición de subida con el mismo `operationId`
+justo después del PUT real respondió `{ photoId, status: 'COMPLETED' }` sin
+`uploadUrl` nueva, confirmando `HeadObjectCommand` y el permiso
+`s3:GetObject` en un entorno desplegado real. Ambos PR se fusionaron tras
+pasar todos sus checks (incluido `provision-test-destroy`), que destruye el
+entorno al terminar.
 
 ## Pendiente
 
-- **Ejecución del smoke AWS real** (`npm run test:aws`, extendido en
-  `scripts/test-aws-sandbox.mjs`): confirma contra S3 real que
-  `HeadObjectCommand` evita refirmar un PUT tras una subida ya completada, y
-  valida el permiso IAM nuevo (`s3:GetObject`) en un entorno desplegado.
-  Pendiente de autorización operativa para desplegar/ejecutar.
 - **E2E Playwright de la subida masiva**: no existe hoy un spec dedicado a
   `BulkPhotoUploader`; esta entrega añade cobertura unitaria y de componente,
   pero no un recorrido E2E de reintento. Cubrirlo queda para una issue
   separada si se considera necesario, dado que la cobertura de componente ya
   ejercita el DOM real con React Testing Library.
-- Issue #121 permanece abierta hasta verificar sus criterios de aceptación
-  contra AWS real y sincronizar el comentario de cierre.
+- El sandbox persistente de `npm run test:aws` sigue sin un ciclo propio
+  ejecutado para esta issue (quedó cubierto por el entorno efímero en su
+  lugar); su extensión en `scripts/test-aws-sandbox.mjs` queda preparada
+  para la próxima vez que ese sandbox esté desplegado.
+- Issue #121 permanece abierta hasta sincronizar su comentario de cierre con
+  este resultado.
