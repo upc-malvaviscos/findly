@@ -269,15 +269,36 @@ try {
     'Public acceptance: duplicate delivery passed; checking admin event/photo management.',
   );
   const authHeader = { authorization: `Bearer ${idToken}` };
+  const ttlBeforeRetentionEdit = {
+    registration: (
+      await item(`EVENT#${eventId}`, `REG#${enrolled.registrationId}`)
+    ).ttl,
+    photo: (await item(`EVENT#${eventId}`, `PHOTO#${upload.photoId}`)).ttl,
+  };
   const renamed = await call(`/admin/events/${eventId}`, {
     method: 'PATCH',
     headers: { ...authHeader, 'content-type': 'application/json' },
     body: JSON.stringify({
       name: `Synthetic public acceptance ${randomUUID()} (renamed)`,
+      retentionDays: 2,
     }),
   });
   assert.equal(renamed.eventId, eventId);
   assert.match(renamed.name, /\(renamed\)$/);
+  assert.equal(renamed.retentionDays, 2);
+  console.log(
+    "Public acceptance: checking an edited event's retentionDays did not rewrite existing ttl.",
+  );
+  assert.equal(
+    (await item(`EVENT#${eventId}`, `REG#${enrolled.registrationId}`)).ttl,
+    ttlBeforeRetentionEdit.registration,
+    'Editing retentionDays must not rewrite an existing registration ttl.',
+  );
+  assert.equal(
+    (await item(`EVENT#${eventId}`, `PHOTO#${upload.photoId}`)).ttl,
+    ttlBeforeRetentionEdit.photo,
+    'Editing retentionDays must not rewrite an existing photo ttl.',
+  );
   console.log(
     'Public acceptance: checking the public /events listing reflects the admin rename.',
   );
@@ -653,6 +674,31 @@ try {
     `/gallery?token=${encodeURIComponent(disposableGrant.galleryToken)}`,
     {},
     404,
+  );
+  console.log(
+    'Public acceptance: checking a closed event rejects new registrations and uploads.',
+  );
+  await call(
+    `/events/${disposableEvent.eventId}/registrations`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: 'synthetic@example.com',
+        consentBiometrics: true,
+        consentTerms: true,
+      }),
+    },
+    410,
+  );
+  await admin(
+    `/admin/events/${disposableEvent.eventId}/photos/uploads`,
+    {
+      files: [
+        { fileName: 'synthetic-after-close.jpg', contentType: 'image/jpeg' },
+      ],
+    },
+    410,
   );
   console.log(
     'Public acceptance: admin event/photo management passed; checking erasure.',
