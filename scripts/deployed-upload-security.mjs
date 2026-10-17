@@ -53,7 +53,11 @@ async function issueUrl() {
     `/admin/events/${encodeURIComponent(event.eventId)}/photos/uploads`,
     {
       files: [
-        { fileName: 'synthetic-security.jpg', contentType: 'image/jpeg' },
+        {
+          operationId: randomUUID(),
+          fileName: 'synthetic-security.jpg',
+          contentType: 'image/jpeg',
+        },
       ],
     },
   );

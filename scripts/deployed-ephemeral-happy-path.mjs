@@ -67,7 +67,11 @@ const uploadRequest = await admin(
     method: 'POST',
     body: JSON.stringify({
       files: [
-        { fileName: 'synthetic-ci-photo.jpg', contentType: 'image/jpeg' },
+        {
+          operationId: randomUUID(),
+          fileName: 'synthetic-ci-photo.jpg',
+          contentType: 'image/jpeg',
+        },
       ],
     }),
   },
