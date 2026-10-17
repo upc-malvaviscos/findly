@@ -489,11 +489,12 @@ try {
   console.log(
     'Public acceptance: checking a matched photo deletion removes S3, matches and the gallery entry.',
   );
+  const disposableOperationId = randomUUID();
   const disposablePhoto = (
     await admin(`/admin/events/${eventId}/photos/uploads`, {
       files: [
         {
-          operationId: randomUUID(),
+          operationId: disposableOperationId,
           fileName: 'synthetic-disposable.jpg',
           contentType: 'image/jpeg',
         },
@@ -533,10 +534,39 @@ try {
     { method: 'DELETE', headers: authHeader },
     204,
   );
+  // Issue #121: deleteEventPhoto leaves a tombstone (deletedAt, no s3Key/
+  // fileName) instead of removing the row, so a reused operationId is
+  // rejected rather than silently recreating the photo.
+  const tombstone = await item(
+    `EVENT#${eventId}`,
+    `PHOTO#${disposablePhoto.photoId}`,
+  );
+  assert(tombstone?.deletedAt, 'Deleted photo did not leave a tombstone.');
   assert.equal(
-    await item(`EVENT#${eventId}`, `PHOTO#${disposablePhoto.photoId}`),
+    tombstone.s3Key,
     undefined,
-    'Deleted photo still has a DynamoDB row.',
+    'Tombstone still carries the deleted S3 key.',
+  );
+  assert.equal(
+    tombstone.fileName,
+    undefined,
+    'Tombstone still carries the deleted file name.',
+  );
+  const retriedDeletedUpload = (
+    await admin(`/admin/events/${eventId}/photos/uploads`, {
+      files: [
+        {
+          operationId: disposableOperationId,
+          fileName: 'synthetic-disposable.jpg',
+          contentType: 'image/jpeg',
+        },
+      ],
+    })
+  ).uploads[0];
+  assert.equal(
+    retriedDeletedUpload?.error,
+    'PHOTO_DELETED',
+    'Retrying a deleted photo operation did not reject against real AWS.',
   );
   assert.equal(
     await item(
