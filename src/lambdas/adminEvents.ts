@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   BatchWriteCommand,
@@ -9,7 +9,11 @@ import {
   QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import {
   createAdminEventSchema,
   photoUploadRequestSchema,
@@ -185,6 +189,84 @@ export async function createAdminEvent(
   );
 }
 
+type PhotoUploadOutcome =
+  | { photoId: string; uploadUrl: string; expiresInSeconds: number }
+  | { photoId: string; status: 'COMPLETED' }
+  | { photoId: string; error: 'PHOTO_DELETED' | 'OPERATION_MISMATCH' };
+
+// Issue #121: photoId is the client's per-file operationId, so retrying the
+// same file operation (network error, reload-free retry, or a concurrent
+// duplicate request) always targets the same photoId/s3Key instead of
+// minting a new photo. The only outcomes are: create (first time), renew
+// (item exists, S3 object doesn't yet - HeadObject is the backend
+// verification of an otherwise-uncertain lost PUT response), confirm
+// (item exists and S3 already has the object - no PUT is re-signed once
+// completion is confirmed, so a confirmed upload is never overwritten), or
+// reject (the operationId was reused for a different file, or belongs to a
+// deleted photo's tombstone).
+async function resolvePhotoUpload(
+  eventId: string,
+  file: { operationId: string; fileName: string },
+  ttl: number,
+  now: Date,
+): Promise<PhotoUploadOutcome> {
+  const photoId = file.operationId;
+  const s3Key = eventPhotoObjectKey(eventId, photoId);
+  const photo: PhotoEntity & ReturnType<typeof photoKey> = {
+    ...photoKey(eventId, photoId),
+    photoId,
+    eventId,
+    s3Key,
+    fileName: file.fileName,
+    ttl,
+    uploadedAt: now.toISOString(),
+  };
+  let existing: PhotoEntity | undefined;
+  try {
+    await dynamo.send(
+      new PutCommand({
+        TableName: tableName,
+        Item: photo,
+        ConditionExpression: 'attribute_not_exists(PK)',
+      }),
+    );
+  } catch (caught) {
+    if (
+      (caught as { name?: string }).name !== 'ConditionalCheckFailedException'
+    )
+      throw caught;
+    const current = await dynamo.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: photoKey(eventId, photoId),
+        ConsistentRead: true,
+      }),
+    );
+    existing = current.Item as PhotoEntity | undefined;
+  }
+  if (existing?.deletedAt) return { photoId, error: 'PHOTO_DELETED' };
+  if (existing && existing.fileName !== file.fileName)
+    return { photoId, error: 'OPERATION_MISMATCH' };
+  if (existing) {
+    try {
+      await s3.send(new HeadObjectCommand({ Bucket: photoBucket, Key: s3Key }));
+      return { photoId, status: 'COMPLETED' };
+    } catch (headError) {
+      if (!isMissingResourceError(headError)) throw headError;
+      // Falls through to renew: S3 never received the object (or it was
+      // never confirmed), so a fresh PUT for the same key is safe.
+    }
+  }
+  // A renewal never updates the stored ttl: only a brand-new item sets it,
+  // so re-signing a PUT for an existing operation cannot extend retention.
+  const signed = await createPresignedUploadUrl({
+    bucket: photoBucket,
+    key: s3Key,
+    contentType: 'image/jpeg',
+  });
+  return { photoId, ...signed };
+}
+
 export async function createPhotoUploads(
   event: HttpEvent,
   context?: LambdaContextLike,
@@ -238,31 +320,9 @@ export async function createPhotoUploads(
       const now = new Date();
       const ttl = toEpochSeconds(30 * 24 * 60 * 60, now);
       const uploads = await Promise.all(
-        parsed.data.files.map(async () => {
-          const photoId = randomUUID();
-          const s3Key = eventPhotoObjectKey(eventId, photoId);
-          const photo: PhotoEntity & ReturnType<typeof photoKey> = {
-            ...photoKey(eventId, photoId),
-            photoId,
-            eventId,
-            s3Key,
-            ttl,
-            uploadedAt: now.toISOString(),
-          };
-          await dynamo.send(
-            new PutCommand({
-              TableName: tableName,
-              Item: photo,
-              ConditionExpression: 'attribute_not_exists(PK)',
-            }),
-          );
-          const signed = await createPresignedUploadUrl({
-            bucket: photoBucket,
-            key: s3Key,
-            contentType: 'image/jpeg',
-          });
-          return { photoId, ...signed };
-        }),
+        parsed.data.files.map((file) =>
+          resolvePhotoUpload(eventId, file, ttl, now),
+        ),
       );
       request.annotate({ photoCount: uploads.length });
       return json(200, { uploads });
@@ -398,6 +458,10 @@ export async function listEventPhotos(
         new QueryCommand({
           TableName: tableName,
           KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          // Excludes issue #121 tombstones left by deleteEventPhoto: they
+          // keep the PHOTO# item so a retried operationId is rejected, but
+          // must not resurface as a listed photo.
+          FilterExpression: 'attribute_not_exists(deletedAt)',
           ExpressionAttributeValues: {
             ':pk': eventKey(eventId).PK,
             ':prefix': 'PHOTO#',
@@ -515,10 +579,23 @@ export async function deleteEventPhoto(
         if (!isMissingResourceError(deleteError)) throw deleteError;
       }
 
+      // Issue #121 tombstone: leaves a marker instead of removing the item,
+      // so a retried/renewed request for this photoId's operationId is
+      // rejected (PHOTO_DELETED) rather than silently recreating the photo.
+      // No sensitive data (s3Key, fileName) survives; any existing ttl is
+      // left untouched, and the marker is otherwise purged with the rest of
+      // the event's partition - no retention is extended by deleting.
       await dynamo.send(
-        new DeleteCommand({
+        new UpdateCommand({
           TableName: tableName,
           Key: photoKey(eventId, photoId),
+          UpdateExpression:
+            'SET deletedAt = :deletedAt, eventId = :eventId, photoId = :photoId REMOVE s3Key, fileName, uploadedAt',
+          ExpressionAttributeValues: {
+            ':deletedAt': new Date().toISOString(),
+            ':eventId': eventId,
+            ':photoId': photoId,
+          },
         }),
       );
 

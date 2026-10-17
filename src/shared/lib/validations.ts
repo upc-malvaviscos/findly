@@ -26,12 +26,20 @@ export const photoUploadRequestSchema = z.object({
   files: z
     .array(
       z.object({
+        // Client-generated once per file operation and resent unchanged on
+        // every retry/renewal of that same file; see issue #121.
+        operationId: z.string().uuid(),
         fileName: z.string().trim().min(1).max(255),
         contentType: z.literal('image/jpeg'),
       }),
     )
     .min(1)
-    .max(50),
+    .max(50)
+    .refine(
+      (files) =>
+        new Set(files.map((file) => file.operationId)).size === files.length,
+      { error: 'operationId must be unique within a batch.' },
+    ),
 });
 
 export const updateAdminEventSchema = z

@@ -12,6 +12,7 @@ import {
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -38,6 +39,9 @@ import {
 
 const dynamoMock = mockClient(DynamoDBDocumentClient);
 const s3Mock = mockClient(S3Client);
+// Issue #121: the client-generated per-file operationId doubles as photoId.
+const OP_ID = '11111111-1111-4111-8111-111111111111';
+const OP_ID_2 = '22222222-2222-4222-9222-222222222222';
 const openEvent = {
   eventId: 'evt-1',
   createdAt: new Date().toISOString(),
@@ -62,7 +66,13 @@ describe('admin events handlers', () => {
       const result = await createPhotoUploads({
         pathParameters: { eventId: 'evt-1' },
         body: JSON.stringify({
-          files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+          files: [
+            {
+              operationId: OP_ID,
+              fileName: 'photo.jpg',
+              contentType: 'image/jpeg',
+            },
+          ],
         }),
       });
       expect(result.statusCode).toBe(410);
@@ -120,7 +130,13 @@ describe('admin events handlers', () => {
     const result = await createPhotoUploads({
       pathParameters: { eventId: 'evt-1' },
       body: JSON.stringify({
-        files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     });
     expect(result.statusCode).toBe(200);
@@ -130,18 +146,230 @@ describe('admin events handlers', () => {
         key: expect.stringMatching(/^events\/evt-1\/photos\/.+\.jpg$/),
       }),
     );
-    expect(JSON.parse(result.body).uploads[0].expiresInSeconds).toBe(300);
+    const uploaded = JSON.parse(result.body).uploads[0];
+    expect(uploaded.expiresInSeconds).toBe(300);
+    expect(uploaded.photoId).toBe(OP_ID);
+    expect(
+      dynamoMock.commandCalls(PutCommand)[0]?.args[0].input.Item,
+    ).toMatchObject({ photoId: OP_ID, fileName: 'photo.jpg' });
   });
   it('returns 404 before writing when the event does not exist', async () => {
     dynamoMock.on(GetCommand).resolves({});
     const result = await createPhotoUploads({
       pathParameters: { eventId: 'missing' },
       body: JSON.stringify({
-        files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     });
     expect(result.statusCode).toBe(404);
     expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(0);
+  });
+  it('rejects a batch with a malformed or duplicated operationId', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    const duplicated = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          { operationId: OP_ID, fileName: 'a.jpg', contentType: 'image/jpeg' },
+          { operationId: OP_ID, fileName: 'b.jpg', contentType: 'image/jpeg' },
+        ],
+      }),
+    });
+    expect(duplicated.statusCode).toBe(400);
+    const malformed = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: 'not-a-uuid',
+            fileName: 'a.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(malformed.statusCode).toBe(400);
+  });
+  it('renews a PUT URL for a retried operation without re-creating the photo, keeping the same ttl', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    dynamoMock
+      .on(PutCommand)
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    dynamoMock
+      .on(GetCommand, {
+        Key: { PK: 'EVENT#evt-1', SK: `PHOTO#${OP_ID}` },
+      })
+      .resolves({
+        Item: {
+          photoId: OP_ID,
+          eventId: 'evt-1',
+          s3Key: `events/evt-1/photos/${OP_ID}.photo.jpg`,
+          fileName: 'photo.jpg',
+          ttl: 1234,
+          uploadedAt: '2026-01-01T00:00:00.000Z',
+        },
+      });
+    s3Mock.on(HeadObjectCommand).rejects({ name: 'NotFound' });
+    const result = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(result.statusCode).toBe(200);
+    const uploaded = JSON.parse(result.body).uploads[0];
+    expect(uploaded.photoId).toBe(OP_ID);
+    expect(uploaded.uploadUrl).toBeDefined();
+    expect(dynamoMock.commandCalls(UpdateCommand)).toHaveLength(0);
+  });
+  it('confirms completion via HeadObject instead of re-signing once S3 already has the object', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    dynamoMock
+      .on(PutCommand)
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    dynamoMock
+      .on(GetCommand, {
+        Key: { PK: 'EVENT#evt-1', SK: `PHOTO#${OP_ID}` },
+      })
+      .resolves({
+        Item: {
+          photoId: OP_ID,
+          eventId: 'evt-1',
+          s3Key: `events/evt-1/photos/${OP_ID}.photo.jpg`,
+          fileName: 'photo.jpg',
+          ttl: 1234,
+          uploadedAt: '2026-01-01T00:00:00.000Z',
+        },
+      });
+    s3Mock.on(HeadObjectCommand).resolves({});
+    signMock.mockClear();
+    const result = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body).uploads[0]).toEqual({
+      photoId: OP_ID,
+      status: 'COMPLETED',
+    });
+    expect(signMock).not.toHaveBeenCalled();
+  });
+  it('rejects reusing an operationId for a different file', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    dynamoMock
+      .on(PutCommand)
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    dynamoMock
+      .on(GetCommand, {
+        Key: { PK: 'EVENT#evt-1', SK: `PHOTO#${OP_ID}` },
+      })
+      .resolves({
+        Item: {
+          photoId: OP_ID,
+          eventId: 'evt-1',
+          s3Key: `events/evt-1/photos/${OP_ID}.photo.jpg`,
+          fileName: 'original.jpg',
+          ttl: 1234,
+          uploadedAt: '2026-01-01T00:00:00.000Z',
+        },
+      });
+    const result = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'different.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body).uploads[0]).toEqual({
+      photoId: OP_ID,
+      error: 'OPERATION_MISMATCH',
+    });
+    expect(s3Mock.commandCalls(HeadObjectCommand)).toHaveLength(0);
+  });
+  it('rejects new capabilities for a photo tombstoned by a previous delete', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    dynamoMock
+      .on(PutCommand)
+      .rejects({ name: 'ConditionalCheckFailedException' });
+    dynamoMock
+      .on(GetCommand, {
+        Key: { PK: 'EVENT#evt-1', SK: `PHOTO#${OP_ID}` },
+      })
+      .resolves({
+        Item: {
+          photoId: OP_ID,
+          eventId: 'evt-1',
+          ttl: 1234,
+          deletedAt: '2026-01-01T00:00:00.000Z',
+        },
+      });
+    const result = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body).uploads[0]).toEqual({
+      photoId: OP_ID,
+      error: 'PHOTO_DELETED',
+    });
+    expect(s3Mock.commandCalls(HeadObjectCommand)).toHaveLength(0);
+  });
+  it('resolves each file in a batch independently by its own operationId', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: openEvent });
+    dynamoMock.on(PutCommand).resolves({});
+    const result = await createPhotoUploads({
+      pathParameters: { eventId: 'evt-1' },
+      body: JSON.stringify({
+        files: [
+          { operationId: OP_ID, fileName: 'a.jpg', contentType: 'image/jpeg' },
+          {
+            operationId: OP_ID_2,
+            fileName: 'a.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
+      }),
+    });
+    expect(result.statusCode).toBe(200);
+    const photoIds = JSON.parse(result.body).uploads.map(
+      (upload: { photoId: string }) => upload.photoId,
+    );
+    expect(photoIds).toEqual([OP_ID, OP_ID_2]);
+    expect(dynamoMock.commandCalls(PutCommand)).toHaveLength(2);
   });
 });
 
@@ -199,7 +427,13 @@ describe('admin events structured logging', () => {
     await createPhotoUploads({
       pathParameters: { eventId: 'victim@example.com' },
       body: JSON.stringify({
-        files: [{ fileName: 'photo.jpg', contentType: 'image/jpeg' }],
+        files: [
+          {
+            operationId: OP_ID,
+            fileName: 'photo.jpg',
+            contentType: 'image/jpeg',
+          },
+        ],
       }),
     });
     expect(logs.records()).toEqual([
@@ -217,8 +451,16 @@ describe('admin events structured logging', () => {
         pathParameters: { eventId: 'evt-1' },
         body: JSON.stringify({
           files: [
-            { fileName: 'a.jpg', contentType: 'image/jpeg' },
-            { fileName: 'b.jpg', contentType: 'image/jpeg' },
+            {
+              operationId: OP_ID,
+              fileName: 'a.jpg',
+              contentType: 'image/jpeg',
+            },
+            {
+              operationId: OP_ID_2,
+              fileName: 'b.jpg',
+              contentType: 'image/jpeg',
+            },
           ],
         }),
       },
@@ -341,6 +583,13 @@ describe('listEventPhotos', () => {
     );
     expect(decoded).toEqual({ PK: 'EVENT#evt-1', SK: 'PHOTO#p1' });
   });
+  it('excludes issue #121 tombstones from the query', async () => {
+    dynamoMock.on(GetCommand).resolves({ Item: { eventId: 'evt-1' } });
+    dynamoMock.on(QueryCommand).resolves({ Items: [] });
+    await listEventPhotos({ pathParameters: { eventId: 'evt-1' } });
+    const input = dynamoMock.commandCalls(QueryCommand)[0]?.args[0].input;
+    expect(input?.FilterExpression).toBe('attribute_not_exists(deletedAt)');
+  });
 });
 
 describe('deleteEventPhoto', () => {
@@ -358,7 +607,7 @@ describe('deleteEventPhoto', () => {
       Items: [{ registrationId: 'reg-1' }, { registrationId: 'reg-2' }],
     });
     dynamoMock.on(BatchWriteCommand).resolves({});
-    dynamoMock.on(DeleteCommand).resolves({});
+    dynamoMock.on(UpdateCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
     const result = await deleteEventPhoto({
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
@@ -379,13 +628,18 @@ describe('deleteEventPhoto', () => {
       PK: 'PHOTO#evt-1#photo-1',
       SK: 'MATCH#reg-2',
     });
-    const photoDeleteKeys = dynamoMock
-      .commandCalls(DeleteCommand)
-      .map((call) => call.args[0].input.Key);
-    expect(photoDeleteKeys).toContainEqual({
+    // Issue #121: leaves a tombstone (deletedAt) instead of removing the
+    // Photo row, so a retried operationId for this photoId is rejected.
+    const tombstoneUpdate =
+      dynamoMock.commandCalls(UpdateCommand)[0]?.args[0].input;
+    expect(tombstoneUpdate?.Key).toEqual({
       PK: 'EVENT#evt-1',
       SK: 'PHOTO#photo-1',
     });
+    expect(tombstoneUpdate?.UpdateExpression).toContain('deletedAt');
+    expect(tombstoneUpdate?.UpdateExpression).toContain(
+      'REMOVE s3Key, fileName, uploadedAt',
+    );
     expect(
       s3Mock.commandCalls(DeleteObjectCommand)[0]?.args[0].input,
     ).toMatchObject({
@@ -395,7 +649,7 @@ describe('deleteEventPhoto', () => {
   it('is idempotent when the photo object is already gone', async () => {
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
     dynamoMock.on(BatchWriteCommand).resolves({});
-    dynamoMock.on(DeleteCommand).resolves({});
+    dynamoMock.on(UpdateCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).rejects({ name: 'NoSuchKey' });
     const result = await deleteEventPhoto({
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
@@ -411,7 +665,7 @@ describe('deleteEventPhoto', () => {
       Items: registrationIds.map((registrationId) => ({ registrationId })),
     });
     dynamoMock.on(BatchWriteCommand).resolves({});
-    dynamoMock.on(DeleteCommand).resolves({});
+    dynamoMock.on(UpdateCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
     const result = await deleteEventPhoto({
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
@@ -436,7 +690,7 @@ describe('deleteEventPhoto', () => {
         },
       })
       .resolves({});
-    dynamoMock.on(DeleteCommand).resolves({});
+    dynamoMock.on(UpdateCommand).resolves({});
     s3Mock.on(DeleteObjectCommand).resolves({});
     const result = await deleteEventPhoto({
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
