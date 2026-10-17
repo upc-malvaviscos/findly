@@ -502,3 +502,113 @@ test('admin confirms gallery email, retries the same operation and intentionally
   await expect.poll(() => operations.length).toBe(3);
   expect(operations[2]).not.toBe(operations[1]);
 });
+
+test('admin retries only the failed file, keeping the same operationId (#121)', async ({
+  page,
+}) => {
+  const operationIdsByFile: Record<string, string[]> = {
+    'ok.jpg': [],
+    'bad.jpg': [],
+  };
+  let badPutAttempts = 0;
+  await page.route(`${API}/admin/**`, (route) => {
+    const request = route.request();
+    if (request.method() !== 'OPTIONS')
+      expect(request.headers().authorization).toBe('Bearer test-id-token');
+    const path = new URL(request.url()).pathname;
+    const json = (body: unknown, code = 200) =>
+      route.fulfill({
+        status: code,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify(body),
+      });
+    if (request.method() === 'OPTIONS')
+      return route.fulfill({
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        },
+      });
+    if (path === '/admin/events')
+      return json({
+        events: [
+          {
+            eventId: 'synthetic-event',
+            name: 'Evento sintético',
+            date: '2030-01-01T12:00:00Z',
+            createdAt: new Date().toISOString(),
+            status: 'OPEN',
+            retentionDays: 1,
+          },
+        ],
+      });
+    // EventPhotoManager fetches this on every admin page load.
+    if (path === '/admin/events/synthetic-event/photos')
+      return json({ photos: [] });
+    if (
+      path === '/admin/events/synthetic-event/photos/uploads' &&
+      request.method() === 'POST'
+    ) {
+      const { files } = request.postDataJSON() as {
+        files: Array<{ operationId: string; fileName: string }>;
+      };
+      return json({
+        uploads: files.map(({ operationId, fileName }) => {
+          operationIdsByFile[fileName]?.push(operationId);
+          return {
+            photoId: operationId,
+            uploadUrl: `https://s3.findly.test/photos/${fileName}`,
+            expiresInSeconds: 300,
+          };
+        }),
+      });
+    }
+    return json({ code: 'UNEXPECTED_REQUEST' }, 404);
+  });
+  await page.route('https://s3.findly.test/photos/ok.jpg', (route) =>
+    route.fulfill({ status: 200 }),
+  );
+  await page.route('https://s3.findly.test/photos/bad.jpg', (route) => {
+    badPutAttempts += 1;
+    // Fails once (lost network response, S3 timeout, ...), then succeeds on
+    // the retry the test triggers below.
+    return route.fulfill({ status: badPutAttempts === 1 ? 500 : 200 });
+  });
+  await page.route('https://cognito-idp.eu-west-1.amazonaws.com/', (route) =>
+    route.fulfill({
+      contentType: 'application/x-amz-json-1.1',
+      body: JSON.stringify({
+        AuthenticationResult: { IdToken: 'test-id-token', ExpiresIn: 3600 },
+      }),
+    }),
+  );
+  await page.goto('/admin/login');
+  await page.getByLabel('Usuario').fill('organizer');
+  await page.getByLabel('Contraseña').fill('synthetic-password');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await page.getByLabel('Fotografías', { exact: true }).setInputFiles([
+    { name: 'ok.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('ok') },
+    { name: 'bad.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('bad') },
+  ]);
+  await page.getByRole('button', { name: 'Subir fotografías' }).click();
+  await expect(
+    page.getByText('No se pudo subir esta fotografía.'),
+  ).toBeVisible();
+  expect(operationIdsByFile['ok.jpg']).toHaveLength(1);
+  expect(operationIdsByFile['bad.jpg']).toHaveLength(1);
+
+  // A partial-batch retry must resend only the file that never completed.
+  await page.getByRole('button', { name: 'Reintentar fallidas' }).click();
+  await expect(page.getByText('No se pudo subir esta fotografía.')).toHaveCount(
+    0,
+  );
+  expect(operationIdsByFile['ok.jpg']).toHaveLength(1);
+  expect(operationIdsByFile['bad.jpg']).toHaveLength(2);
+  expect(operationIdsByFile['bad.jpg'][0]).toBe(
+    operationIdsByFile['bad.jpg'][1],
+  );
+});
