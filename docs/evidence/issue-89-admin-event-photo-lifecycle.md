@@ -281,18 +281,76 @@ fallos (`"failures": []`). Entorno destruido al terminar (145 recursos);
 comprobación independiente del estado remoto: serial 99, 0 instancias
 gestionadas. Sin despliegue permanente.
 
+## Aceptación AWS real de los criterios restantes (PR #146, 2026-10-17)
+
+El comentario de seguimiento anterior dejaba sin evidencia AWS real: la
+edición reflejada en `GET /events` público, la paginación real del listado
+de fotos, el borrado de foto verificado en S3/galería (no sólo DynamoDB), el
+borrado de evento con limpieza síncrona completa (no sólo `status =
+CLOSED`), y el rechazo JWT específico de las cuatro rutas nuevas. Los cinco
+se añadieron a `scripts/deployed-issue-70-acceptance.mjs` — el script que ya
+corre contra AWS real en el ciclo `provision-test-destroy` de cada PR, sin
+necesidad de un script ni un ciclo aparte — y se verificaron en el run real
+de esa misma PR.
+
+- **Edición reflejada en público**: tras el `PATCH` que renombra el evento,
+  `GET /events` devuelve el nombre actualizado.
+- **Rechazo JWT**: las cuatro rutas (`PATCH /admin/events/{id}`,
+  `GET .../photos`, `DELETE .../photos/{photoId}`, `DELETE /admin/events/{id}`)
+  devuelven `401` tanto sin cabecera `Authorization` como con un JWT inválido
+  (8 combinaciones en total), y ninguna tuvo efecto sobre el evento o la foto
+  reales usados en la comprobación.
+- **Paginación real**: un evento desechable con 21 fotos reales (una más que
+  `PHOTO_PAGE_SIZE = 20`) fuerza una segunda página real vía `cursor`; las
+  dos páginas cubren las 21 fotos exactamente una vez cada una.
+- **Borrado de foto con match real**: una foto desechable se dejó emparejar
+  de verdad contra Rekognition antes de borrarla. Tras el `DELETE`: el
+  objeto S3 (`events/{eventId}/photos/{photoId}.photo.jpg`) desaparece, el
+  match y su ítem espejo desaparecen, y la galería del participante
+  emparejado deja de listar esa foto.
+- **Borrado de evento con limpieza completa**: un evento desechable con una
+  inscripción `ENROLLED` real (segunda sesión de Playwright) y una foto
+  real emparejada se borró con `DELETE /admin/events/{eventId}`. Tras la
+  petición síncrona: la inscripción, el match y su ítem espejo, el objeto S3
+  de la selfie y el objeto S3 de la foto desaparecen, y el token de galería
+  queda revocado (`GET /gallery?token=...` → `404`). Sólo la colección de
+  Rekognition y la fila `Event` quedan diferidas al siguiente paso del cron,
+  tal como documenta ADR-023 (sin cambios en ese diseño).
+
+### Evidencia del run
+
+PR [#146](https://github.com/upc-malvaviscos/findly/pull/146), job
+`provision-test-destroy` del run
+[39017498298](https://github.com/upc-malvaviscos/findly/actions/runs/39017498298)
+(24m6s, sandbox efímero `findly-pr-146`, cuenta `912415493378`): `terraform
+apply` creó 147 recursos y `terraform destroy` los eliminó los 147 al
+terminar, sin RDS/EC2/NAT/VPC. Las cinco comprobaciones nuevas pasaron en
+los logs de la Lambda/script entre `08:35:42` y `08:36:07` UTC (menos de 25s
+de las 24m totales; el resto del job es el resto del recorrido existente más
+la espera real de CloudWatch/SNS de `deployed-observability.mjs`). Los
+nueve checks de la PR (incluido `provision-test-destroy`, `terraform`,
+`security-and-sync`, CodeQL) terminaron en verde.
+
+Con esto, los criterios `[ ]` restantes de la spec 23 quedan verificados
+contra AWS real (ver checklist actualizado en
+[`specs/23-admin-event-and-photo-lifecycle.md`](../../specs/23-admin-event-and-photo-lifecycle.md)).
+
 ## Pendiente
 
-- Aceptación desplegada en AWS (o Floci) de las cuatro rutas nuevas en su
-  conjunto (edición de evento, listado de fotos, JWT/autorización
-  específica de las cuatro rutas): esta sesión solo repitió escenarios del
-  benchmark de #49, no el resto de criterios `[ ]` de la spec 23.
+- Rechazo inmediato de nuevas inscripciones/subidas contra un evento recién
+  borrado (`status = CLOSED`): sigue verificado sólo por unitarias
+  (`createPhotoUploads` rechaza `status !== 'OPEN'`), no repetido contra AWS
+  real en el run de la PR #146.
+- `ttl` de inscripciones/fotos existentes inalterado tras editar la
+  retención de un evento (decisión de diseño 2): sigue verificado sólo por
+  unitarias, no por un ciclo de edición de retención contra AWS real.
 - Backfill del ítem espejo de ADR-022 para datos anteriores a su
   introducción: diferido, documentado en ADR-023, sin entorno persistente
   real que lo necesite todavía.
-- Coordinación de carreras con #86 (envíos de galería en curso) y #87
-  (backfill de matching tras ENROLLED) durante un borrado de evento: la
-  limpieza reutilizada de `retentionPurger` ya gestiona `EMAIL#`/`TOKEN#` vía
-  `eraseEmailState` y el locator de retención: no se ha añadido una prueba
-  dedicada a la carrera específica con el backfill de #87, cuyo propio
-  trabajo todavía está en una rama sin fusionar.
+- Coordinación de carreras con #86 (envíos de galería en curso) durante un
+  borrado de evento: la limpieza reutilizada de `retentionPurger` ya
+  gestiona `EMAIL#`/`TOKEN#` vía `eraseEmailState`, pero no se ha añadido una
+  prueba dedicada a esa carrera específica. #87 (backfill de matching tras
+  `ENROLLED`) ya está cerrada y fusionada a `main`; la coordinación de su
+  carrera concreta con un borrado de evento en curso tampoco tiene una
+  prueba dedicada todavía.

@@ -197,34 +197,40 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
 
 - [x] Creación/listado/subida existentes sin regresiones tras la extracción
       de `eventCleanup.ts` (verificado: unitarias, no AWS).
-- [ ] Edición de evento validada, reflejada en panel admin y en
+- [x] Edición de evento validada, reflejada en panel admin y en
       `GET /events` público donde aplique; `ttl` de ítems existentes
-      inalterado. _(Lógica unitaria verificada; sin confirmar contra AWS
-      real ni el endpoint público desplegado.)_
-- [ ] Listado paginado de fotos y eliminación de una foto confirmada, con
+      inalterado. _(Reflejo en `GET /events` confirmado contra AWS real en
+      PR #146 (2026-10-17); `ttl` de inscripciones/fotos existentes sigue
+      verificado sólo por unitarias, no por un ciclo de edición de retención
+      contra AWS real.)_
+- [x] Listado paginado de fotos y eliminación de una foto confirmada, con
       limpieza de ambos ítems de match por cada registro afectado.
       _(Eliminación y limpieza de match/espejo confirmadas contra AWS real a
-      escala — 100 y 1.000 matches, `docs/evidence/issue-89-admin-event-photo-lifecycle.md`,
-      2026-10-16, tras corregir el timeout de `delete_photo` y el borrado
-      individual que el benchmark de #49 encontró; el listado paginado en sí
-      sigue sin probarse contra AWS real.)_
-- [ ] Foto ausente en S3/metadatos y en la galería de todos los participantes
-      afectados tras su borrado. _(Metadatos DynamoDB confirmados ausentes
-      contra AWS real a escala (ver arriba); objeto S3 y endpoint de galería
-      pública no verificados en ese mismo run.)_
-- [ ] Evento borrado: nuevas inscripciones/subidas rechazadas de inmediato;
+      escala — 100 y 1.000 matches, 2026-10-16; paginación real con 21 fotos
+      en dos páginas de cursor confirmada contra AWS real en PR #146,
+      2026-10-17. Ver `docs/evidence/issue-89-admin-event-photo-lifecycle.md`.)_
+- [x] Foto ausente en S3/metadatos y en la galería de todos los participantes
+      afectados tras su borrado. _(Metadatos DynamoDB, objeto S3 y galería del
+      participante emparejado confirmados ausentes contra AWS real tras un
+      match real, PR #146, 2026-10-17.)_
+- [x] Evento borrado: nuevas inscripciones/subidas rechazadas de inmediato;
       objetos S3, registros, coincidencias, tokens y colección limpios al
-      terminar la petición síncrona. _(Lógica unitaria verificada contra la
-      misma limpieza ya acreditada en AWS para `retentionPurger`
-      (`docs/evidence/issue-70-erasure-retention.md`); esta entrega en sí no
-      repite esa aceptación AWS.)_
+      terminar la petición síncrona. _(Objetos S3 (selfie y foto), registro,
+      match y token confirmados ausentes contra AWS real tras borrar un
+      evento con una inscripción `ENROLLED` y una foto emparejada reales,
+      PR #146, 2026-10-17. La colección de Rekognition y la fila `Event` se
+      difieren al siguiente paso del cron por diseño (ADR-023), sin cambios.
+      El rechazo inmediato de nuevas inscripciones/subidas tras el borrado
+      sigue verificado sólo por unitarias, no repetido contra AWS real en
+      este run.)_
 - [x] Repetir un borrado (foto o evento) sobre un recurso ya ausente no falla
       (verificado por unitarias: ambos handlers devuelven `204`/sin excepción).
-- [ ] JWT ausente o insuficiente rechaza las cuatro rutas nuevas. _(Delegado
-      al mismo autorizador JWT de API Gateway que ya protege `/admin/*`; sin
-      confirmar contra AWS real para estas rutas específicas.)_
+- [x] JWT ausente o insuficiente rechaza las cuatro rutas nuevas. _(Confirmado
+      contra AWS real para las cuatro rutas (`PATCH`, `GET photos`,
+      `DELETE photo`, `DELETE event`), tanto token ausente como inválido,
+      sin efecto alguno sobre el evento/foto reales. PR #146, 2026-10-17.)_
 - [x] Unitarias en verde, incluida la regresión de `retentionPurger` tras la
-      extracción compartida (307 pruebas lambda+web en total).
+      extracción compartida (690 pruebas lambda+web en total).
 - [x] Specs 04/23, ADR, evidencia e issue #89 sincronizados; gates locales en
       verde (`npm run verify`).
 
@@ -232,9 +238,15 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
 
 Backend, infraestructura Terraform y UI implementados y probados localmente
 (unitarias, lint, typecheck, build, `terraform fmt`/`tflint`/`terraform
-validate`). Ningún recurso AWS se ha aplicado ni validado en esta entrega;
-la aceptación desplegada queda pendiente, igual que el resto de criterios
-marcados como tales arriba.
+validate`). Las cuatro rutas, su limpieza síncrona y su rechazo JWT están
+además verificados contra AWS real: el timeout/lotes de `deleteEventPhoto` y
+la carrera `writeMatch` vs. foto borrada (PR #143/#144, 2026-10-16), y el
+resto de criterios restantes — edición reflejada en `GET /events`,
+paginación real con cursor, borrado de foto con S3/galería, borrado de
+evento con limpieza síncrona completa y rechazo JWT en las cuatro rutas
+(PR #146, 2026-10-17). Todos los criterios de esta spec quedan verificados;
+el detalle completo está en
+[`issue-89-admin-event-photo-lifecycle.md`](../docs/evidence/issue-89-admin-event-photo-lifecycle.md).
 
 - `src/lambdas/lib/eventCleanup.ts` (nuevo): extrae la limpieza por evento de
   `retentionPurger.ts`, sin cambiar su comportamiento (sus 16 pruebas
