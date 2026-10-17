@@ -29,8 +29,14 @@ export type PhotoEntity = {
   photoId: string;
   eventId: string;
   s3Key: string;
+  fileName: string;
   uploadedAt: string;
   ttl: number;
+  // Issue #121 tombstone: set by deleteEventPhoto instead of removing the
+  // item, so a retried/renewed operationId for a deleted photo is rejected
+  // rather than silently recreated. Purged with the rest of the event's
+  // partition; carries no sensitive data and no TTL of its own.
+  deletedAt?: string;
 };
 
 export type MatchEntity = {

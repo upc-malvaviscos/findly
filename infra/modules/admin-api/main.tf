@@ -27,6 +27,10 @@ locals {
       statements = [
         { sid = "ReadEventWriteUploads", actions = ["dynamodb:GetItem", "dynamodb:PutItem"], resources = [var.table_arn] },
         { sid = "PutPhotoObject", actions = ["s3:PutObject"], resources = ["${var.uploads_bucket_arn}/events/*/photos/*"] },
+        # Issue #121: HeadObject (covered by s3:GetObject) is the backend
+        # verification of a retried operation whose PUT response was lost -
+        # it never reads the image bytes, only whether the key exists.
+        { sid = "HeadPhotoObject", actions = ["s3:GetObject"], resources = ["${var.uploads_bucket_arn}/events/*/photos/*"] },
       ]
       extra_env = {}
     }
@@ -52,7 +56,10 @@ locals {
         # BatchWriteItem clears match/mirror pairs in chunks of 25 instead of
         # one DeleteItem per key (issue #89: that round-trip count blew past
         # this function's timeout under realistic match volume).
-        { sid = "FindAndDeleteMatchesAndPhoto", actions = ["dynamodb:Query", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem"], resources = [var.table_arn] },
+        # UpdateItem leaves the issue #121 tombstone (deletedAt) on the Photo
+        # row itself instead of removing it, so a retried operationId is
+        # rejected rather than silently recreated.
+        { sid = "FindAndDeleteMatchesAndPhoto", actions = ["dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem"], resources = [var.table_arn] },
         { sid = "DeletePhotoObject", actions = ["s3:DeleteObject"], resources = ["${var.uploads_bucket_arn}/events/*/photos/*"] },
       ]
       extra_env = {}

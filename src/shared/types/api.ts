@@ -60,15 +60,20 @@ export interface CreateAdminEventResponse {
 }
 
 export interface PhotoUploadRequest {
-  files: Array<{ fileName: string; contentType: 'image/jpeg' }>;
+  files: Array<{
+    operationId: string;
+    fileName: string;
+    contentType: 'image/jpeg';
+  }>;
 }
 
+export type PhotoUploadOutcome =
+  | { photoId: string; uploadUrl: string; expiresInSeconds: 300 }
+  | { photoId: string; status: 'COMPLETED' }
+  | { photoId: string; error: 'PHOTO_DELETED' | 'OPERATION_MISMATCH' };
+
 export interface PhotoUploadResponse {
-  uploads: Array<{
-    photoId: string;
-    uploadUrl: string;
-    expiresInSeconds: 300;
-  }>;
+  uploads: PhotoUploadOutcome[];
 }
 
 export interface UpdateAdminEventRequest {
