@@ -197,10 +197,11 @@ try {
   console.log(
     'Public acceptance: enrollment reached ENROLLED; waiting for S3-triggered photo matching (up to 2 minutes).',
   );
+  const matchingOperationId = randomUUID();
   const uploads = await admin(`/admin/events/${eventId}/photos/uploads`, {
     files: [
       {
-        operationId: randomUUID(),
+        operationId: matchingOperationId,
         fileName: 'synthetic-matching.jpg',
         contentType: 'image/jpeg',
       },
@@ -216,6 +217,29 @@ try {
     assert.equal(response.status, 200, 'Synthetic event photo PUT failed.');
   }
   await uploadPhoto();
+  // Issue #121: repeating the same operationId after a real PUT must
+  // confirm via S3 HeadObject (the new s3:GetObject permission) instead of
+  // re-signing - a lost network response must never be able to overwrite
+  // an already-confirmed upload.
+  const retriedMatchingUpload = (
+    await admin(`/admin/events/${eventId}/photos/uploads`, {
+      files: [
+        {
+          operationId: matchingOperationId,
+          fileName: 'synthetic-matching.jpg',
+          contentType: 'image/jpeg',
+        },
+      ],
+    })
+  ).uploads[0];
+  if (
+    retriedMatchingUpload?.photoId !== upload.photoId ||
+    retriedMatchingUpload?.status !== 'COMPLETED' ||
+    retriedMatchingUpload?.uploadUrl
+  )
+    throw new Error(
+      'Retrying a completed upload operation did not confirm via HeadObject against real AWS.',
+    );
   const matchStartedAt = Date.now();
   const deadline = matchStartedAt + 120000;
   let nextMatchProgressAt = matchStartedAt + 30000;
