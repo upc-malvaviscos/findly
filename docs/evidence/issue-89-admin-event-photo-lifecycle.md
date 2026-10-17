@@ -317,7 +317,7 @@ de esa misma PR.
   Rekognition y la fila `Event` quedan diferidas al siguiente paso del cron,
   tal como documenta ADR-023 (sin cambios en ese diseño).
 
-### Evidencia del run
+### Evidencia del run (PR #146)
 
 PR [#146](https://github.com/upc-malvaviscos/findly/pull/146), job
 `provision-test-destroy` del run
@@ -335,15 +335,50 @@ Con esto, los criterios `[ ]` restantes de la spec 23 quedan verificados
 contra AWS real (ver checklist actualizado en
 [`specs/23-admin-event-and-photo-lifecycle.md`](../../specs/23-admin-event-and-photo-lifecycle.md)).
 
+## Aceptación AWS real de cierre y retención (PR #147, 2026-10-17)
+
+Los dos pendientes que dejaba la PR #146 — rechazo inmediato de
+inscripciones/subidas contra un evento recién cerrado, y `ttl` inalterado
+tras editar la retención — se añadieron también a
+`scripts/deployed-issue-70-acceptance.mjs` y se verificaron contra AWS real.
+
+- **`ttl` inalterado tras editar retención**: se anotó el `ttl` de la
+  inscripción `ENROLLED` y de la foto emparejada antes de un `PATCH` que
+  cambia `name` y `retentionDays` (de `1` a `2`) sobre el evento principal;
+  tras el `PATCH`, ambos `ttl` son idénticos a los anotados antes.
+- **Rechazo inmediato tras cierre**: sobre el mismo evento desechable ya
+  borrado (con registro/match/S3 reales, ver sección anterior), un intento
+  de registro público devuelve `404 EVENT_NOT_FOUND` y un intento de subida
+  de foto administrativa devuelve `410 EVENT_EXPIRED`. El primer intento
+  (registro) reveló un hallazgo real: la primera versión de esta
+  comprobación esperaba `410` para ambos, y el run real de AWS la hizo
+  fallar con `404 !== 410` — `publicEnrollment.ts` reserva `410` para un
+  evento `OPEN` pero caducado por retención, y usa `404` para cualquier
+  evento no `OPEN` (cerrado o inexistente), mientras que `createPhotoUploads`
+  usa `410` para ambos casos. Es una inconsistencia preexistente entre los
+  dos endpoints, ajena al alcance de esta issue; se corrigió la expectativa
+  del script (PR #147, segundo commit), no el contrato de los endpoints.
+
+### Evidencia del run (PR #147)
+
+Primer intento, PR [#147](https://github.com/upc-malvaviscos/findly/pull/147),
+run [39032475699](https://github.com/upc-malvaviscos/findly/actions/runs/39032475699):
+falló exactamente en esa aserción (`404 !== 410`), con el resto de
+comprobaciones (incluidas las nuevas de edición pública, JWT, paginación,
+borrado de foto y borrado de evento de la PR #146) ya en verde en ese mismo
+run; entorno destruido igualmente (147 recursos). Tras corregir la
+expectativa, el run
+[39033513839](https://github.com/upc-malvaviscos/findly/actions/runs/39033513839)
+(25m39s) pasó completo: 147 recursos creados y 147 destruidos, los 9 checks
+de la PR en verde. Las dos comprobaciones nuevas pasaron entre `12:48:02` y
+`12:48:27` UTC en los logs de la Lambda/script.
+
+Con esto, los únicos criterios de la spec 23 sin repetir contra AWS real en
+esta issue son los que esa spec ya documenta como deliberadamente fuera de
+alcance o diferidos por diseño (ver "Pendiente" abajo).
+
 ## Pendiente
 
-- Rechazo inmediato de nuevas inscripciones/subidas contra un evento recién
-  borrado (`status = CLOSED`): sigue verificado sólo por unitarias
-  (`createPhotoUploads` rechaza `status !== 'OPEN'`), no repetido contra AWS
-  real en el run de la PR #146.
-- `ttl` de inscripciones/fotos existentes inalterado tras editar la
-  retención de un evento (decisión de diseño 2): sigue verificado sólo por
-  unitarias, no por un ciclo de edición de retención contra AWS real.
 - Backfill del ítem espejo de ADR-022 para datos anteriores a su
   introducción: diferido, documentado en ADR-023, sin entorno persistente
   real que lo necesite todavía.
@@ -354,3 +389,7 @@ contra AWS real (ver checklist actualizado en
   `ENROLLED`) ya está cerrada y fusionada a `main`; la coordinación de su
   carrera concreta con un borrado de evento en curso tampoco tiene una
   prueba dedicada todavía.
+- Inconsistencia `404`/`410` entre `publicEnrollment.ts` y
+  `createPhotoUploads` para un evento no `OPEN`: documentada arriba,
+  preexistente y ajena a esta issue; no evaluada para decidir si conviene
+  unificarla.

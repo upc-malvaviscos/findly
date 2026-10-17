@@ -200,9 +200,9 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
 - [x] Edición de evento validada, reflejada en panel admin y en
       `GET /events` público donde aplique; `ttl` de ítems existentes
       inalterado. _(Reflejo en `GET /events` confirmado contra AWS real en
-      PR #146 (2026-10-17); `ttl` de inscripciones/fotos existentes sigue
-      verificado sólo por unitarias, no por un ciclo de edición de retención
-      contra AWS real.)_
+      PR #146 (2026-10-17); `ttl` de una inscripción y una foto existentes
+      confirmado inalterado tras editar `retentionDays` contra AWS real en
+      PR #147, 2026-10-17.)_
 - [x] Listado paginado de fotos y eliminación de una foto confirmada, con
       limpieza de ambos ítems de match por cada registro afectado.
       _(Eliminación y limpieza de match/espejo confirmadas contra AWS real a
@@ -220,9 +220,14 @@ spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
       evento con una inscripción `ENROLLED` y una foto emparejada reales,
       PR #146, 2026-10-17. La colección de Rekognition y la fila `Event` se
       difieren al siguiente paso del cron por diseño (ADR-023), sin cambios.
-      El rechazo inmediato de nuevas inscripciones/subidas tras el borrado
-      sigue verificado sólo por unitarias, no repetido contra AWS real en
-      este run.)_
+      El rechazo inmediato de nuevas inscripciones/subidas contra un evento
+      recién cerrado confirmado contra AWS real en PR #147, 2026-10-17: el
+      registro público devuelve `404 EVENT_NOT_FOUND` (`publicEnrollment.ts`
+      reserva `410` para un evento `OPEN` pero caducado por retención) y la
+      subida de foto administrativa devuelve `410 EVENT_EXPIRED`
+      (`createPhotoUploads` usa `410` para ambos casos) — inconsistencia
+      preexistente entre ambos endpoints, ajena a esta spec, no corregida
+      aquí.)_
 - [x] Repetir un borrado (foto o evento) sobre un recurso ya ausente no falla
       (verificado por unitarias: ambos handlers devuelven `204`/sin excepción).
 - [x] JWT ausente o insuficiente rechaza las cuatro rutas nuevas. _(Confirmado
@@ -244,7 +249,9 @@ la carrera `writeMatch` vs. foto borrada (PR #143/#144, 2026-10-16), y el
 resto de criterios restantes — edición reflejada en `GET /events`,
 paginación real con cursor, borrado de foto con S3/galería, borrado de
 evento con limpieza síncrona completa y rechazo JWT en las cuatro rutas
-(PR #146, 2026-10-17). Todos los criterios de esta spec quedan verificados;
+(PR #146, 2026-10-17), y los dos últimos — `ttl` inalterado tras editar
+retención y rechazo inmediato de inscripciones/subidas contra un evento
+recién cerrado (PR #147, 2026-10-17). Todos los criterios de esta spec quedan verificados;
 el detalle completo está en
 [`issue-89-admin-event-photo-lifecycle.md`](../docs/evidence/issue-89-admin-event-photo-lifecycle.md).
 
