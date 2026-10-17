@@ -678,6 +678,11 @@ try {
   console.log(
     'Public acceptance: checking a closed event rejects new registrations and uploads.',
   );
+  // publicEnrollment.ts treats a non-OPEN event as 404 EVENT_NOT_FOUND (410
+  // is reserved there for an event that is OPEN but past its retention
+  // expiry); createPhotoUploads instead returns 410 EVENT_EXPIRED for both
+  // a closed and an expired event. Pre-existing, unrelated inconsistency
+  // between the two handlers; each check below matches its real contract.
   await call(
     `/events/${disposableEvent.eventId}/registrations`,
     {
@@ -689,7 +694,7 @@ try {
         consentTerms: true,
       }),
     },
-    410,
+    404,
   );
   await admin(
     `/admin/events/${disposableEvent.eventId}/photos/uploads`,
