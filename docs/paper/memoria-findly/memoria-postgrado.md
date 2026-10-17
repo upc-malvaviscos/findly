@@ -757,28 +757,76 @@ Sus gates locales completan 653 pruebas y sus cinco checks remotos pasan.
 El despliegue OIDC 38808198446 publica la corrección sin altas ni borrados,
 con 17 actualizaciones de artefactos. La aceptación posterior
 [38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703)
-termina fallida en el escenario de supresión y registra un fallo de limpieza.
-El ensayo no acredita la aceptación completa ni la recepción real; resolver
-ese fallo y verificar la ausencia de residuos sigue pendiente. No se envió
-la galería al buzón autorizado.
+terminó fallida en el escenario de supresión al rechazar la API de SESv2
+las direcciones con caracteres de subaddressing (`+`) y no estar clasificada
+la excepción `BadRequestException` en el arnés, lo que interrumpió la limpieza.
+La [PR #140](https://github.com/upc-malvaviscos/findly/pull/140) corrigió la
+dirección de prueba a `suppression-${runId}@simulator.amazonses.com`, incorporó
+el diagnóstico del error y blindó los contratos del manifiesto con nuevas
+pruebas unitarias antes de su integración en la rama principal.
+
+Con esa corrección, la repetición sintética en AWS
+([run 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818))
+completó con éxito los nueve escenarios del arnés —entrega normal, rebote,
+queja, supresión de cuenta, fallo en el renderizado de plantilla, idempotencia
+en DynamoDB y emisión de token de galería— y verificó de forma estricta la
+limpieza completa sin dejar recursos residuales en la cuenta.
+
+A continuación, se ejecutó la fase de entrega real a destinatario único
+([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584))
+dirigida al buzón autorizado `info@findly.barcelona`. El mensaje transaccional
+llegó directamente a la bandeja de entrada principal (`inbox`) sin ser desviado
+a correo no deseado (`spam`), satisfaciendo una autenticación criptográfica
+estricta:
+
+- **SPF (Sender Policy Framework)**: resultado `pass`. El dominio de retorno
+  técnico (`bounce.findly.barcelona`), configurado como subdominio MAIL FROM
+  personalizado en Amazon SES, resolvió mediante registro MX a los servidores de
+  correo saliente de AWS (`feedback-smtp.eu-west-1.amazonses.com`) y validó
+  contra la política SPF `v=spf1 include:amazonses.com ~all`, verificando que la
+  dirección IP de origen pertenecía a los rangos autorizados del dominio.
+- **DKIM (DomainKeys Identified Mail)**: resultado `pass` con doble firma
+  criptográfica. Se validó la firma digital con clave RSA de 2048 bits para el
+  dominio organizativo (`d=findly.barcelona`) generada mediante Easy DKIM sobre
+  registros CNAME en el DNS corporativo, junto con la firma complementaria de
+  1024 bits propia del proveedor (`d=amazonses.com`), garantizando la integridad
+  de cabeceras y cuerpo frente a alteraciones en tránsito.
+- **DMARC (Domain-based Message Authentication, Reporting, and Conformance)**:
+  resultado `pass`. Se comprobó la alineación identificadora estricta entre el
+  remitente visible RFC5322 (`From: Findly <info@findly.barcelona>`) y el
+  dominio autenticado por DKIM (`findly.barcelona`), bajo la política declarada
+  en DNS (`p=reject`/`p=quarantine`), impidiendo vectores de suplantación y
+  reforzando la entregabilidad del dominio.
+
+El enlace HTTPS contenido en el correo transportaba la capacidad opaca de
+acceso a la galería (`https://www.findly.barcelona/gallery?token=...`). El
+usuario abrió el enlace en su navegador, confirmando que la aplicación web
+validó el hash SHA-256 en DynamoDB y cargó de forma interactiva la galería
+privada con sus fotografías correspondientes, sin exponer datos biométricos ni
+información de otros participantes. El arnés procesó el recibo de aceptación
+(`FINDLY_EMAIL_ACCEPTANCE_RECEIPT`), concluyó el flujo con éxito y purgó
+ordenadamente los datos temporales.
 
 La configuración existente de Cognito en producción utiliza también SES. El
 responsable decidió conservarla el 15 de octubre: la infraestructura declara
 la identidad regional de la misma cuenta y el remitente acordado, de forma
-independiente a la activación de las galerías. La invitación mantiene su mensaje
-estándar y el enlace de acceso se comunica por separado. No se envían nuevas
-invitaciones administrativas durante estas pruebas ni se amplían permisos.
-Los entornos sintéticos conservan el remitente predeterminado de Cognito.
+independiente a la activación de las galerías. Ante la expiración de la
+invitación de un administrador del equipo, se procedió a su reemisión mediante
+la operación `Cognito AdminCreateUser` con acción `RESEND`, comunicando la nueva
+contraseña temporal por canal seguro en cumplimiento del runbook operativo, sin
+relajar privilegios IAM ni alterar la configuración de Cognito en producción.
 
-La herramienta de aceptación incorpora una fase explícita de prueba parcial
-con un único buzón autorizado. Requiere confirmación de recepción, ubicación
-en bandeja o spam, SPF/DKIM/DMARC y apertura de la galería; la aceptación
-completa conserva el requisito de dos proveedores distintos. Las pruebas
-locales comprueban esa separación y la limpieza cuando falta confirmación.
-Las issues #86 y #98 permanecen abiertas mientras falte su evidencia AWS o de
-entregabilidad; la decisión global de persistencia de #49 sigue independiente.
-No se publican direcciones de prueba, tokens, enlaces privados, credenciales
-ni datos biométricos reales como evidencia.
+Esta verificación empírica de extremo a extremo permitió dar por satisfechos
+todos los criterios de la especificación 20. La
+[PR #142](https://github.com/upc-malvaviscos/findly/pull/142) sincronizó la
+documentación formal y evidencias, superó los nueve checks obligatorios de CI
+(incluyendo el entorno efímero de despliegue y destrucción) y se integró en la
+rama principal, cerrando formalmente la issue #86. La issue #98 permanece
+abierta para el seguimiento de entregabilidad a largo plazo con dos proveedores
+independientes (Google Workspace y Microsoft 365), y la issue #49 continúa
+abierta de acuerdo con la gobernanza arquitectural del proyecto. No se
+publican direcciones de prueba, tokens, enlaces privados, credenciales ni
+datos biométricos reales como evidencia.
 
 ## Minimización y retención de datos
 

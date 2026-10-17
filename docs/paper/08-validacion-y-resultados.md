@@ -322,7 +322,15 @@ resultado de la repetición desplegada se registran por separado. La evidencia
 de #98 conserva los intentos fallidos y su limpieza, sin atribuirles recepción
 ni aceptación por SES.
 
-La PR #137 completó también sus cinco checks remotos y la publicación 38808198446. La repetición 38808775703 terminó fallida en supresión y declaró
-un fallo de limpieza. El resultado global y la ausencia de residuos requieren
-resolución y comprobación; no hubo fase de correo al buzón autorizado ni
-evidencia de recepción. La evidencia de #98 conserva ese límite explícito.
+La PR #140 corrigió la causa raíz del fallo en supresión (subaddressing no
+admitido en `PutSuppressedDestination`) y clasificó `BadRequestException` en el
+arnés. La repetición sintética en AWS ([run 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818))
+completó los nueve escenarios previstos con limpieza verificada al 100%. A
+continuación, la aceptación de destinatario único en AWS ([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584))
+acreditó la entrega en la bandeja de entrada de `info@findly.barcelona` sin
+clasificación de spam, autenticación criptográfica estricta (SPF pass en
+`bounce.findly.barcelona`, DKIM pass con firmas de 2048 y 1024 bits, y DMARC
+pass alineado), y la apertura y visualización interactiva de la galería privada
+por el participante. La sincronización formal en la PR #142 cerró la issue #86;
+la issue #98 continúa el seguimiento de entregabilidad con dos proveedores y
+la issue #49 permanece abierta.
