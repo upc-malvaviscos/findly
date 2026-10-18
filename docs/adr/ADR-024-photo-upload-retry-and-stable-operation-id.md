@@ -125,8 +125,11 @@ independiente por archivo en un mismo lote, exclusión de tombstones en el
 listado. Componente (`tests/web/bulkPhotoUploader.test.tsx`): reintento
 selectivo, nombres de archivo iguales como operaciones distintas,
 confirmación backend sin reintentar el PUT, máximo de tres subidas
-simultáneas. AWS real: `scripts/test-aws-sandbox.mjs` repite la petición de
-upload con el mismo `operationId` tras un PUT real y confirma `COMPLETED`
-sin URL nueva, verificando el permiso IAM nuevo contra S3 real; pendiente de
-ejecución autorizada. Detalle completo en
+simultáneas. AWS real (entorno efímero de PR, `deployed-issue-70-acceptance.mjs`):
+tombstone y rechazo `PHOTO_DELETED` verificados en
+[PR #149](https://github.com/upc-malvaviscos/findly/pull/149); confirmación
+`COMPLETED` vía `HeadObjectCommand` sin firmar URL nueva, verificando el
+permiso `s3:GetObject` nuevo, en
+[PR #150](https://github.com/upc-malvaviscos/findly/pull/150). Detalle
+completo en
 [`docs/evidence/issue-121-photo-upload-retry.md`](../evidence/issue-121-photo-upload-retry.md).
