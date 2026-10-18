@@ -125,7 +125,10 @@ independiente por archivo en un mismo lote, exclusión de tombstones en el
 listado. Componente (`tests/web/bulkPhotoUploader.test.tsx`): reintento
 selectivo, nombres de archivo iguales como operaciones distintas,
 confirmación backend sin reintentar el PUT, máximo de tres subidas
-simultáneas. AWS real (entorno efímero de PR, `deployed-issue-70-acceptance.mjs`):
+simultáneas. E2E (`e2e/foundation.spec.ts`, [PR #152](https://github.com/upc-malvaviscos/findly/pull/152)):
+lote con un archivo cuyo primer PUT falla, reintento selectivo que solo
+reenvía ese archivo y conserva el mismo `operationId`, verificado contra
+Playwright real. AWS real (entorno efímero de PR, `deployed-issue-70-acceptance.mjs`):
 tombstone y rechazo `PHOTO_DELETED` verificados en
 [PR #149](https://github.com/upc-malvaviscos/findly/pull/149); confirmación
 `COMPLETED` vía `HeadObjectCommand` sin firmar URL nueva, verificando el

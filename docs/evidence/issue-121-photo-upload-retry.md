@@ -14,7 +14,8 @@ desplegaron el entorno efímero real (`provision-test-destroy`,
 `.github/workflows/ephemeral-pr-e2e.yml`) y lo destruyeron al terminar; la
 validación local cubre además unitarias con `aws-sdk-client-mock`, un
 componente con React Testing Library, `terraform fmt`/`validate`, build y
-lint.
+lint. [PR #152](https://github.com/upc-malvaviscos/findly/pull/152) añade la
+cobertura E2E Playwright de `BulkPhotoUploader` (ver más abajo).
 
 ## Alcance
 
@@ -91,9 +92,9 @@ npm run security                 PASS
 npm run sync:check               PASS
 ```
 
-No se ejecuta `npm run test:e2e` (ningún flujo E2E existente cambia de
-recorrido; la subida masiva no tiene aún un spec Playwright dedicado). El
-sandbox persistente de `npm run test:aws` estaba destruido entre
+`npm run test:floci` incluye ahora el caso E2E de reintento de
+`BulkPhotoUploader` (ver sección siguiente). El sandbox persistente de
+`npm run test:aws` estaba destruido entre
 ejecuciones (sin recursos en su state) cuando se intentó; la verificación
 real se obtuvo en su lugar contra el entorno efímero de cada PR, con datos
 sintéticos y limpieza automática al terminar — ver siguiente sección.
@@ -128,16 +129,33 @@ justo después del PUT real respondió `{ photoId, status: 'COMPLETED' }` sin
 pasar todos sus checks (incluido `provision-test-destroy`), que destruye el
 entorno al terminar.
 
+## Cobertura E2E (`e2e/foundation.spec.ts`, PR #152)
+
+[PR #152](https://github.com/upc-malvaviscos/findly/pull/152) añade el caso
+`admin retries only the failed file, keeping the same operationId (#121)` a
+`e2e/foundation.spec.ts`, ejecutado con `npm run test:floci`
+(Playwright real, no React Testing Library). Mockea la red (`page.route`)
+contra `${API}/admin/**` y Cognito, y sube un lote de dos archivos
+(`ok.jpg`, `bad.jpg`) donde el primer PUT de `bad.jpg` falla (500) y el
+segundo intento tiene éxito, simulando una respuesta de red perdida tras un
+PUT que sí llegó a completarse:
+
+- Tras la subida inicial, `ok.jpg` solo generó una petición de subida y
+  `bad.jpg` quedó marcado con el error visible "No se pudo subir esta
+  fotografía.".
+- Al pulsar "Reintentar fallidas": `ok.jpg` no se reenvía (sigue en una sola
+  petición), solo `bad.jpg` genera una segunda petición, y esa segunda
+  petición reutiliza el mismo `operationId` que la primera — verificando en
+  el DOM real el reintento selectivo y el identificador estable que exige
+  ADR-024.
+
 ## Pendiente
 
-- **E2E Playwright de la subida masiva**: no existe hoy un spec dedicado a
-  `BulkPhotoUploader`; esta entrega añade cobertura unitaria y de componente,
-  pero no un recorrido E2E de reintento. Cubrirlo queda para una issue
-  separada si se considera necesario, dado que la cobertura de componente ya
-  ejercita el DOM real con React Testing Library.
 - El sandbox persistente de `npm run test:aws` sigue sin un ciclo propio
   ejecutado para esta issue (quedó cubierto por el entorno efímero en su
   lugar); su extensión en `scripts/test-aws-sandbox.mjs` queda preparada
-  para la próxima vez que ese sandbox esté desplegado.
-- Issue #121 permanece abierta hasta sincronizar su comentario de cierre con
-  este resultado.
+  para la próxima vez que ese sandbox esté desplegado. No bloquea el cierre
+  de la issue: la verificación contra AWS real ya se obtuvo en el entorno
+  efímero de PR #149/#150.
+- Issue #121: comentario de cierre sincronizado con este resultado una vez
+  mergeado PR #152.

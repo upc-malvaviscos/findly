@@ -635,6 +635,11 @@
           "command": "test:aws",
           "environment": "aws",
           "files": ["scripts/test-aws-sandbox.mjs"]
+        },
+        {
+          "command": "test:floci",
+          "environment": "floci",
+          "files": ["e2e/foundation.spec.ts"]
         }
       ],
       "evidence": [
@@ -645,6 +650,10 @@
         {
           "file": "docs/evidence/issue-121-photo-upload-retry.md",
           "environment": "aws"
+        },
+        {
+          "file": "docs/evidence/issue-121-photo-upload-retry.md",
+          "environment": "floci"
         }
       ],
       "documentation": [
