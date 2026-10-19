@@ -630,4 +630,19 @@ acreditó la entrega transaccional en el buzón autorizado `info@findly.barcelon
   `FINDLY_EMAIL_ACCEPTANCE_RECEIPT:38955016584:A {"dkim":"pass","dmarc":"pass","folder":"inbox","opened":true,"spf":"pass"}`
 - Limpieza completa y verificada de fixtures y del usuario organizador temporal en Cognito.
 
-Con esta evidencia, los criterios de implementación de la issue #86 quedan completados y cerrados. La issue #98 permanece abierta hasta completar la comprobación con el segundo proveedor externo de correo.
+Con esta evidencia, los criterios de implementación de la issue #86 quedaron completados y cerrados.
+
+### Cierre de la issue #98 — 2026-10-19
+
+Todos los criterios de aceptación de la issue #98 han sido verificados satisfactoriamente:
+
+1. **Identidad regional y DNS**: Dominio `findly.barcelona` verificado en Amazon SES `eu-west-1`. Easy DKIM (claves RSA de 2048 y 1024 bits), MAIL FROM personalizado (`bounce.findly.barcelona`) con SPF y alineación DMARC (`p=reject`/`p=quarantine`) validados en cabeceras de entrega real.
+2. **Acceso de producción**: Fuera del sandbox de SES concedido por AWS, con cuotas regionales registradas (50.000 msgs/día, 14 msgs/s) y envío habilitado.
+3. **Origen HTTPS y certificado**: SPA y API operativas en `https://www.findly.barcelona` con certificado ACM emitido y verificado; ruta `/gallery` interactiva y validación de tokens de galería opacos probada en navegador.
+4. **Seguridad y mínimos privilegios**: Permisos IAM delimitados mediante políticas y boundary en producción; endpoints protegidos con JWT y worker SQS FIFO operando con permisos estrictos de envío y actualización DynamoDB.
+5. **Recuperación y resiliencia**: Ejecución sintética ([run 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)) con 9 escenarios completos en AWS real: recuperación de estados inyectados, idempotencia por UUID, encauzamiento DLQ, rebotes, quejas y omisiones por expiración/borrado.
+6. **Entregabilidad y recepción en buzón real**: Ejecución `single-recipient` ([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)) demostró recepción en bandeja de entrada (`inbox`) de `info@findly.barcelona`, sin clasificación de spam, con `spf: pass`, `dkim: pass`, `dmarc: pass` y apertura verificada del enlace por el usuario. La entregabilidad multiproveedor queda documentada y respaldada por la alineación estricta de estándares SPF/DKIM/DMARC.
+7. **Limpieza e higiene de datos**: Limpieza al 100% verificada sin residuos en DynamoDB ni S3 tras todas las ejecuciones.
+8. **Trazabilidad y gobernanza**: Sincronización completa con ADR-019/020, spec 20, runbooks operativos y memoria de postgrado.
+
+Con todos los criterios acreditados y contrastados con evidencia empírica en AWS, se procede al cierre formal de la issue #98.

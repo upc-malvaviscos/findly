@@ -28,7 +28,8 @@ son públicas desde el 2026-10-05, con identidad SES, DKIM y MAIL FROM
 verificados y certificado ACM emitido. El acceso de producción SES se confirmó
 concedido el 2026-10-15 y el despliegue OIDC 38781070488 habilitó el correo,
 conservando Cognito con SES. La aceptación de recuperación, feedback y recepción
-sigue pendiente de sus resultados específicos (#98, abierta).
+en producción se completó con éxito mediante los runs 38950320818 y 38955016584,
+demostrando la resiliencia en AWS y la entrega autenticada con SPF, DKIM y DMARC (#98, cerrada).
 
 ## Limitaciones verificadas
 
@@ -36,33 +37,25 @@ Estas limitaciones no son suposiciones: cada una está registrada como
 pendiente en la propia evidencia que demuestra el resto del sistema
 (capítulo 8), no inferida por esta memoria.
 
-- **Correo de galería y de invitación administrativa sin confirmar en
-  buzón real.** La SPA/API de producción están públicas, pero el envío de
-  correo de galería está desplegado y requiere completar la aceptación AWS. SES ya
-  permite destinatarios fuera del sandbox; esto no acredita recepción ni
-  apertura en un buzón (issue #98). Por separado, la invitación de administradores por
-  Cognito conserva desde la decisión del 2026-10-15 su configuración SES
-  con el dominio propio, declarada en Terraform independientemente del correo
-  de galerías; no hay forma de confirmar desde el
-  código si el correo llega a la bandeja o a spam de un destinatario real
-  (issue #105).
+- **Invitación administrativa por Cognito sin confirmación en buzón.** La
+  entrega de correo de galerías en producción quedó verificada con entrega real
+  en bandeja de entrada (`inbox`) y autenticación criptográfica estricta (SPF,
+  DKIM y DMARC pass en la issue #98). Por separado, la invitación de administradores
+  por Cognito conserva desde la decisión del 2026-10-15 su configuración SES con el
+  dominio propio, declarada en Terraform independientemente del correo de galerías;
+  la confirmación del destinatario administrativo y su primer acceso se gestionan
+  en la issue #105.
 - **Migración de colecciones Rekognition heredadas pendiente.** ADR-015 aísla
   colecciones por entorno; las colecciones creadas antes de esa decisión
   (`findly-event-*`, sin sufijo de entorno) no se migran ni se borran
   automáticamente, y esa migración no se ha planificado con fecha.
-- **Decisión DynamoDB frente a RDS abierta.** La revisión del 2026-10-05 del
-  [análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md) inventaría
-  las 12 issues abiertas de su instantánea y sustituye los gaps históricos
+- **Decisión DynamoDB frente a RDS resuelta.** La revisión del 2026-10-05 del
+  [análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md) inventarió
+  las 12 issues abiertas de su instantánea y sustituyó los gaps históricos
   ya resueltos. [ADR-022](../adr/ADR-022-confirm-dynamodb-persistence.md)
   (2026-10-12) confirmó DynamoDB para todo el backlog y fijó los contratos de
-  acceso de #87/#89; la incertidumbre de **diseño** de convergencia de #87 que
-  motivó ese ADR ya tiene evidencia AWS real
-  ([`issue-87-matching-convergence.md`](../evidence/issue-87-matching-convergence.md),
-  2026-10-14, capítulo 8). Mantener la implementación vigente mientras se
-  decide no equivale a aprobar DynamoDB para todo el backlog: el benchmark
-  de coste/capacidad propio de #49 (sección 7 de su análisis) sigue sin
-  ejecutarse, y es ese benchmark, no el ADR ni la evidencia de #87, el que
-  cierra #49.
+  acceso de #87/#89. La PR #141 ejecutó el benchmark de coste y fan-out en AWS real
+  demostrando la viabilidad de DynamoDB y el ítem espejo, cerrando la issue #49.
 - **Administración de eventos/fotos bloqueada por un recurso externo, no
   por el código.** La PR #120 (issue #89: editar/borrar eventos, eliminar
   fotografías) tiene todos sus checks de código en verde, pero su entorno
