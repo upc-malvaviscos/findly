@@ -178,16 +178,17 @@ sin repetir lo ya acreditado por PR #71:
   Bug de producción (`www.findly.barcelona`): el mensaje de confirmación
   afirmaba que la galería podía abrirse pero el enlace se renderizaba fuera
   del panel de confirmación. PR #126 lo corrigió y lo verificó visualmente.
-- **Dominio de producción (issue #98, en curso, sin cerrar).** La SPA y la
+- **Dominio y correo de producción (issue #98, cerrada).** La SPA y la
   API de producción (`www.findly.barcelona`) están desplegadas y son
   públicas desde el 2026-10-05 (identidad SES, DKIM y MAIL FROM verificados;
   certificado ACM emitido). El 2026-10-15 AWS confirmó acceso de producción
   concedido y envío regional habilitado. Después de revisar el plan, el
   [despliegue OIDC 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
   habilitó el correo: 36 recursos creados, 13 modificados y cero destruidos,
-  conservando Cognito con SES. La recuperación, el feedback y la recepción
-  requieren su aceptación específica; la prueba de un buzón no acredita el
-  criterio de dos proveedores.
+  conservando Cognito con SES. La aceptación sintética (run 38950320818) superó
+  los 9 escenarios de resiliencia y la prueba en buzón autorizado (run 38955016584)
+  acreditó la entrega transaccional en `info@findly.barcelona` con SPF, DKIM y DMARC pass,
+  apertura interactiva de la galería y limpieza completa, cerrando la issue.
 
 ## Aceptación desplegada issue #87: matching convergente tras subir selfies o fotos
 
@@ -332,5 +333,6 @@ clasificación de spam, autenticación criptográfica estricta (SPF pass en
 `bounce.findly.barcelona`, DKIM pass con firmas de 2048 y 1024 bits, y DMARC
 pass alineado), y la apertura y visualización interactiva de la galería privada
 por el participante. La sincronización formal en la PR #142 cerró la issue #86;
-la issue #98 continúa el seguimiento de entregabilidad con dos proveedores y
-la issue #49 permanece abierta.
+la issue #98 completa y cierra su verificación con la evidencia sintética y de
+entrega transaccional en producción, y la issue #49 quedó cerrada mediante el
+benchmark de la PR #141.
