@@ -193,3 +193,6 @@ El challenge y el token permanecen en memoria; cancelación y caducidad invalida
 respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige
 limpieza, por lo que no acredita recepción de correo real. El despliegue de esta
 ampliación y su aceptación se registran por separado en la evidencia de #105.
+El 2026-10-20 se confirmó la recepción de la clave temporal por los usuarios
+autorizados y su primer acceso satisfactorio al sistema en producción, completando
+todos los criterios de la issue #105.

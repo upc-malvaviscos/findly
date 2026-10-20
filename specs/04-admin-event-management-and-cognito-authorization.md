@@ -137,8 +137,10 @@ la configuración estándar o los valores SES exactos aprobados.
 El plan 38780832909 conservó el pool y su remitente. El
 [despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
 terminó SUCCESS y la lectura posterior confirmó Cognito `DEVELOPER` con la
-identidad regional y el remitente acordados. No se enviaron nuevas invitaciones;
-la recepción y primer acceso de #105 conservan su seguimiento independiente.
+identidad regional y el remitente acordados. No se enviaron nuevas invitaciones.
+El 2026-10-20 se confirmó la recepción de la clave temporal y el primer acceso
+satisfactorio de los usuarios administradores al sistema en producción,
+completando todos los criterios de la issue #105.
 
 ## Reintento selectivo en la subida masiva (#121)
 

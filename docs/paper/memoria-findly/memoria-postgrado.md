@@ -814,7 +814,9 @@ independiente a la activación de las galerías. Ante la expiración de la
 invitación de un administrador del equipo, se procedió a su reemisión mediante
 la operación `Cognito AdminCreateUser` con acción `RESEND`, comunicando la nueva
 contraseña temporal por canal seguro en cumplimiento del runbook operativo, sin
-relajar privilegios IAM ni alterar la configuración de Cognito en producción.
+relajar privilegios IAM ni alterar la configuración de Cognito en producción. El
+20 de octubre se confirmó la recepción de la clave temporal por los usuarios y
+su acceso exitoso al sistema en producción, cerrando los criterios de la issue #105.
 
 Esta verificación empírica de extremo a extremo permitió dar por satisfechos
 todos los criterios de la especificación 20. La

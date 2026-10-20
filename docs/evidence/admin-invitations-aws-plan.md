@@ -118,3 +118,24 @@ terminó SUCCESS. La lectura posterior de `EmailConfiguration` confirma
 No se enviaron nuevas invitaciones administrativas. Esta conservación no prueba
 recepción ni primer acceso del destinatario anterior de #105; esa issue sigue
 abierta y su evidencia es independiente del correo de galerías.
+
+## Recepción y primer acceso verificados en producción — 2026-10-20
+
+El responsable confirmó que los usuarios autorizados recibieron la clave
+temporal emitida por Cognito y completaron satisfactoriamente el primer
+acceso al sistema a través de `/admin/login` (`https://www.findly.barcelona/admin/login`).
+
+En este primer acceso se verificó el ciclo completo de autenticación:
+
+- La SPA reconoció el desafío `NEW_PASSWORD_REQUIRED` sin autenticar la sesión
+  prematuramente.
+- Los usuarios definieron y confirmaron su contraseña definitiva conforme a la
+  política de contraseñas del pool (mínimo 12 caracteres, mayúsculas, minúsculas,
+  números y símbolos), completando el desafío en memoria.
+- La sesión administrativa quedó establecida de forma segura, sin almacenar
+  contraseñas ni datos sensibles en almacenamiento persistente, Git o registros.
+
+Con la recepción de las credenciales temporales acreditada y el acceso
+administrativo confirmado en el entorno real de producción, todos los criterios
+de aceptación de la issue #105 y del requisito `REQ-ADMIN-INVITATIONS` quedan
+verificados de extremo a extremo. Se procede al cierre formal de la issue #105.
