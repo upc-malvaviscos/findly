@@ -7,7 +7,8 @@ Findly es una demostración académica para que asistentes de un evento, con con
 La ampliación aprobada de la spec 20 autoriza únicamente el envío manual de
 galerías del evento a participantes elegibles; no envío automático por matching
 ni campañas. La configuración SES/DNS y los envíos reales requieren autorización
-operativa independiente. La issue #49 permanece abierta.
+operativa independiente. La decisión de persistencia DynamoDB vs RDS (issue #49)
+quedó resuelta y cerrada formalmente mediante ADR-022 y benchmark en AWS.
 
 Trata las imágenes, embeddings faciales, tokens de galería y datos de contacto como datos sensibles. Nunca incluyas secretos, ficheros `.env`, estados de Terraform, credenciales AWS ni datos biométricos reales en Git, pruebas, capturas o documentación.
 
