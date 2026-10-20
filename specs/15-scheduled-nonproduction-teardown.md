@@ -29,6 +29,10 @@ destruir `demo` o `production`.
   ni Playwright.
 - El job `e2e` de CI conserva el recorrido Playwright-Floci local y reutiliza
   una caché de navegadores invalidada por sistema operativo y `package-lock`.
+- Las pull requests con cambios exclusivamente documentales (en `docs/`, `specs/`
+  o ficheros markdown/metadatos) omiten el despliegue del entorno efímero en AWS,
+  completando el job `provision-test-destroy` con éxito en pocos segundos sin
+  incurrir en costes ni bloquear los checks obligatorios de GitHub.
 
 ## Límites de coste y seguridad
 

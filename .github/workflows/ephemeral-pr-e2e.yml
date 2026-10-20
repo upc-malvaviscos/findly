@@ -26,12 +26,22 @@ jobs:
       TF_INPUT: 'false'
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
+      - id: check-changes
+        name: Check if changes require ephemeral environment
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: |
+          node scripts/check-ephemeral-pr-eligibility.mjs
       - uses: hashicorp/setup-terraform@v4
+        if: steps.check-changes.outputs.deploy_required == 'true'
       - name: Require external OIDC and state configuration
+        if: steps.check-changes.outputs.deploy_required == 'true'
         env:
           ROLE_ARN: ${{ vars.AWS_EPHEMERAL_CI_ROLE_ARN }}
           STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
@@ -40,17 +50,20 @@ jobs:
           test -n "$STATE_BUCKET"
       - id: aws
         name: Assume the ephemeral CI role through OIDC
+        if: steps.check-changes.outputs.deploy_required == 'true'
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_EPHEMERAL_CI_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: findly-pr-${{ github.event.pull_request.number }}
       - name: Build Lambda artifacts
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           npm ci
           npm run build:lambdas
           npm run package:lambdas
       - name: Initialize PR-scoped, encrypted remote state
+        if: steps.check-changes.outputs.deploy_required == 'true'
         env:
           STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
         run: |
@@ -61,6 +74,7 @@ jobs:
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
       - name: Plan and verify the serverless cost boundary
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           plan_file="$RUNNER_TEMP/findly-pr-${{ github.event.pull_request.number }}.tfplan"
           plan_json="$RUNNER_TEMP/findly-pr-${{ github.event.pull_request.number }}.tfplan.json"
@@ -90,10 +104,12 @@ jobs:
             fi
           done
       - name: Provision an isolated PR environment
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           terraform -chdir=infra/ephemeral apply \
             "$RUNNER_TEMP/findly-pr-${{ github.event.pull_request.number }}.tfplan"
       - name: Verify deployed uploads bucket hardening
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           uploads_bucket_name="$(terraform -chdir=infra/ephemeral output -raw uploads_bucket_name)"
           public_access_block="$(aws s3api get-public-access-block \
@@ -115,12 +131,15 @@ jobs:
             | index("AES256") != null
           ' <<< "$bucket_encryption" > /dev/null
       - name: Install browsers for deployed browser verification
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: npm exec -- playwright install --with-deps chromium firefox webkit
       - name: Verify suppressed administrator invitation and reject self-registration
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           terraform -chdir=infra/ephemeral output -json > "$RUNNER_TEMP/admin-invitation-outputs.json"
           node scripts/check-admin-invitation-aws.mjs "$RUNNER_TEMP/admin-invitation-outputs.json"
       - name: Run the deployed AWS organizer happy path
+        if: steps.check-changes.outputs.deploy_required == 'true'
         run: |
           echo '::notice::Preparing a synthetic Cognito organizer for deployed AWS acceptance'
           user_name="ci-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}"
@@ -184,6 +203,11 @@ jobs:
           echo '::notice::Public acceptance passed; checking the real Scheduler invocation and TTL configuration'
           node scripts/deployed-scheduler-retention.mjs
           echo '::notice::All deployed AWS acceptance suites passed; synthetic user cleanup follows'
+      - name: Skip ephemeral deployment for documentation
+        if: steps.check-changes.outputs.deploy_required != 'true'
+        run: |
+          echo "Only documentation and specifications were modified in this PR."
+          echo "Ephemeral AWS deployment and teardown were skipped successfully."
       - name: Destroy the PR environment
         if: ${{ always() && steps.aws.outcome == 'success' }}
         env:

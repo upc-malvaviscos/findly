@@ -128,6 +128,13 @@ del redrive SQS y el estado agregado de CloudWatch/SNS y Scheduler. Estos mensaj
 resultado del check sólo es verde cuando terminan todas las suites y el
 `destroy` posterior.
 
+Para evitar retrasos y costes innecesarios, el workflow incorpora una evaluación
+previa de cambios (`check-ephemeral-pr-eligibility.mjs`): si la pull request
+incluye únicamente modificaciones en documentación (`docs/`, `specs/` o ficheros
+markdown), el aprovisionamiento, las pruebas y la destrucción en AWS se omiten,
+y el job `provision-test-destroy` concluye de forma inmediata con estado verde,
+satisfaciendo el requisito del ruleset sin consumir minutos de ejecutor ni recursos en la nube.
+
 ### `deploy.yml` — despliegue manual autorizado
 
 `workflow_dispatch` con `environment` (`sandbox`/`demo`/`production`),
