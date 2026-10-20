@@ -61,8 +61,8 @@ Entregar una experiencia de usuario estática, rápida, accesible e intuitiva en
 - [x] La barra de progreso refleja la subida en tiempo real de 0% a 100%.
 - [x] `npm run verify` ejecuta React Testing Library y los gates locales.
 - [x] `npm run test:e2e` ejecuta Playwright por separado con respuestas simuladas.
-- [ ] La inscripción pública completa se verifica contra AWS sin interceptar HTTP (#22).
-- [ ] La SPA está publicada con CloudFront/OAC y TLSv1.2_2021 (#15).
+- [x] La inscripción pública completa se verifica contra AWS sin interceptar HTTP (#22).
+- [x] La SPA está publicada con CloudFront/OAC y TLSv1.2_2021 (#15).
 
 ## Alcance de la evidencia
 

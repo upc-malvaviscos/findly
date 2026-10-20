@@ -49,7 +49,7 @@ Declarar de forma segura toda la arquitectura de la aplicación en Terraform apl
 - [x] `terraform fmt -check`, `terraform validate` y `tflint` pasan en CI.
 - [x] El plan efímero de PR #48 no incluye VPC, RDS, EC2, NAT ni ALB.
 - [x] El bucket de cargas del entorno probado es privado y usa SSE-S3.
-- [ ] CloudFront/OAC, dominio y TLSv1.2_2021 se publican/verifican en #15.
+- [x] CloudFront/OAC, dominio y TLSv1.2_2021 se publican/verifican en #15.
 
 La evidencia histórica del módulo aislado se conserva; la aceptación actual
 está delimitada en [la auditoría #70](../docs/evidence/issue-checklist-audit.md).

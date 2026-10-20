@@ -66,7 +66,7 @@ Procesar asíncronamente las fotografías publicadas por los fotógrafos/organiz
       coincidente sin inscripción real en `GSI1`.)_
 - [x] Terraform declara `maxReceiveCount = 3` y `ReportBatchItemFailures`;
       el handler tiene pruebas unitarias de fallo parcial.
-- [ ] SQS entrega realmente el mensaje a DLQ tras tres recepciones fallidas
+- [x] SQS entrega realmente el mensaje a DLQ tras tres recepciones fallidas
       (#46). No equivale a tres reintentos adicionales.
 
 El módulo está conectado a `infra/modules/findly-stack` desde PR #64; el
