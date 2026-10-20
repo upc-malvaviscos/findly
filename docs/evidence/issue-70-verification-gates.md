@@ -111,6 +111,19 @@ Cinco tests con un fixture de CLI, sin AWS, prueban las condiciones de aceptaci�
 y rechazo por retención, log sin JSON, campo sensible anidado y recurso fuera
 del PR. Sirven para verificar el probe; no acreditan el runtime AWS.
 
-Al redactar esta fase de preparación, ninguno de estos smoke se había ejecutado
-en AWS. El resultado posterior se distingue al inicio de este documento; #13
-conserva pendientes Budgets y correo.
+## Resolución y cierre de entregas
+
+Las 7 entregas coordinadas bajo la auditoría de la issue #70 han concluido
+y cuentan con evidencia desplegada y verificada en AWS:
+
+- **Entrega 1 (Matriz de auditoría y specs):** completada en `docs/evidence/issue-checklist-audit.md`.
+- **Entrega 2 (Endpoints públicos e indexación - #7/#22):** completada y cerrada (PR #72, PR #81, PR #93, PR #94).
+- **Entrega 3 (Firma/CORS real - #45/#6):** verificada en PR #71 (run AWS 36482560393); issue #6 cerrada.
+- **Entrega 4 (Matching/redrive real - #46/#8):** verificada en PR #71; issue #8 cerrada.
+- **Entrega 5 (DELETE y purga por caducidad - #47/#10):** EventBridge Scheduler y TTL real desplegados y validados en AWS en PR #84 (run 36991833773); resiliencia y tratamiento de error/fallo parcial de DELETE completados en PR #123. Issue #10 cerrada el 2026-10-14.
+- **Entrega 6 (Logs, alarmas y FinOps - #13):** logs estructurados JSON con correlationId, retención de 14 días y cadena DLQ → CloudWatch Alarm → SNS verificados en AWS real en PR #71 y formalizados en PR #122. El responsable aprobó la entrega SNS → SQS de la alarma DLQ como evidencia suficiente del canal de alerta FinOps frente a forzar gasto en Budgets. Issue #13 cerrada el 2026-10-14.
+- **Entrega 7 (Demo real y aceptación SPA - #15/#61/#18/#22):** frontend desplegado en S3/CloudFront con Cognito, rutas autenticadas y métricas de error de cliente en CloudWatch comprobadas en AWS en PR #94 y PR #95. Issue #22 cerrada el 2026-10-05.
+- **Gap de cobertura de #17:** thresholds en Vitest para Lambdas y shared/lib enforceados en CI.
+
+Con todas las dependencias bloqueantes (#10, #13, #22) verificadas en AWS y
+cerradas, la issue #70 queda formalmente completada y sincronizada.
