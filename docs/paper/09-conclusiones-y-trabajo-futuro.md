@@ -37,14 +37,14 @@ Estas limitaciones no son suposiciones: cada una está registrada como
 pendiente en la propia evidencia que demuestra el resto del sistema
 (capítulo 8), no inferida por esta memoria.
 
-- **Invitación administrativa por Cognito sin confirmación en buzón.** La
-  entrega de correo de galerías en producción quedó verificada con entrega real
-  en bandeja de entrada (`inbox`) y autenticación criptográfica estricta (SPF,
-  DKIM y DMARC pass en la issue #98). Por separado, la invitación de administradores
-  por Cognito conserva desde la decisión del 2026-10-15 su configuración SES con el
-  dominio propio, declarada en Terraform independientemente del correo de galerías;
-  la confirmación del destinatario administrativo y su primer acceso se gestionan
-  en la issue #105.
+- **Invitaciones administrativas por Cognito verificadas.** La entrega de correo
+  de galerías en producción quedó verificada con entrega real en bandeja de entrada
+  (`inbox`) y autenticación criptográfica estricta (SPF, DKIM y DMARC pass en la
+  issue #98). Por separado, la invitación de administradores por Cognito conserva
+  desde la decisión del 2026-10-15 su configuración SES con el dominio propio,
+  declarada en Terraform independientemente del correo de galerías; el 2026-10-20
+  se confirmó la recepción de la clave temporal y el primer acceso administrativo
+  satisfactorio en producción, cerrando la issue #105.
 - **Migración de colecciones Rekognition heredadas pendiente.** ADR-015 aísla
   colecciones por entorno; las colecciones creadas antes de esa decisión
   (`findly-event-*`, sin sufijo de entorno) no se migran ni se borran

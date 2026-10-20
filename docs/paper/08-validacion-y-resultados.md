@@ -268,7 +268,7 @@ fichero de `docs/evidence/` individual.
 | 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`                                                                | Abierta (análisis, sin decisión)                               |
 | 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                  |
 | 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                        |
-| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Abierta (recepción/primer acceso real sin confirmar)           |
+| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso  |
 | 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                     |
 | 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                 |
 | 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                     |
