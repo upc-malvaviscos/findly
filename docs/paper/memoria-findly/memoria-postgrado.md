@@ -996,30 +996,40 @@ recorrido de una galería privada recibida por correo.
 
 Una continuación natural del proyecto debería, por orden de prioridad:
 
-1. Verificar en un entorno de AWS real y persistente el disparo efectivo del
-   planificador de purga por retención, la alerta real de presupuesto y la
-   recepción de un correo de alerta confirmado, en lugar de validarlos sólo
-   de forma estática.
-2. Completar la aceptación del correo de galerías sobre el despliegue
-   persistente ya publicado: recuperación, feedback y recepción/apertura en
-   dos proveedores distintos. La prueba parcial con un solo buzón conserva
-   ese último requisito abierto y no demuestra un crash original durante
-   el envío ni la cancelación de una petición SES que ya esté en vuelo.
-3. Decidir y documentar formalmente la migración de las colecciones de
+1. **Adopción del patrón _Transactional Outbox_ para resolver las escrituras
+   dobles**: En la arquitectura actual existen dos flujos críticos donde una
+   función sin servidor persiste un cambio en DynamoDB e intenta inmediatamente
+   encolar un mensaje en Amazon SQS: la transición a `ENROLLED` en la
+   indexación de selfies (que debe disparar el proceso de _backfill_ contra las
+   fotos ya existentes del evento) y la solicitud de envío masivo de correos de
+   galería (que crea el registro de operación antes de encolar el trabajo). Si
+   la llamada a SQS falla tras haberse confirmado la escritura en DynamoDB —por
+   un fallo transitorio de red, limitación de tasa o interrupción de la
+   función—, se produce una inconsistencia de escritura doble: la inscripción
+   queda en `ENROLLED` pero el _backfill_ se omite silenciosamente al ser
+   tratado como un esfuerzo secundario (_best-effort_), o la operación de
+   correo queda en estado `RUNNING` delegando su recuperación exclusivamente en
+   que el cliente reintente la petición. La implementación del patrón
+   _Transactional Outbox_ mediante Amazon DynamoDB Streams y Amazon EventBridge
+   Pipes permitiría escribir el evento en la misma transacción atómica de
+   DynamoDB y desacoplar la emisión del mensaje hacia SQS con garantías de
+   entrega _at-least-once_, eliminando estas ventanas de incoherencia sin añadir
+   costes fijos.
+2. Decidir y documentar formalmente la migración de las colecciones de
    reconocimiento facial creadas antes de introducirse el aislamiento por
-   entorno hacia el esquema de nombrado más seguro.
-4. Revisar si el modelo de datos actual, basado en una base de datos no
-   relacional de tabla única, sigue siendo adecuado a medida que el sistema
-   necesite consultas inversas más complejas —por ejemplo, encontrar todas
-   las coincidencias de una fotografía concreta de forma eficiente— o si
-   conviene migrar a una base de datos relacional, decisión que este
-   proyecto deja explícitamente abierta y pendiente de un análisis
-   comparativo medido.
+   entorno hacia el esquema de nombrado más seguro (ADR-015).
+3. Unificar los códigos de respuesta (`404 Not Found` frente a `410 Gone`)
+   entre los puntos de entrada de inscripción pública y carga administrativa de
+   fotos ante eventos cerrados o con retención vencida, resolviendo la
+   discrepancia técnica señalada en las pruebas de aceptación.
+4. Particionar la ejecución del proceso de _backfill_ en múltiples tareas
+   concurrentes controladas cuando el volumen de fotografías previas de un
+   evento supere varios millares de imágenes, evitando que una única función
+   Lambda deba iterar secuencialmente por todas las páginas de fotos.
 5. Fuera del alcance de este trabajo académico y sin planificación prevista
    quedan, de forma deliberada: una revisión legal formal de protección de
-   datos, campañas de marketing por correo o SMS, el
-   escalado a más de un evento concurrente, y la operación en producción
-   con soporte continuo.
+   datos, campañas de marketing por correo o SMS, el escalado a más de un
+   evento concurrente, y la operación en producción con soporte continuo.
 
 # Referencias
 
