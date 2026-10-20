@@ -262,42 +262,41 @@ ninguna de las tres piezas se cierra sin sincronizar las otras dos, aplicada
 como tabla. Se omiten las specs sin evidencia dedicada propia (00, 01, 13, 16, 19) porque su verificación vive en la CI general (capítulo 5), no en un
 fichero de `docs/evidence/` individual.
 
-| Spec | Issue | Evidencia                                                                                             | Estado                                                            |
-| ---- | ----- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                           |
-| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`                                                                | Abierta (análisis, sin decisión)                                  |
-| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                     |
-| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                           |
-| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Abierta (recepción/primer acceso real sin confirmar)              |
-| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                        |
-| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                    |
-| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                        |
-| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                           |
-| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                              |
-| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)            |
-| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                      |
-| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                           |
-| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)              |
-| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)            |
-| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                           |
-| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Abierta (esta memoria; bloqueada por #49/#86/#87/#89)             |
-| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                           |
-| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Abierta (entregabilidad externa en #98)                           |
-| 20   | #98   | `issue-98-ses-production.md`                                                                          | Abierta (correo desplegado; aceptación/entregabilidad pendientes) |
-| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                    |
-| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Abierta (coordina fase 3)                                         |
-| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Abierta (AWS real de los 3 órdenes; #49 propio pendiente)         |
+| Spec | Issue | Evidencia                                                                                             | Estado                                                         |
+| ---- | ----- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                        |
+| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`                                                                | Abierta (análisis, sin decisión)                               |
+| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                  |
+| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                        |
+| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Abierta (recepción/primer acceso real sin confirmar)           |
+| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                     |
+| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                 |
+| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                     |
+| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                        |
+| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                           |
+| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)         |
+| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                   |
+| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                        |
+| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)           |
+| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)         |
+| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                        |
+| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Abierta (esta memoria; bloqueada por #49/#86/#87/#89)          |
+| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                        |
+| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                           |
+| 20   | #98   | `issue-98-ses-production.md`                                                                          | Cerrada tras PR #153 (aceptación y entregabilidad verificadas) |
+| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                 |
+| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados)                        |
+| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Abierta (AWS real de los 3 órdenes; #49 propio pendiente)      |
 
 La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md)
 distingue, issue por issue, qué criterios están respaldados por evidencia
 desplegada y cuáles siguen dependiendo de una suite mock o Floci. De las
-filas anteriores, `#18`, `#49`, `#70`, `#86` y `#98` permanecen abiertas: las
-tres primeras por decisión/coordinación explícita, y `#86`/`#98` porque la
-entrega real de correo (fuera del sandbox SES, DNS/DKIM/SPF/DMARC y
-recepción en buzones autorizados) aún requiere aceptación completa. AWS ya
-concedió acceso de producción SES y se autorizó un buzón para una prueba
-parcial; sigue pendiente el segundo proveedor. El capítulo 9 detalla cada
-limitación vigente.
+filas anteriores, `#18` y `#87` permanecen abiertas: `#18` por coordinación
+general de la memoria del proyecto (bloqueada por la finalización de los últimos
+temas abiertos), y `#87` pendiente de formalizar su issue asociada. Las issues
+coordinadas por la auditoría de #70 (#6, #8, #10, #13, #22 y la propia #70) han
+sido completadas y verificadas con evidencia en AWS real. El capítulo 9 detalla
+cada limitación vigente.
 
 ## Actualización operativa de correo — 2026-10-15
 

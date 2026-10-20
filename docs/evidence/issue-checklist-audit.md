@@ -74,18 +74,25 @@ El gate de cobertura pendiente se limita a líneas de `src/lambdas` y
 `src/shared/lib`; no equivale a cobertura global ni cobertura de ramas.
 No se cerrará #70 ni sus dependencias hasta completar sus criterios.
 
-## Actualización tras la PR #71
+## Actualización tras la PR #71 y cierres posteriores
 
-La matriz anterior conserva el estado del 28 de septiembre en el commit
-auditado. La [PR #71](https://github.com/upc-malvaviscos/findly/pull/71)
-se fusionó después. Su
-[run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
-acreditó inscripción, firma/CORS, matching y redrive, galería y borrado de
-FaceId, purga invocada manualmente, 12 grupos de logs a 14 días y entrega
-DLQ → alarma → SNS → SQS. El destroy eliminó 103 recursos y el estado remoto
-PR71 quedó vacío. Las issues #6, #8 y #47 se cerraron con esa evidencia.
+La matriz inicial conserva el estado del 28 de septiembre en el commit
+auditado. Posteriormente, la [PR #71](https://github.com/upc-malvaviscos/findly/pull/71)
+y los PRs de cierre subsiguientes completaron la verificación en AWS real:
 
-Permanecen abiertos los criterios de Scheduler y TTL real de #10, Budgets y
-correo de #13, y SPA demo publicada de #22/#70. La invocación manual del
-purgador, la recepción SNS → SQS y el navegador contra el stack efímero no
-acreditan esos tres recorridos pendientes.
+1. **Firma/CORS y DLQ/Matching (#6, #8, #45, #46):** Verificados en el
+   [run AWS 36482560393](https://github.com/upc-malvaviscos/findly/actions/runs/36482560393)
+   de la PR #71. Issues #6 y #8 cerradas con destroy limpio de 103 recursos.
+2. **Scheduler y TTL real (#10, #47):** Verificado en AWS real mediante PR #84
+   (run `36991833773`) y robustecido en PR #123 con reintento tras fallo parcial
+   de borrado. Issue #10 cerrada el 2026-10-14.
+3. **Observabilidad y FinOps (#13):** Logs estructurados JSON, retención de 14
+   días y canal de alerta DLQ → CloudWatch Alarm → SNS verificados en AWS real
+   (PR #71 y PR #122). Decisión documentada y aceptada por el responsable respecto
+   al alcance de Budgets. Issue #13 cerrada el 2026-10-14.
+4. **SPA demo y backend real (#22, #15):** Frontend desplegado, autenticación Cognito,
+   inscripción, matching, galería y métricas de error de cliente verificadas en AWS real
+   (PR #92, PR #93, PR #94, PR #95). Issue #22 cerrada el 2026-10-05.
+
+Con todos los criterios y dependencias (#10, #13, #22) verificados y cerrados,
+la auditoría de la issue #70 concluye satisfactoriamente sin relajar criterios.
