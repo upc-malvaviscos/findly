@@ -57,12 +57,17 @@ despliegue manual (#15/#61) — ya se resolvió: #61 se verificó en AWS real
 (PR #83) y #15 publicó y probó una SPA `demo` persistente (PR #92),
 desactivada después por control de coste. Capítulos 08/09 se sincronizaron
 el 2026-10-15 con los cierres reales de #7/#10/#11/#13/#15/#22 y con las
-nuevas issues #88/#98/#105/#107/#125. Lo que sigue pendiente para el cierre
-completo de esta issue es ahora lo registrado en la propia issue #18: las
-issues #49, #86, #87 y #89 siguen abiertas, y su alcance ampliado debe
-reflejarse aquí antes de cerrar. Evidencia:
+nuevas issues #88/#98/#105/#107/#125, y de nuevo el 2026-10-21 con el cierre
+de las cuatro issues que mantenían abierta esta memoria: la decisión
+DynamoDB y su benchmark de fan-out real (issue #49, PR #141), el correo de
+galería (issue #86, PR #142), el matching convergente (issue #87, PR 129 y 139) y la edición/borrado administrativo de eventos y fotos (issue #89, PR
+120, 147 y 148) — además de las issues #70, #98, #105 y #121, cerradas en
+el mismo periodo. Esta sincronización documenta también dos
+hallazgos reales sin corregir que la investigación de la issue #49 dejó
+explícitos (timeout de borrado con alto fan-out y una ventana de carrera en
+`writeMatch`) como trabajo futuro, no como defectos ocultos. Evidencia:
 [`docs/evidence/issue-18-paper-runbook.md`](../docs/evidence/issue-18-paper-runbook.md).
-No se cierra esta issue con esta entrega.
+Esta issue se cierra con esta entrega.
 
 <!-- requirement: REQ-PAPER-RUNBOOK -->
 

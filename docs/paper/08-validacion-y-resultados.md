@@ -178,6 +178,24 @@ sin repetir lo ya acreditado por PR #71:
   Bug de producción (`www.findly.barcelona`): el mensaje de confirmación
   afirmaba que la galería podía abrirse pero el enlace se renderizaba fuera
   del panel de confirmación. PR #126 lo corrigió y lo verificó visualmente.
+- **Auditoría de cierres (issue #70, cerrada).** La PR #154 formalizó la
+  sincronización final de las 7 entregas de la auditoría (matriz, endpoints
+  públicos, firma/CORS, matching/redrive, DELETE/purga, logs/alarmas/FinOps,
+  demo/backend real) y el gate de cobertura, cerrando la propia issue que
+  originó la disciplina de "sin evidencia no hay cierre" de este capítulo.
+- **Invitaciones administrativas por Cognito (issue #105, cerrada).** El
+  2026-10-20 se confirmó la recepción real de la contraseña temporal y el
+  primer acceso administrativo completo en producción
+  (`www.findly.barcelona/admin/login`), incluida la definición de contraseña
+  definitiva conforme a la política del pool. PR #156 sincronizó spec 04 y
+  evidencia.
+- **Subida de fotografías: reintento y deduplicación (issue #121, cerrada).**
+  PR #149-#152 añadieron un `operationId` estable por archivo, reintento
+  selectivo sin mezclar operaciones, reconciliación de respuesta perdida vía
+  `HeadObjectCommand`, un tombstone de borrado que rechaza reutilizar el
+  `operationId` (ADR-024) y E2E Playwright real del reintento. Verificado
+  contra AWS real en el entorno efímero de PR #149/#150 con limpieza
+  automática; 701 pruebas unitarias/integración en verde.
 - **Dominio y correo de producción (issue #98, cerrada).** La SPA y la
   API de producción (`www.findly.barcelona`) están desplegadas y son
   públicas desde el 2026-10-05 (identidad SES, DKIM y MAIL FROM verificados;
@@ -198,6 +216,14 @@ entorno sandbox (`infra/environments/sandbox`, no el root efímero de PR) con
 (117 recursos, estado remoto vacío, 5 colecciones Rekognition borradas
 explícitamente — no las gestiona Terraform). Detalle completo y logs citados
 en
+[`issue-87-matching-convergence.md`](../evidence/issue-87-matching-convergence.md).
+
+**Cerrada el 2026-10-16.** Una segunda ronda de aceptación real (PR #139, el
+mismo día) cubrió los tres criterios que esta ronda inicial dejaba sólo con
+evidencia unitaria: "sin rostro/bajo umbral/otro evento" (tres fotos, cero
+matches), paginación real (26 fotos, 26 matches en dos invocaciones) y
+borrado concurrente durante el matching (cero matches, tanto por `DELETE` en
+curso como por `ttl` caducado). Detalle en
 [`issue-87-matching-convergence.md`](../evidence/issue-87-matching-convergence.md).
 
 Demuestra, contra Rekognition/DynamoDB/SQS reales, los tres órdenes de
@@ -222,13 +248,70 @@ quedó para reintento de SQS mientras el backfill, que corre después de
 no solo en el diseño, que la condición idempotente `attribute_not_exists(PK)`
 de `writeMatch` es la única garantía de convergencia que hace falta.
 
-**Lo que este run no acredita**: "sin rostro / bajo umbral / otro evento",
-paginación con varias páginas reales y borrado _durante_ el matching (no
-solo después) siguen demostrados únicamente por las 626 pruebas unitarias
-del proyecto, no por este run. El benchmark de coste/capacidad que ADR-022
-exige para cerrar la issue #49 tampoco queda satisfecho — este run aporta una
-carrera real documentada, no esas medidas. La issue #87 permanece abierta
-hasta sincronizar este resultado en GitHub.
+**Lo que este run no acredita por sí solo**: "sin rostro / bajo umbral / otro
+evento", paginación con varias páginas reales y borrado _durante_ el
+matching (no solo después) — cubiertos por la segunda ronda (PR #139, nota
+anterior). El benchmark de coste/capacidad que ADR-022 exige para cerrar la
+issue #49 es un entregable independiente (sección siguiente).
+
+## Cierre de issue #49: decisión DynamoDB y benchmark de fan-out
+
+El motor de persistencia y los contratos de acceso ya estaban aprobados
+(ADR-022, 2026-10-12); lo único que mantenía la issue #49 abierta era el
+benchmark sintético de convergencia/fan-out de la sección 7 del
+[análisis de #49](../evidence/issue-49-dynamodb-vs-rds-analysis.md). PR #141
+lo ejecutó contra AWS real (`scripts/deployed-issue-49-fanout-benchmark.mjs`,
+run crudo en
+[`issue-49-fanout-benchmark-run.json`](../evidence/issue-49-fanout-benchmark-run.json)),
+con dos hallazgos reales, no hipotéticos:
+
+- **Timeout real en borrado de alto fan-out.** Con 100 y con 1.000 matches
+  sobre una sola fotografía, `deleteEventPhoto` devolvió `500` real por
+  timeout de Lambda (`delete_photo` tiene 3 s de límite; borra cada
+  match+ítem espejo con `DeleteCommand` individuales dentro de un
+  `Promise.all`, no con `BatchWriteCommand`). Con 100 matches ya quedan
+  ítems huérfanos confirmados en DynamoDB tras el timeout.
+- **Ventana de diseño sin forzar.** Revisión de código confirmó que
+  `writeMatch` (`src/lambdas/lib/matching.ts`) sólo valida el estado de la
+  inscripción (`ENROLLED`, `faceId`, `ttl`, sin `erasureRequestedAt`) — nunca
+  si la fotografía contra la que escribe el match sigue existiendo. La
+  carrera no se forzó instrumentando código de producción en este benchmark,
+  así que queda señalada como riesgo de diseño verificado por revisión, no
+  descartada ni reproducida en vivo.
+
+Ambos hallazgos son operativos (timeout + algoritmo de borrado sin batch, y
+una condición de carrera ausente), no un argumento a favor de un motor
+relacional: una tabla con el mismo patrón ingenuo de borrado individual
+tendría el mismo problema bajo el mismo timeout. La decisión de motor se
+cierra con esto; los dos hallazgos pasan a trabajo futuro (capítulo 9).
+Validación: `npm run verify` completo en verde (687 unitarias), sandbox real
+desplegado y destruido (145 recursos).
+
+## Cierre de issue #89: edición y borrado administrativo de eventos y fotos
+
+PR #120 implementó la spec 23/ADR-023 (edición de evento, listado paginado y
+borrado de fotos, borrado síncrono de evento reutilizando la limpieza
+compartida de `retentionPurger`) y se integró el 2026-10-16 tras liberar un
+lock de Terraform abandonado y recuperar una Lambda huérfana (informe en
+[`2026-10-15-pr-120-recovery.md`](../evidence/2026-10-15-pr-120-recovery.md)).
+Aceptación AWS efímera real con destrucción confirmada en
+[este run](https://github.com/upc-malvaviscos/findly/actions/runs/38891101623).
+El ítem espejo de ADR-022 llegó con esta misma PR, no con la de #49.
+
+PR #147/#148 cerraron los dos criterios restantes contra AWS real:
+retención editada por `PATCH` conserva el `ttl` ya emitido a inscripción y
+foto emparejada, y las operaciones se rechazan de inmediato tras cerrar un
+evento. Este segundo caso encontró una inconsistencia real preexistente,
+ajena al alcance de la issue: `publicEnrollment.ts` devuelve `404` para
+cualquier evento no abierto, mientras `createPhotoUploads` usa `410` en el
+mismo caso — documentada, no corregida (trabajo futuro, capítulo 9).
+
+La issue se cerró dejando explícitamente fuera de su alcance, por decisión
+de la persona responsable: el backfill del ítem espejo para datos anteriores
+a su introducción (diferido por diseño, ADR-023, sin entorno persistente que
+lo necesite), la coordinación de carreras con #86/#87 durante un borrado de
+evento en curso (sin prueba dedicada — la misma ventana de diseño que #49
+señaló), y la inconsistencia `404`/`410` citada arriba.
 
 ## Seguridad y gobierno de datos
 
@@ -265,7 +348,7 @@ fichero de `docs/evidence/` individual.
 | Spec | Issue | Evidencia                                                                                             | Estado                                                         |
 | ---- | ----- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                        |
-| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`                                                                | Abierta (análisis, sin decisión)                               |
+| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`, `issue-49-fanout-benchmark-run.json`                          | Cerrada tras PR #141 (benchmark de fan-out real)               |
 | 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                  |
 | 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                        |
 | 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso  |
@@ -280,23 +363,26 @@ fichero de `docs/evidence/` individual.
 | 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)           |
 | 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)         |
 | 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                        |
-| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Abierta (esta memoria; bloqueada por #49/#86/#87/#89)          |
+| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Cerrada con esta entrega                                       |
 | 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                        |
 | 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                           |
 | 20   | #98   | `issue-98-ses-production.md`                                                                          | Cerrada tras PR #153 (aceptación y entregabilidad verificadas) |
 | 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                 |
-| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados)                        |
-| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Abierta (AWS real de los 3 órdenes; #49 propio pendiente)      |
+| 23   | #89   | `issue-89-admin-event-photo-lifecycle.md`                                                             | Cerrada tras PR #120/#147/#148                                 |
+| 05   | #121  | `issue-121-photo-upload-retry.md`                                                                     | Cerrada tras PR #149-#152                                      |
+| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados; PR #154)               |
+| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Cerrada tras PR #129/#139                                      |
 
 La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md)
 distingue, issue por issue, qué criterios están respaldados por evidencia
-desplegada y cuáles siguen dependiendo de una suite mock o Floci. De las
-filas anteriores, `#18` y `#87` permanecen abiertas: `#18` por coordinación
-general de la memoria del proyecto (bloqueada por la finalización de los últimos
-temas abiertos), y `#87` pendiente de formalizar su issue asociada. Las issues
-coordinadas por la auditoría de #70 (#6, #8, #10, #13, #22 y la propia #70) han
-sido completadas y verificadas con evidencia en AWS real. El capítulo 9 detalla
-cada limitación vigente.
+desplegada y cuáles siguen dependiendo de una suite mock o Floci. Con el
+cierre de `#49`, `#86`, `#87` y `#89`, todas las filas de esta tabla están
+cerradas: `#18` —esta misma memoria— se cierra con esta entrega, al quedar
+reflejado el recorrido ampliado que la mantenía abierta. Ninguna de las
+filas cerradas representa cero riesgo residual: el capítulo 9 documenta dos
+hallazgos reales sin corregir (timeout de borrado con alto fan-out y una
+carrera de diseño sin forzar en `writeMatch`, ambos de la investigación de
+`#49`) junto con el resto de limitaciones vigentes.
 
 ## Actualización operativa de correo — 2026-10-15
 

@@ -254,15 +254,62 @@ No se afirma ningún resultado nuevo sin verificar: cada corrección cita el
 PR o la issue de cierre ya fusionados en `main`, confirmados vía
 `gh issue view`/`gh pr view` antes de editar, no de memoria.
 
+## Actualización final: cierre de #49/#86/#87/#89 y cierre de #18 (2026-10-21)
+
+El bloqueador vigente desde el 2026-10-15 —"#49, #86, #87 y #89 permanecen
+abiertas"— queda resuelto: las cuatro se cerraron entre el 2026-10-16 y el
+2026-10-17, confirmado contra `gh issue view`, no de memoria. En el mismo
+periodo cerraron también #70 (auditoría, PR #154), #98 (correo de producción,
+PR #153), #105 (invitación Cognito confirmada, PR #156) y #121 (reintento de
+subida, PR #149-#152), ninguna de ellas bloqueante de #18 por sí sola pero
+sí incluida en esta sincronización porque el capítulo 8/9 las citaba como
+abiertas.
+
+Cambios de esta entrega:
+
+- `docs/paper/08-validacion-y-resultados.md`: tabla de trazabilidad corregida
+  (`#49` y `#87` de "Abierta" a "Cerrada"; filas nuevas `#89` y `#121`, antes
+  ausentes de la tabla); sección de #87 ampliada con la segunda ronda real
+  (PR #139); dos secciones nuevas, "Cierre de issue #49" y "Cierre de issue
+  #89", que documentan con cita de PR y de run los dos hallazgos reales sin
+  corregir (timeout de borrado con alto fan-out, ventana de carrera en
+  `writeMatch`) y la inconsistencia `404`/`410` encontrada al cerrar #89;
+  bullets nuevos para #70/#105/#121 en "Cierres posteriores verificados en
+  AWS real"; párrafo de cierre de la matriz reescrito.
+- `docs/paper/09-conclusiones-y-trabajo-futuro.md`: "Objetivos alcanzados"
+  añade el recorrido ampliado completo (#87/#49/#89/#86/#105/#70/#121);
+  "Limitaciones verificadas" sustituye el bloqueador externo de #89 (ya
+  resuelto) por los dos hallazgos reales de #49 como limitaciones vigentes, y
+  añade una limitación explícita sobre #98: verificado con un único buzón
+  autorizado, no con los dos proveedores independientes que el cierre de #86
+  dejaba pendientes — no se presenta como si ese segundo proveedor se hubiera
+  probado; "Lecciones de la metodología" cierra la narrativa de la auditoría
+  de #70 con fechas reales de cierre; "Trabajo futuro" reescrita para listar
+  exactamente lo que queda (segundo proveedor de correo, timeout de
+  fan-out, condición de existencia de foto en `writeMatch`, inconsistencia
+  `404`/`410`, migración ADR-015).
+- `specs/17-paper-evidence-adr-and-demo-runbook.md`: "Estado de
+  implementación" actualizado con los cuatro cierres y sus PR, issue marcada
+  para cerrar con esta entrega.
+
+No se afirma ningún resultado nuevo sin verificar: cada corrección cita el PR
+o la issue de cierre ya fusionados en `main`, confirmados vía `gh issue
+view`/`gh pr view` antes de editar, no de memoria. No se corrigen aquí los
+dos hallazgos reales de #49 ni la inconsistencia `404`/`410` de #89: esta
+entrega es documentación de trazabilidad, no una corrección de código, y
+hacerlo sin la decisión de la persona responsable excedería el alcance de
+esta issue.
+
 ## Pendiente
 
-- El cierre completo de #18 exige que #49, #86, #87 y #89 queden resueltas y
-  su alcance ampliado se refleje en esta memoria y en el runbook de
-  demostración — ya no depende de una SPA `demo` publicada (resuelto, #15).
 - La cifra de cobertura global (81,34 % de líneas) se cita explícitamente como
   no sujeta a ningún umbral del 90 %; sólo `src/lambdas` y `src/shared/lib` lo
   están y ambos lo superan.
 - No se abre ADR nuevo: esta entrega es documentación de trazabilidad, no una
   decisión arquitectónica.
+- El timeout de borrado con alto fan-out, la condición de existencia de foto
+  en `writeMatch`, la inconsistencia `404`/`410` y el segundo proveedor de
+  correo de #98 quedan como trabajo futuro (capítulo 9 de la memoria),
+  explícitamente fuera del alcance de esta issue.
 
 <!-- requirement: REQ-PAPER-RUNBOOK -->
