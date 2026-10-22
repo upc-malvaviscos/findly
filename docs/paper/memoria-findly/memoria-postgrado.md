@@ -984,13 +984,17 @@ ha traducido en acciones concretas, no en una declaración de intenciones:
   de prueba se destruye por completo al terminar de usarse.
 
 Dicho esto, esta memoria no presenta el proyecto como una implementación
-cerrada y exenta de limitaciones: varios recorridos quedan verificados
-únicamente de forma estática o en un entorno de prueba efímero, y
-cuestiones como el disparo real del planificador de purga por caducidad, la
-confirmación real de una alerta de presupuesto o la entrega y apertura de
-correos en dos proveedores distintos deben contrastarse con su evidencia
-específica. La publicación HTTPS comprobada no demuestra por sí sola el
-recorrido de una galería privada recibida por correo.
+cerrada y exenta de limitaciones operativas: aunque los recorridos nucleares,
+el disparo del planificador de retención, las alertas de observabilidad y la
+entrega de correo en producción con autenticación criptográfica estricta han
+sido demostrados en AWS real, persisten límites empíricos concretos. Entre
+ellos: la comprobación de entregabilidad se acota a un único buzón corporativo
+autorizado sin contrastar aún proveedores comerciales externos (como Google
+Workspace o Microsoft 365); el borrado de fotografías bajo escenarios de alto
+volumen de coincidencias incurre en límite de tiempo de ejecución al emplear
+borrado secuencial ítem a ítem; y la descarga directa de ficheros desde URLs
+prefirmadas de S3 presenta incidencias de temporización en motores WebKit
+frente al comportamiento validado en Chromium y Firefox.
 
 ## Mejoras para una fase II
 
@@ -1015,18 +1019,34 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    DynamoDB y desacoplar la emisión del mensaje hacia SQS con garantías de
    entrega _at-least-once_, eliminando estas ventanas de incoherencia sin añadir
    costes fijos.
-2. Decidir y documentar formalmente la migración de las colecciones de
-   reconocimiento facial creadas antes de introducirse el aislamiento por
-   entorno hacia el esquema de nombrado más seguro (ADR-015).
-3. Unificar los códigos de respuesta (`404 Not Found` frente a `410 Gone`)
-   entre los puntos de entrada de inscripción pública y carga administrativa de
-   fotos ante eventos cerrados o con retención vencida, resolviendo la
-   discrepancia técnica señalada en las pruebas de aceptación.
-4. Particionar la ejecución del proceso de _backfill_ en múltiples tareas
-   concurrentes controladas cuando el volumen de fotografías previas de un
-   evento supere varios millares de imágenes, evitando que una única función
-   Lambda deba iterar secuencialmente por todas las páginas de fotos.
-5. Fuera del alcance de este trabajo académico y sin planificación prevista
+2. **Optimización del borrado masivo y consistencia ante carreras en DynamoDB**:
+   paginar y procesar en lotes (`BatchWriteItem`) el borrado de coincidencias
+   e ítems espejo al eliminar una fotografía, incrementando el tiempo límite
+   de la función sin servidor para prevenir tiempos de espera agotados bajo
+   alto _fan-out_, e incorporar una precondición en la creación de
+   coincidencias que verifique la persistencia activa de la foto objetivo,
+   impidiendo que ejecuciones desfasadas de _backfill_ revivan coincidencias
+   sobre imágenes ya suprimidas.
+3. **Verificación de entregabilidad multicanal con proveedores externos**:
+   extender la aceptación del servicio de correo transaccional de galerías
+   verificando la llegada efectiva a la bandeja de entrada y la ausencia de
+   desvíos a correo no deseado en cuentas gestionadas por al menos dos
+   proveedores independientes adicionales (Google Workspace y Microsoft 365).
+4. **Unificación de contratos HTTP ante recursos expirados**: armonizar el
+   código de respuesta (`404 Not Found` frente a `410 Gone`) entre los puntos
+   de entrada de inscripción pública y carga administrativa de fotografías ante
+   eventos cerrados o con retención vencida, acordando un criterio semántico
+   único en la especificación de la API.
+5. **Migración formal de colecciones faciales heredadas**: decidir y documentar
+   formalmente en un registro arquitectónico la migración o depuración de las
+   colecciones de reconocimiento facial creadas con anterioridad a la
+   introducción del aislamiento estricto por entorno (ADR-015).
+6. **Particionado concurrente del reprocesamiento de fotografías**: estructurar
+   la ejecución del proceso de _backfill_ en subtareas paralelas coordinadas
+   cuando el volumen previo de imágenes de un evento supere varios miles de
+   fotografías, evitando la iteración estrictamente secuencial sobre páginas de
+   DynamoDB.
+7. Fuera del alcance de este trabajo académico y sin planificación prevista
    quedan, de forma deliberada: una revisión legal formal de protección de
    datos, campañas de marketing por correo o SMS, el escalado a más de un
    evento concurrente, y la operación en producción con soporte continuo.
