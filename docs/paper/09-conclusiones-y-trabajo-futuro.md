@@ -156,7 +156,12 @@ check en verde.
    de los dos es el contrato correcto antes de cambiar ninguno.
 5. Decidir y documentar en un ADR la migración de colecciones Rekognition
    heredadas a nombres aislados por entorno (ADR-015).
-6. Fuera del alcance de este MVP académico, y no planificado: revisión legal
+6. Implementar el patrón _Transactional Outbox_ (mediante DynamoDB Streams y
+   EventBridge Pipes) para desacoplar transaccionalmente la persistencia en
+   DynamoDB de la publicación de mensajes en SQS en la indexación de selfies
+   (disparo de backfill) y en la orden de envío de correos, eliminando ventanas
+   de inconsistencia por fallos transitorios en llamadas encoladas.
+7. Fuera del alcance de este MVP académico, y no planificado: revisión legal
    formal de protección de datos, campañas de marketing por correo o
    SMS a los asistentes, escalado más allá de un evento concurrente y
    operación en producción con soporte 24/7.
