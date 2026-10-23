@@ -79,8 +79,9 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   huérfanos, y pasó la carrera subida/borrado ejercitada. No es una garantía
   general de concurrencia: #166 incorpora la barrera `deletedAt` antes de la
   consulta y revalida ausencia de marca y TTL vigente en la transacción,
-  verificados localmente con unitarias y Floci. Quedan pendientes aceptación AWS
-  y despliegue de ese protocolo, además de los ensayos específicos de borrado de
+  verificados localmente con unitarias y Floci. #168 está integrada y supera el
+  smoke AWS efímero con teardown. Quedan pendientes los ensayos específicos de
+  carreras/TTL en AWS, la publicación permanente y el borrado de
   evento con backfill/correo en curso. El detalle histórico y los runs están en
   [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
 - **WebKit no completa la descarga real contra S3, Chromium y Firefox sí.**
@@ -136,8 +137,9 @@ verde.
 1. Completar la aceptación de correo de #98 con dos proveedores independientes y
    recibos/cabeceras verificables. El único buzón corporativo acreditado no
    satisface por sí solo ese criterio.
-2. Completar la aceptación AWS autorizada y despliegue del protocolo #166,
-   implementado y verificado localmente: barrera previa, ausencia de `deletedAt`,
+2. Completar los ensayos AWS específicos de carreras/TTL y la publicación
+   permanente de #166, integrada por #168 con smoke AWS efímero y teardown:
+   la implementación ya incorpora barrera previa, ausencia de `deletedAt`,
    TTL lógico vigente y espejos conservados hasta borrar matches por página.
    Añadir pruebas dedicadas de borrado de evento con backfill/correo en curso. Los lotes y el timeout de 60 s ya están
    implementados y desplegados.

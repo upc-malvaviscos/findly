@@ -38,8 +38,9 @@ spec consume).
 
 La issue #49 está cerrada tras su benchmark AWS y ADR-022 sigue vigente.
 Esta spec está implementada y #89 cerrada; el protocolo posterior del tombstone
-de #121 frente al matching está implementado localmente en #166, pendiente
-de aceptación AWS específica. No se extrapolan
+de #121 frente al matching está implementado en #166 e integrado por #168,
+con smoke AWS efímero/teardown; queda pendiente la aceptación AWS específica
+de carreras/TTL. No se extrapolan
 las carreras históricas a todos los estados del código actual.
 
 ## Decisiones de diseño (acordadas antes de implementar)
@@ -130,8 +131,9 @@ las carreras históricas a todos los estados del código actual.
   de la Lambda al construir la transacción; no es un reloj servidor DynamoDB.
   Una transacción serializada antes de la barrera queda visible a la consulta
   fuerte; una posterior falla la condición. Ambos triggers comparten esa regla.
-- [#166](https://github.com/upc-malvaviscos/findly/issues/166) implementa este protocolo con pruebas unitarias y Floci. La aceptación
-  AWS específica y el despliegue siguen pendientes; el benchmark histórico
+- [#166](https://github.com/upc-malvaviscos/findly/issues/166) implementa este protocolo con pruebas unitarias y Floci. #168 está integrada
+  y supera el smoke AWS efímero con teardown. La aceptación AWS específica de
+  carreras/TTL y la publicación permanente siguen pendientes; el benchmark histórico
   de #89 no demuestra esta nueva interacción con tombstones. Véase
   [evidencia #166](../docs/evidence/issue-166-photo-matching-barrier.md).
 - No hay transacción conjunta con S3/Rekognition. Una URL PUT emitida antes

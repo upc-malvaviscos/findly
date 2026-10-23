@@ -125,5 +125,7 @@ El marcador de ADR-024 se persiste antes de leer espejos y limpiar matches.
 matching exige foto vigente sin `deletedAt`; el backfill omite marcadores.
 La validación local se documenta en
 [evidencia #166](../docs/evidence/issue-166-photo-matching-barrier.md);
-aceptación AWS y despliegue pendientes. Esta spec y ADR-024 gobiernan reintentos:
+la PR #168 está integrada y su smoke AWS efímero/teardown es correcto. Quedan
+pendientes los ensayos AWS de carreras/TTL y la publicación permanente.
+Esta spec y ADR-024 gobiernan reintentos:
 no existe una spec 24 en el inventario actual del repositorio.

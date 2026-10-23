@@ -47,12 +47,14 @@ Regenerar diagramas: make diagrams (requiere graphviz y el venv de requirements.
 
 # Estado de referencia de esta memoria
 
-Revisión documental: 23 de octubre de 2026. La descripción técnica se contrasta
-con el código de `main` en `7fc0376` y sus pruebas y evidencias del repositorio.
-El responsable confirma que ese código está desplegado; esa confirmación
-operativa no equivale a repetir todos los ensayos históricos en producción. Los
-resultados que siguen identifican sus escenarios y fechas, y no se extrapolan a
-garantías de rendimiento ni a todas las carreras concurrentes.
+Revisión documental: 23 de octubre de 2026, posterior a la integración de la
+corrección de borrado y matching en `main` (`535262b`). El código de esa entrega
+superó las pruebas del entorno AWS efímero y su destrucción. Ese resultado
+acredita el recorrido funcional ejecutado; las carreras deterministas de la
+barrera y del TTL lógico conservan pruebas locales y aceptación AWS específica
+pendiente. La ejecución efímera tampoco acredita un despliegue permanente de
+esta revisión. Los resultados siguientes mantienen sus escenarios y fechas,
+sin extrapolarlos a métricas de carga ni a todas las carreras concurrentes.
 
 # Introducción
 
@@ -574,18 +576,50 @@ ni detalles de implementación al navegador.
 
 ### DynamoDB
 
-El modelo de datos de Findly usa una única tabla de base de datos no relacional,
-con un diseño de tabla única: eventos, inscripciones, fotografías, coincidencias
-y tokens de galería conviven en la misma tabla, diferenciados por el prefijo de
-sus claves de partición y de ordenación. Un índice secundario global permite
-resolver mediante un índice la pregunta "¿a qué inscripción corresponde este
-rostro indexado?" sin tener que recorrer la tabla entera, y un segundo índice
-permite listar los eventos de un organizador ordenados por fecha sin necesidad
-de un recorrido completo tampoco para esa consulta. Ninguna función de la
-aplicación ejecuta un recorrido completo de la tabla: la primera versión de la
-función de purga por retención sí lo hacía, y se corrigió para usar el mismo
-índice de eventos que ya empleaba el listado de administración, filtrando en
-memoria únicamente los eventos cuyo periodo de retención ya ha vencido.
+Findly reúne eventos, inscripciones, fotografías, coincidencias y tokens de
+galería en una única tabla de DynamoDB. Los prefijos de las claves de partición
+y ordenación separan las entidades y permiten consultar cada recorrido por su
+clave, sin recorrer datos ajenos al evento o a la persona participante.
+
+Dos índices secundarios globales resuelven accesos adicionales. El primero
+asocia un `FaceId` de Rekognition con su inscripción. El segundo lista el
+catálogo administrativo de eventos ordenado por fecha; comparte la partición
+`ENTITY#EVENT`, no una partición por organizador. La purga reutiliza ese índice
+para localizar eventos y comprobar su retención, sin ejecutar un `Scan` de la
+tabla completa.
+
+La relación entre participante y fotografía necesita además dos direcciones de
+consulta. La galería parte de una inscripción y busca sus fotos; el borrado
+administrativo parte de una foto y necesita localizar todas las inscripciones
+que la incluyen. Para resolver ese acceso inverso se guarda un **ítem espejo**
+por coincidencia, en la misma tabla y con las claves invertidas para esa
+consulta:
+
+| Registro de la relación | Clave de partición (`PK`)   | Clave de ordenación (`SK`) | Consulta que permite                      |
+| ----------------------- | --------------------------- | -------------------------- | ----------------------------------------- |
+| Coincidencia de galería | `REG#{registrationId}`      | `MATCH#{photoId}`          | Fotografías de una inscripción            |
+| Ítem espejo             | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}`   | Inscripciones vinculadas a una fotografía |
+
+Ambos ítems contienen la misma relación y sus metadatos de coincidencia, no una
+copia de la imagen ni una nueva referencia facial. Se crean juntos mediante una
+transacción de DynamoDB que revalida la inscripción y la foto y rechaza
+coincidencias duplicadas. Así, cualquiera de los dos disparadores de matching
+puede producir el resultado sin dejar sólo una de las dos direcciones escrita.
+
+El espejo se consulta directamente sobre la tabla con lectura fuerte. Se eligió
+frente a un tercer índice secundario global porque el borrado necesita conocer
+las coincidencias confirmadas antes de limpiar, sin depender del retraso de un
+índice de consistencia eventual. La consulta se pagina: evita un recorrido de
+toda la tabla, pero el trabajo sigue creciendo con el número de coincidencias
+de la fotografía. La decisión y sus límites se recogen en ADR-022.
+
+Al borrar una foto, primero se persiste una marca que impide nuevas
+coincidencias. Después se consultan sus espejos y, por cada página, se eliminan
+todos los matches de galería antes de retirar sus claves espejo. Conservar
+estas últimas hasta completar el primer paso permite descubrir el trabajo
+pendiente al reintentar un fallo parcial. Este protocolo y el alcance de su
+validación se distinguen en las conclusiones; la transacción no incluye S3 ni
+Rekognition.
 
 ### Buckets S3 privados y URLs prefirmadas
 
@@ -712,141 +746,60 @@ alcance aprobado del proyecto.
 
 ![Circuito de correo manual y feedback de Findly](img/correo.png){#fig:correo}
 
-La @fig:correo amplía la arquitectura base con el circuito transaccional de
-correo. La solicitud y el estado requieren JWT de Cognito; el worker revalida
-la inscripción y las fotos antes de enviar. El feedback actualiza contadores
-sin volver a crear datos borrados. El diagrama describe el diseño desplegado;
-su recepción y los escenarios de recuperación requieren evidencia aparte.
+El correo prolonga el recorrido de la galería privada: un organizador
+autenticado confirma el envío a participantes vigentes de su evento que
+conservan consentimiento, una dirección válida y fotografías coincidentes
+disponibles. La @fig:correo muestra ese circuito. Cada mensaje es individual y
+transaccional; encontrar una coincidencia no dispara un envío automático ni
+habilita una campaña de correo.
 
-La ampliación de alcance de la especificación 20 permite que un organizador
-autenticado confirme el envío de enlaces de galería a los participantes
-vigentes de su evento que conservan consentimiento, correo válido y fotografías
-coincidentes disponibles. Cada correo es individual y transaccional: no hay
-CC, adjuntos, seguimiento comercial ni envíos automáticos al producirse una
-coincidencia. Una nueva confirmación puede reenviar la galería; repetir la misma
-operación conserva su identificador para recuperar trabajo sin duplicarlo.
+La solicitud administrativa requiere un JWT de Cognito y crea una operación
+identificada de forma estable. DynamoDB conserva su estado y una cola FIFO
+entrega el trabajo a una función de backend que revalida la inscripción y las
+fotografías antes de solicitar el envío a Amazon SES en `eu-west-1`. Repetir la
+misma operación recupera su progreso; una nueva confirmación permite reenviar
+la galería de forma intencionada.
 
-El envío utiliza Amazon SES en eu-west-1 desde funciones de backend, con cola
-FIFO y estados durables en DynamoDB. Las capacidades de galería se generan
-aleatoriamente; sólo persiste su hash y los enlaces previos conservan su
-validez hasta su revocación o caducidad. Rebotes permanentes y quejas se
-procesan mediante SNS/SQS. El resultado distingue aceptación por SES, omisión,
-fallo e incertidumbre: un resultado incierto no se reenvía automáticamente.
-DynamoDB y SES no comparten una transacción; un borrado no puede cancelar una
-petición ya en vuelo. Estas limitaciones están documentadas en ADR-019.
+Cada mensaje contiene un enlace HTTPS con una capacidad de acceso temporal.
+Sólo se conserva el hash de esa capacidad, y los enlaces anteriores mantienen
+su validez hasta caducar o ser revocados. Los rebotes permanentes y las quejas
+regresan mediante SNS y SQS para actualizar el estado sin recrear datos
+borrados. La respuesta distingue aceptación por SES, omisión, fallo e
+incertidumbre: la aceptación del proveedor no confirma la recepción en el
+buzón, y un resultado incierto no se reenvía automáticamente.
 
-El 15 de octubre de 2026 se comprobó en AWS que el acceso de producción SES
-estaba concedido, el envío regional habilitado y la identidad del dominio,
-DKIM y MAIL FROM verificados. SPF y DMARC estaban publicados; la ruta pública
-HTTPS de galería respondía correctamente. El
-[plan OIDC 38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625)
-superó las verificaciones y calculó 36 recursos nuevos, 15 modificaciones y
-cero borrados, sin aplicar cambios. Esto demuestra preparación regional y de
-infraestructura, no recepción ni apertura de un enlace privado.
+El diseño conserva dos límites de coordinación. Guardar el estado en DynamoDB
+y publicar el trabajo en SQS son acciones separadas, cuya evolución se propone
+mediante el patrón Transactional Outbox. Tampoco existe una transacción conjunta
+entre DynamoDB y SES: retirar el consentimiento no puede cancelar una petición
+de correo que ya esté en vuelo. ADR-019 documenta estas condiciones y la
+recuperación prevista.
 
-Después de integrar la [PR #133](https://github.com/upc-malvaviscos/findly/pull/133)
-con los cinco checks obligatorios superados, el
-[plan revisado](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909)
-eliminó el cambio no deseado de remitente de Cognito. El
-[despliegue OIDC de producción](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
-terminó correctamente: 36 recursos creados, 13 modificados y ninguno destruido.
-Quedaron habilitados la interfaz de envío, cuatro Lambdas, colas, feedback y
-alarmas; HTTPS y la ruta pública de galería superaron su gate. La lectura
-posterior de Cognito confirmó que conserva SES. Publicar esta infraestructura
-no demuestra por sí solo entrega ni apertura del correo.
+La validación distingue preparación del dominio, funcionamiento del circuito y
+entrega al destinatario. La identidad regional y los registros SPF, DKIM y DMARC
+se verificaron antes de publicar la infraestructura. La aceptación sintética
+posterior completó nueve escenarios de envío, feedback, idempotencia y
+capacidades de galería, con limpieza de los datos temporales. Las correcciones
+del arnés y del worker forman parte de esa evidencia, sin ampliar los permisos
+de producción.
 
-La validación del despliegue detectó incompatibilidades en el propio arnés:
-la normalización de la URL de API, la comprobación de ausencia de objetos con
-permisos S3 limitados, el sufijo de las fotografías y los parámetros de consulta
-de logs. Las PR #134, #135 y
-[#136](https://github.com/upc-malvaviscos/findly/pull/136) corrigen esos contratos
-sin ampliar permisos de producción. La última revisión supera 651 pruebas
-locales y los cinco checks obligatorios, incluida la creación y destrucción de
-un entorno AWS efímero. Esta evidencia valida las correcciones; la aceptación
-sintética en producción y la recepción real se documentan por separado.
+La prueba real a un buzón corporativo autorizado confirmó llegada a la bandeja
+de entrada, resultados `pass` de SPF, DKIM y DMARC, y apertura del enlace HTTPS
+con carga de la galería privada. El recibo del arnés acreditó ese recorrido y
+su limpieza. Este resultado respalda la entrega a ese destinatario, pero no
+satisface por sí solo el criterio de dos proveedores independientes: la
+verificación multiproveedor continúa pendiente en la issue #98.
 
-La siguiente ejecución alcanzó la operación administrativa, pero el worker
-falló antes de enviar. La inspección posterior confirmó la limpieza de los
-datos sintéticos y capacidades observadas. Se detectaron dos condiciones
-DynamoDB que usaban TTL sin el alias exigido para palabras reservadas; la
-PR #137 incorpora la corrección y una regresión que falla antes del cambio.
-Sus gates locales completan 653 pruebas y sus cinco checks remotos pasan.
-El despliegue OIDC 38808198446 publica la corrección sin altas ni borrados,
-con 17 actualizaciones de artefactos. La aceptación posterior
-[38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703)
-terminó fallida en el escenario de supresión al rechazar la API de SESv2
-las direcciones con caracteres de subaddressing (`+`) y no estar clasificada
-la excepción `BadRequestException` en el arnés, lo que interrumpió la limpieza.
-La [PR #140](https://github.com/upc-malvaviscos/findly/pull/140) corrigió la
-dirección de prueba a `suppression-${runId}@simulator.amazonses.com`, incorporó
-el diagnóstico del error y blindó los contratos del manifiesto con nuevas
-pruebas unitarias antes de su integración en la rama principal.
+La configuración de SES utilizada por Cognito se conserva como una decisión
+independiente del envío de galerías. Las invitaciones administrativas mantienen
+su propio flujo de alta y recuperación, sin almacenar contraseñas temporales
+en la infraestructura. La implementación del envío manual está integrada y la
+issue #86 cerrada; ese cierre no se extiende al pendiente de entregabilidad de la
+issue #98.
 
-Con esa corrección, la repetición sintética en AWS
-([run 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818))
-completó con éxito los nueve escenarios del arnés —entrega normal, rebote,
-queja, supresión de cuenta, fallo en el renderizado de plantilla, idempotencia
-en DynamoDB y emisión de token de galería— y verificó de forma estricta la
-limpieza completa sin dejar recursos residuales en la cuenta.
-
-A continuación, se ejecutó la fase de entrega real a destinatario único
-([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584))
-dirigida al buzón autorizado `info@findly.barcelona`. El mensaje transaccional
-llegó directamente a la bandeja de entrada principal (`inbox`) sin ser desviado
-a correo no deseado (`spam`), satisfaciendo una autenticación criptográfica
-estricta:
-
-- **SPF (Sender Policy Framework)**: resultado `pass`. El dominio de retorno
-  técnico (`bounce.findly.barcelona`), configurado como subdominio MAIL FROM
-  personalizado en Amazon SES, resolvió mediante registro MX a los servidores de
-  correo saliente de AWS (`feedback-smtp.eu-west-1.amazonses.com`) y validó
-  contra la política SPF `v=spf1 include:amazonses.com ~all`, verificando que la
-  dirección IP de origen pertenecía a los rangos autorizados del dominio.
-- **DKIM (DomainKeys Identified Mail)**: resultado `pass` con doble firma
-  criptográfica. Se validó la firma digital con clave RSA de 2048 bits para el
-  dominio organizativo (`d=findly.barcelona`) generada mediante Easy DKIM sobre
-  registros CNAME en el DNS corporativo, junto con la firma complementaria de
-  1024 bits propia del proveedor (`d=amazonses.com`), garantizando la integridad
-  de cabeceras y cuerpo frente a alteraciones en tránsito.
-- **DMARC (Domain-based Message Authentication, Reporting, and Conformance)**:
-  resultado `pass`. Se comprobó la alineación identificadora estricta entre el
-  remitente visible RFC5322 (`From: Findly <info@findly.barcelona>`) y el
-  dominio autenticado por DKIM (`findly.barcelona`), bajo la política declarada
-  en DNS (`p=reject`/`p=quarantine`), impidiendo vectores de suplantación y
-  reforzando la entregabilidad del dominio.
-
-El enlace HTTPS contenido en el correo transportaba la capacidad opaca de
-acceso a la galería (`https://www.findly.barcelona/gallery?token=...`). El
-usuario abrió el enlace en su navegador, confirmando que la aplicación web
-validó el hash SHA-256 en DynamoDB y cargó de forma interactiva la galería
-privada con sus fotografías correspondientes, sin exponer datos biométricos ni
-información de otros participantes. El arnés procesó el recibo de aceptación
-(`FINDLY_EMAIL_ACCEPTANCE_RECEIPT`), concluyó el flujo con éxito y purgó
-ordenadamente los datos temporales.
-
-La configuración existente de Cognito en producción utiliza también SES. El
-responsable decidió conservarla el 15 de octubre: la infraestructura declara
-la identidad regional de la misma cuenta y el remitente acordado, de forma
-independiente a la activación de las galerías. Ante la expiración de la
-invitación de un administrador del equipo, se procedió a su reemisión mediante
-la operación `Cognito AdminCreateUser` con acción `RESEND`, comunicando la nueva
-contraseña temporal por canal seguro en cumplimiento del runbook operativo, sin
-relajar privilegios IAM ni alterar la configuración de Cognito en producción. El
-20 de octubre se confirmó la recepción de la clave temporal por los usuarios y
-su acceso exitoso al sistema en producción, cerrando los criterios de la issue #105.
-
-Esta verificación empírica de extremo a extremo respaldó la implementación del
-envío manual de la especificación 20; la aceptación de dos proveedores
-independientes conserva su propio criterio pendiente en #98. La
-[PR #142](https://github.com/upc-malvaviscos/findly/pull/142) sincronizó la
-documentación formal y evidencias, superó los nueve checks obligatorios de CI
-(incluyendo el entorno efímero de despliegue y destrucción) y se integró en la
-rama principal, cerrando formalmente la issue #86. La issue #49 está cerrada con
-ADR-022 y benchmark AWS. #98 se cerró inicialmente con nueve escenarios de
-resiliencia y recepción real en un buzón corporativo autorizado; esta revisión
-la reabre porque esa evidencia no satisface el criterio de dos proveedores
-independientes. No se publican direcciones de prueba, tokens, enlaces privados,
-credenciales ni datos biométricos reales como evidencia.
+El [anexo de trazabilidad del correo](#anexo-trazabilidad-del-correo) reúne las
+revisiones, ejecuciones y límites de cada evidencia, conservando el detalle
+reproducible fuera del relato arquitectónico.
 
 ## Minimización y retención de datos
 
@@ -1038,9 +991,14 @@ silenciosamente la foto. Por ello, existir en DynamoDB no equivale a ser una
 foto activa. #166 persiste esa barrera antes de consultar espejos y exige
 ausencia de `deletedAt` y TTL lógico vigente en la transacción de matching.
 Borra primero los matches de cada página y luego los espejos para recuperar
-fallos parciales. El protocolo tiene pruebas unitarias y Floci deterministas;
-aceptación AWS específica y despliegue siguen pendientes, igual que las carreras
-de borrado de evento con backfill y correo en curso. El ensayo histórico
+fallos parciales. La corrección está integrada mediante la PR #168. Su entorno
+AWS efímero superó el recorrido funcional estándar, incluido el borrado de una
+foto con coincidencia y el rechazo de la operación de subida ya eliminada, y
+se destruyeron los 147 recursos gestionados por Terraform. Las pausas
+deterministas antes y durante la barrera y los casos dedicados de TTL lógico
+siguen acreditados por unitarias y Floci, con aceptación AWS específica
+pendiente. Tampoco se acredita un despliegue permanente de esta revisión ni las
+carreras de borrado de evento con backfill y correo en curso. El ensayo histórico
 anterior al tombstone no acredita esta nueva combinación concurrente. No se
 afirma que todas las carreras estén resueltas.
 
@@ -1072,12 +1030,13 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    reduciendo estas ventanas de incoherencia. La adopción de Streams/Pipes es
    una propuesta pendiente de ADR y de evaluación de coste y recuperación; el
    consumidor seguiría necesitando idempotencia ante duplicados.
-2. **Coordinación de borrado con trabajo concurrente**: verificar y reforzar la
-   elegibilidad de la foto en `writeMatch` frente a `deletedAt`, porque la
-   precondición existente sólo comprueba que la fila exista. Añadir evidencia
-   dedicada de borrado de evento mientras hay backfill o correo en curso. El
-   borrado por lotes, sus reintentos y el timeout de 60 s ya están implementados
-   y desplegados; no se proponen de nuevo como Fase II.
+2. **Aceptación del borrado con trabajo concurrente**: completar en AWS los
+   ensayos deterministas de la barrera y del TTL lógico de la foto. La
+   revalidación de `deletedAt` y caducidad ya está implementada e integrada;
+   tiene pruebas locales y un recorrido funcional estándar en AWS efímero.
+   Quedan aparte su publicación en un entorno permanente y los ensayos de
+   borrado de evento con backfill o correo en curso. El borrado por lotes,
+   sus reintentos y el timeout de 60 s tampoco son capacidades por implementar.
 3. **Verificación de entregabilidad multiproveedor**:
    extender la aceptación del servicio de correo transaccional de galerías
    verificando la llegada efectiva a la bandeja de entrada y la ausencia de
@@ -1162,3 +1121,28 @@ Una continuación natural del proyecto debería, por orden de prioridad:
 24. Parlamento Europeo y Consejo de la Unión Europea. _Reglamento (UE)
     2016/679 (Reglamento General de Protección de Datos)_.
     <https://eur-lex.europa.eu/eli/reg/2016/679/oj>.
+
+# Anexo: trazabilidad del correo
+
+Esta tabla complementa la sección de envío manual de galerías. Separa las
+revisiones del código, la ejecución del despliegue y la recepción efectiva;
+una validación de infraestructura no se interpreta como entrega al buzón.
+Los identificadores corresponden a los ensayos históricos citados en la
+evidencia del repositorio, no a nuevas ejecuciones de esta revisión documental.
+
+| Hito y referencia                                                                                                                                                                                                                                                         | Resultado observado                                                                                                                                                             | Alcance y límite                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Preparación regional y [plan OIDC 38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625)                                                                                                                                                        | SES de producción habilitado; identidad, DKIM y MAIL FROM verificados; SPF, DMARC y HTTPS disponibles. Plan: 36 altas, 15 modificaciones y cero borrados, sin aplicar.          | Preparación de dominio e infraestructura; no demuestra entrega.                           |
+| Integración [PR #133](https://github.com/upc-malvaviscos/findly/pull/133), [plan revisado 38780832909](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909) y [despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488) | Se conserva el remitente SES de Cognito. Despliegue: 36 altas, 13 modificaciones y cero destrucciones; circuito de correo, feedback, alarmas y HTTPS habilitados.               | Publicación técnica; la recepción se verifica por separado.                               |
+| Correcciones del arnés: [PR #134](https://github.com/upc-malvaviscos/findly/pull/134), [#135](https://github.com/upc-malvaviscos/findly/pull/135) y [#136](https://github.com/upc-malvaviscos/findly/pull/136)                                                            | Ajustes de URL de API, comprobación S3 con permisos limitados, sufijo de foto y consulta de logs. 651 pruebas locales y cinco checks remotos, con ciclo AWS efímero.            | Correcciones de contratos de prueba sin ampliar permisos de producción.                   |
+| Worker: [PR #137](https://github.com/upc-malvaviscos/findly/pull/137) y [despliegue 38808198446](https://github.com/upc-malvaviscos/findly/actions/runs/38808198446)                                                                                                      | Alias de TTL corregido en dos condiciones DynamoDB, con regresión. 653 pruebas locales; despliegue de 17 actualizaciones, sin altas ni borrados.                                | Corrige el fallo previo al envío; no acredita todavía todo el arnés.                      |
+| [Aceptación 38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703) y [corrección PR #140](https://github.com/upc-malvaviscos/findly/pull/140)                                                                                                   | El escenario de supresión falló por subaddressing y clasificación de BadRequestException. Se corrigieron la dirección sintética, el diagnóstico y los contratos del manifiesto. | La ejecución fallida interrumpió la limpieza; no se contabiliza como aceptación completa. |
+| [Aceptación sintética 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)                                                                                                                                                                    | Nueve escenarios del arnés correctos, incluyendo envío, rebote, queja, supresión, fallo de plantilla, idempotencia y token; limpieza estricta confirmada.                       | Servicios AWS reales y destinatarios sintéticos; no sustituye la recepción externa.       |
+| [Entrega real 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)                                                                                                                                                                            | Un buzón corporativo autorizado recibió el mensaje en inbox con SPF/DKIM/DMARC pass; se abrió la galería HTTPS y se purgaron los datos temporales.                              | Evidencia de un destinatario; no demuestra dos proveedores independientes.                |
+| Invitaciones administrativas, [issue #105](https://github.com/upc-malvaviscos/findly/issues/105)                                                                                                                                                                          | Se conserva SES en Cognito; reemisión con AdminCreateUser/RESEND y recepción y acceso confirmados el 20 de octubre de 2026.                                                     | Flujo independiente de galerías; sin publicar contraseñas ni ampliar IAM.                 |
+| Sincronización [PR #142](https://github.com/upc-malvaviscos/findly/pull/142)                                                                                                                                                                                              | Documentación y evidencias integradas con nueve checks correctos; cierre de #86. #98 conserva el pendiente multiproveedor.                                                      | El cierre de implementación no amplía el alcance de la evidencia de recepción.            |
+
+Detalle de contratos y evidencias:
+[ADR-019](../../adr/ADR-019-manual-gallery-email-capabilities.md) y
+[envío manual de galerías](../../evidence/issue-86-gallery-email.md) y
+[configuración y entregabilidad SES](../../evidence/issue-98-ses-production.md).

@@ -667,7 +667,7 @@
     },
     {
       "id": "REQ-PHOTO-MATCHING-BARRIER",
-      "description": "Barrera previa al borrado de foto y condición atómica de tombstone/TTL lógico, probadas localmente; aceptación AWS específica pendiente.",
+      "description": "Barrera de foto integrada por #168: unitarias/Floci deterministas y smoke AWS efímero con teardown; ensayos AWS específicos de carreras/TTL y publicación permanente pendientes.",
       "issues": [166],
       "spec": "specs/23-admin-event-and-photo-lifecycle.md",
       "implementation": [
@@ -700,6 +700,10 @@
         {
           "file": "docs/evidence/issue-166-photo-matching-barrier.md",
           "environment": "floci"
+        },
+        {
+          "file": "docs/evidence/issue-166-photo-matching-barrier.md",
+          "environment": "aws"
         }
       ],
       "documentation": [

@@ -139,8 +139,10 @@ completo en
 
 ## Adenda 2026-10-23: barrera previa a la limpieza (#166)
 
-Protocolo aprobado por la persona responsable el 2026-10-23, implementado
-localmente y pendiente de aceptación AWS y despliegue:
+Protocolo aprobado por la persona responsable el 2026-10-23 e integrado mediante la
+PR #168. Unitarias y Floci cubren las carreras deterministas; el smoke AWS efímero
+y su teardown pasaron. La aceptación AWS específica de carreras/TTL y la
+publicación permanente siguen pendientes:
 
 1. `deleteEventPhoto` confirma `deletedAt = if_not_exists(deletedAt, :deletedAt)`
    antes de consultar los espejos; elimina los campos de foto y conserva TTL.
