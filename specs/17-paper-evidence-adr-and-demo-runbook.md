@@ -75,3 +75,11 @@ Esta issue se cierra con esta entrega.
 Trazabilidad `REQ-PAPER-RUNBOOK`: [#18](https://github.com/upc-malvaviscos/findly/issues/18) · [evidencia](../docs/evidence/issue-18-paper-runbook.md).
 
 Instantánea vigente: [sincronización del 2026-10-23](../docs/evidence/2026-10-23-code-truth-sync.md).
+
+Actualización posterior a #168: la memoria académica explica el ítem espejo en
+la sección DynamoDB y conserva el historial de correo en un anexo de
+trazabilidad, separado del flujo arquitectónico. #168 está integrada y su
+smoke AWS efímero y teardown pasaron (147 recursos Terraform destruidos);
+los ensayos AWS específicos de carreras/TTL y su publicación permanente no se
+presentan como completados. Véase la
+[evidencia de #166](../docs/evidence/issue-166-photo-matching-barrier.md).

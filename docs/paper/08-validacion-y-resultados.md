@@ -1,6 +1,6 @@
 # 8. Validación y resultados
 
-Revisión documental del 23-oct-2026 contra `main` en `7fc0376`. Las cifras de
+Revisión documental del 23-oct-2026 contra `main` en `535262b`, tras #168. Las cifras de
 cobertura, recuentos y duraciones que se citan a continuación pertenecen a los
 runs identificados; no son una nueva ejecución de carga ni aceptación AWS
 realizada durante esta sincronización.
@@ -298,8 +298,10 @@ match/espejo en la carrera subida/borrado ejercitada. Es evidencia de esos
 escenarios, no un percentil ni una garantía general de concurrencia. El código
 posterior de #121 (ADR-024) conserva un tombstone `deletedAt`. #166 añade la
 barrera antes de consultar espejos y la condición atómica sin marca/TTL vigente,
-con regresiones locales deterministas; aceptación AWS y despliegue pendientes
-(capítulo 9). Fuente:
+con regresiones locales deterministas. #168 está integrada y su smoke AWS
+efímero/teardown es correcto; aceptación específica de carreras/TTL y publicación
+permanente pendientes (capítulo 9). Detalle en
+[evidencia de #166](../evidence/issue-166-photo-matching-barrier.md). Fuente:
 [evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
 Validación histórica de la PR #141: `npm run verify` completo en verde (687
 unitarias), sandbox real desplegado y destruido (145 recursos).

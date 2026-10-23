@@ -32,7 +32,8 @@ nueve criterios de aceptación de la issue quedan acreditados con AWS real. El
 benchmark de fan-out de #49 se ejecutó el 2026-10-16 y esa issue está
 cerrada; ver su evidencia. El envío del backfill sigue siendo best-effort,
 sin Transactional Outbox. La protección posterior entre tombstone de foto y matching se implementa
-en #166 con pruebas locales; su aceptación AWS específica sigue pendiente.
+en #166 e integrada por #168, con pruebas locales y smoke AWS efímero/teardown.
+Su aceptación AWS específica de carreras/TTL sigue pendiente.
 
 ## Alineación con AWS Well-Architected Framework
 
@@ -195,5 +196,6 @@ foto posterior a la hora muestreada al construirla. El DELETE marca antes de
 consultar espejos; la limpieza conserva las claves inversas hasta terminar
 los borrados directos por página. Reentregas y ambos triggers se verifican en
 `tests/integration/photoDeletionBarrier.test.ts` con DynamoDB/S3 emulados y
-Rekognition simulado. No son una aceptación AWS nueva. Detalle y límites en
+Rekognition simulado. El smoke AWS estándar de #168 pasó con teardown, pero no
+ejecuta esas pausas ni el TTL lógico dedicado. Detalle y límites en
 [evidencia #166](../docs/evidence/issue-166-photo-matching-barrier.md).

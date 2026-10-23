@@ -201,7 +201,9 @@ reintento de subida reutilice una operación ya borrada.
 transacción y comprueba inscripción elegible y foto existente, sin `deletedAt`
 y con TTL posterior a la hora muestreada al construir la transacción. La
 barrera previa impide nuevas escrituras durante la limpieza. #166 verifica
-el protocolo con unitarias y Floci; aceptación AWS y despliegue pendientes.
+el protocolo con unitarias y Floci. #168 está integrada y supera el smoke AWS
+efímero con teardown; quedan pendientes las carreras/TTL específicos en AWS
+y su publicación permanente.
 No revoca PUT ya emitidos ni cubre purga física del marcador (capítulos 8 y 9).
 
 ### Claves de objeto S3
