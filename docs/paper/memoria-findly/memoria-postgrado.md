@@ -1040,7 +1040,7 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    comprometida. La barrera `deletedAt` y la revalidación de caducidad ya están
    implementadas e integradas, con pruebas locales y un recorrido funcional
    estándar en AWS efímero. Para retomar la validación se propone un arnés con
-   pausas controladas antes y durante el commit, ambos disparadores de matching,
+   pausas controladas antes del commit y durante la limpieza, ambos disparadores de matching,
    TTL vencido con la fila aún presente y recuperación tras fallos parciales.
    La aceptación deberá comprobar matches y espejos, operación estable y
    limpieza de recursos, con datos sintéticos, evidencia reproducible y
