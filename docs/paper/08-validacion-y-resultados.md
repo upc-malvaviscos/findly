@@ -1,5 +1,10 @@
 # 8. Validación y resultados
 
+Revisión documental del 23-oct-2026 contra `main` en `7fc0376`. Las cifras de
+cobertura, recuentos y duraciones que se citan a continuación pertenecen a los
+runs identificados; no son una nueva ejecución de carga ni aceptación AWS
+realizada durante esta sincronización.
+
 Cada afirmación de esta sección enlaza a la evidencia reproducible que la
 respalda. Una suite verde sólo acredita los recorridos que ejecuta:
 `aws-sdk-client-mock`, HTTP interceptado o Floci nunca acreditan AWS real
@@ -131,82 +136,82 @@ para completar este run, está en `docs/runbooks/issue-70-aws-review.md`.
 Varios de los huecos anteriores se cerraron con nueva evidencia desplegada,
 sin repetir lo ya acreditado por PR #71:
 
-- **`EventBridge Scheduler` real (issue #10, cerrada).** PR #84 ejecutó el
-  cron real (no una invocación manual) contra el entorno efímero
-  (run `36991833773`) y confirmó la purga programada. Una entrega posterior
-  (PR #123) añadió el escenario que faltaba — reintento tras un fallo
-  parcial de borrado — y encontró dos fallos reales al ejercerlo por primera
-  vez: un error no capturado en `deleteRegistration.ts` que rompía la
-  observabilidad (corregido con un `catch` que devuelve un 500 formado), y
-  un patrón de filtro de CloudWatch Logs mal formado en el propio script de
-  aceptación. Ambos corregidos y reverificados contra AWS real.
-- **Backend de estado remoto (issue #11/#61, cerradas).** PR #62 (código) y
-  PR #83 (verificación en AWS real, issue #61) confirmaron el bootstrap y la
+- **`EventBridge Scheduler` real (issue #10, cerrada).** PR #84 ejecutó el cron
+  real (no una invocación manual) contra el entorno efímero (run `36991833773`)
+  y confirmó la purga programada. Una entrega posterior (PR #123) añadió el
+  escenario que faltaba — reintento tras un fallo parcial de borrado — y
+  encontró dos fallos reales al ejercerlo por primera vez: un error no capturado
+  en `deleteRegistration.ts` que rompía la observabilidad (corregido con un
+  `catch` que devuelve un 500 formado), y un patrón de filtro de CloudWatch Logs
+  mal formado en el propio script de aceptación. Ambos corregidos y
+  reverificados contra AWS real.
+- **Backend de estado remoto (issue #11/#61, cerradas).** PR #62 (código) y PR
+  #83 (verificación en AWS real, issue #61) confirmaron el bootstrap y la
   migración `moved` sin destruir recursos (sección anterior).
 - **Demo persistente (issue #15, cerrada).** PR #92 publicó y probó una SPA
-  `demo` funcional contra un backend de estado real (run `37151100042`,
-  intento 3), y la borró deliberadamente por control de coste tras
-  demostrarla (run `37157185461`, idempotente sobre datos ya vacíos,
-  backend compartido conservado). **No queda una URL de `demo` activa** —
-  se demostró y se desactivó por diseño, no por un fallo.
-- **Backend web real (issue #22, cerrada).** PR #93/#94 verificaron en AWS
-  real la SPA pública, Cognito, inscripción/`PUT`/CORS, matching, galería y
-  cinco series de métricas de error de cliente, con destrucción posterior
-  comprobada (114 y 111 recursos respectivamente).
-- **Inscripción facial (issue #7, cerrada).** PR #72 y PR #81 acreditaron en
-  AWS real los tres criterios de la spec 06, incluida la política IAM
-  permanente `findly-ephemeral-pr-extensions` que sustituyó los permisos
-  puntuales por número de PR.
-- **Galería: refresco, descarga y enlace compartido (issue #88, cerrada).**
-  PR #127 verificó en AWS real que las URLs de S3 ya emitidas (inline y
-  descarga) siguen funcionando tras el borrado de la inscripción, y que los
-  logs de `gallery-reader`/`delete-registration` no contienen el token ni el
-  `registrationId`. PR #130 verificó, con un navegador real contra S3 real
-  (no Node, no un doble interceptado), la descarga autorizada: Chromium y
-  Firefox descargaron el archivo con el nombre y contenido correctos;
-  WebKit agotó el tiempo de espera del evento de descarga contra S3 real,
-  acotando — no sólo como hipótesis, sino como resultado medido en CI — la
-  limitación ya conocida de Playwright con WebKit más allá de la
-  interceptación de rutas.
-- **Galería: coincidencias tras refresco (issue #107, cerrada).** Una
-  inspección de producción encontró un fallo inicial de indexación
-  recuperado por reentrega SQS, y una regresión real en el frontend: el
-  refresco actualizaba los datos pero no abandonaba el estado `EMPTY`. PR
-  #108 corrigió la transición de estado y añadió un diagnóstico CLI de
-  sólo lectura (`scripts/diagnose-matching.mjs`).
-- **Enlace de galería invisible tras inscripción (issue #125, cerrada).**
-  Bug de producción (`www.findly.barcelona`): el mensaje de confirmación
-  afirmaba que la galería podía abrirse pero el enlace se renderizaba fuera
-  del panel de confirmación. PR #126 lo corrigió y lo verificó visualmente.
+  `demo` funcional contra un backend de estado real (run `37151100042`, intento
+  3), y la borró deliberadamente por control de coste tras demostrarla (run
+  `37157185461`, idempotente sobre datos ya vacíos, backend compartido
+  conservado). **No queda una URL de `demo` activa** — se demostró y se
+  desactivó por diseño, no por un fallo.
+- **Backend web real (issue #22, cerrada).** PR #93/#94 verificaron en AWS real
+  la SPA pública, Cognito, inscripción/`PUT`/CORS, matching, galería y cinco
+  series de métricas de error de cliente, con destrucción posterior comprobada
+  (114 y 111 recursos respectivamente).
+- **Inscripción facial (issue #7, cerrada).** PR #72 y PR #81 acreditaron en AWS
+  real los tres criterios de la spec 06, incluida la política IAM permanente
+  `findly-ephemeral-pr-extensions` que sustituyó los permisos puntuales por
+  número de PR.
+- **Galería: refresco, descarga y enlace compartido (issue #88, cerrada).** PR
+  #127 verificó en AWS real que las URLs de S3 ya emitidas (inline y descarga)
+  siguen funcionando tras el borrado de la inscripción, y que los logs de
+  `gallery-reader`/`delete-registration` no contienen el token ni el
+  `registrationId`. PR #130 verificó, con un navegador real contra S3 real (no
+  Node, no un doble interceptado), la descarga autorizada: Chromium y Firefox
+  descargaron el archivo con el nombre y contenido correctos; WebKit agotó el
+  tiempo de espera del evento de descarga contra S3 real, acotando — no sólo
+  como hipótesis, sino como resultado medido en CI — la limitación ya conocida
+  de Playwright con WebKit más allá de la interceptación de rutas.
+- **Galería: coincidencias tras refresco (issue #107, cerrada).** Una inspección
+  de producción encontró un fallo inicial de indexación recuperado por reentrega
+  SQS, y una regresión real en el frontend: el refresco actualizaba los datos
+  pero no abandonaba el estado `EMPTY`. PR #108 corrigió la transición de estado
+  y añadió un diagnóstico CLI de sólo lectura (`scripts/diagnose-matching.mjs`).
+- **Enlace de galería invisible tras inscripción (issue #125, cerrada).** Bug de
+  producción (`www.findly.barcelona`): el mensaje de confirmación afirmaba que
+  la galería podía abrirse pero el enlace se renderizaba fuera del panel de
+  confirmación. PR #126 lo corrigió y lo verificó visualmente.
 - **Auditoría de cierres (issue #70, cerrada).** La PR #154 formalizó la
   sincronización final de las 7 entregas de la auditoría (matriz, endpoints
   públicos, firma/CORS, matching/redrive, DELETE/purga, logs/alarmas/FinOps,
   demo/backend real) y el gate de cobertura, cerrando la propia issue que
   originó la disciplina de "sin evidencia no hay cierre" de este capítulo.
 - **Invitaciones administrativas por Cognito (issue #105, cerrada).** El
-  2026-10-20 se confirmó la recepción real de la contraseña temporal y el
-  primer acceso administrativo completo en producción
+  2026-10-20 se confirmó la recepción real de la contraseña temporal y el primer
+  acceso administrativo completo en producción
   (`www.findly.barcelona/admin/login`), incluida la definición de contraseña
   definitiva conforme a la política del pool. PR #156 sincronizó spec 04 y
   evidencia.
-- **Subida de fotografías: reintento y deduplicación (issue #121, cerrada).**
-  PR #149-#152 añadieron un `operationId` estable por archivo, reintento
-  selectivo sin mezclar operaciones, reconciliación de respuesta perdida vía
+- **Subida de fotografías: reintento y deduplicación (issue #121, cerrada).** PR
+  #149-#152 añadieron un `operationId` estable por archivo, reintento selectivo
+  sin mezclar operaciones, reconciliación de respuesta perdida vía
   `HeadObjectCommand`, un tombstone de borrado que rechaza reutilizar el
-  `operationId` (ADR-024) y E2E Playwright real del reintento. Verificado
-  contra AWS real en el entorno efímero de PR #149/#150 con limpieza
-  automática; 701 pruebas unitarias/integración en verde.
-- **Dominio y correo de producción (issue #98, cerrada).** La SPA y la
-  API de producción (`www.findly.barcelona`) están desplegadas y son
-  públicas desde el 2026-10-05 (identidad SES, DKIM y MAIL FROM verificados;
-  certificado ACM emitido). El 2026-10-15 AWS confirmó acceso de producción
-  concedido y envío regional habilitado. Después de revisar el plan, el
+  `operationId` (ADR-024) y E2E Playwright real del reintento. Verificado contra
+  AWS real en el entorno efímero de PR #149/#150 con limpieza automática; 701
+  pruebas unitarias/integración en verde.
+- **Dominio y correo de producción (issue #98, reabierta por evidencia
+  multiproveedor pendiente).** La SPA y la API de producción
+  (`www.findly.barcelona`) están desplegadas y son públicas desde el 2026-10-05
+  (identidad SES, DKIM y MAIL FROM verificados; certificado ACM emitido). El
+  2026-10-15 AWS confirmó acceso de producción concedido y envío regional
+  habilitado. Después de revisar el plan, el
   [despliegue OIDC 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488)
   habilitó el correo: 36 recursos creados, 13 modificados y cero destruidos,
   conservando Cognito con SES. La aceptación sintética (run 38950320818) superó
-  los 9 escenarios de resiliencia y la prueba en buzón autorizado (run 38955016584)
-  acreditó la entrega transaccional en `info@findly.barcelona` con SPF, DKIM y DMARC pass,
-  apertura interactiva de la galería y limpieza completa, cerrando la issue.
+  los 9 escenarios de resiliencia y la prueba en buzón autorizado
+  (run 38955016584) acreditó la entrega transaccional en `info@findly.barcelona`
+  con SPF, DKIM y DMARC pass, apertura interactiva de la galería y limpieza
+  completa, cerrando la issue.
 
 ## Aceptación desplegada issue #87: matching convergente tras subir selfies o fotos
 
@@ -242,11 +247,12 @@ subida de la issue #87:
 Un hallazgo real no anticipado en la spec: en los dos últimos escenarios, el
 disparo S3 normal falló su primer intento (`ResourceNotFoundException` en
 `IndexFaces`) porque la colección Rekognition del evento todavía no existía
-—solo `selfieIndexer` la crea, de forma perezosa, en la primera selfie—;
-quedó para reintento de SQS mientras el backfill, que corre después de
-`ENROLLED`, sí la encontró creada y matcheó con éxito. Confirma en AWS real,
-no solo en el diseño, que la condición idempotente `attribute_not_exists(PK)`
-de `writeMatch` es la única garantía de convergencia que hace falta.
+—solo `selfieIndexer` la crea, de forma perezosa, en la primera selfie—; quedó
+para reintento de SQS mientras el backfill, que corre después de `ENROLLED`, sí
+la encontró creada y matcheó con éxito. Confirma en ese escenario que la
+condición idempotente `attribute_not_exists(PK)` evita matches duplicados. No
+demuestra por sí sola todas las garantías de entrega del backfill ni de borrado
+concurrente.
 
 **Lo que este run no acredita por sí solo**: "sin rostro / bajo umbral / otro
 evento", paginación con varias páginas reales y borrado _durante_ el
@@ -265,27 +271,37 @@ run crudo en
 [`issue-49-fanout-benchmark-run.json`](../evidence/issue-49-fanout-benchmark-run.json)),
 con dos hallazgos reales, no hipotéticos:
 
-- **Timeout real en borrado de alto fan-out.** Con 100 y con 1.000 matches
-  sobre una sola fotografía, `deleteEventPhoto` devolvió `500` real por
-  timeout de Lambda (`delete_photo` tiene 3 s de límite; borra cada
-  match+ítem espejo con `DeleteCommand` individuales dentro de un
-  `Promise.all`, no con `BatchWriteCommand`). Con 100 matches ya quedan
-  ítems huérfanos confirmados en DynamoDB tras el timeout.
-- **Ventana de diseño sin forzar.** Revisión de código confirmó que
-  `writeMatch` (`src/lambdas/lib/matching.ts`) sólo valida el estado de la
-  inscripción (`ENROLLED`, `faceId`, `ttl`, sin `erasureRequestedAt`) — nunca
-  si la fotografía contra la que escribe el match sigue existiendo. La
-  carrera no se forzó instrumentando código de producción en este benchmark,
-  así que queda señalada como riesgo de diseño verificado por revisión, no
-  descartada ni reproducida en vivo.
+- **Timeout real en borrado de alto fan-out.** Con 100 y con 1.000 matches sobre
+  una sola fotografía, `deleteEventPhoto` devolvió `500` real por timeout de
+  Lambda (la versión ensayada daba a `delete_photo` 3 s y borraba cada
+  match+ítem espejo con `DeleteCommand` individuales dentro de un `Promise.all`,
+  no con `BatchWriteCommand`). Con 100 matches ya quedan ítems huérfanos
+  confirmados en DynamoDB tras el timeout.
+- **Ventana de diseño sin forzar.** Revisión de código confirmó que `writeMatch`
+  de aquella versión (`src/lambdas/lib/matching.ts`) sólo validaba el estado de
+  la inscripción (`ENROLLED`, `faceId`, `ttl`, sin `erasureRequestedAt`) — nunca
+  si la fotografía contra la que escribe el match sigue existiendo. La carrera
+  no se forzó instrumentando código de producción en este benchmark, así que
+  queda señalada como riesgo de diseño verificado por revisión, no descartada ni
+  reproducida en vivo.
 
-Ambos hallazgos son operativos (timeout + algoritmo de borrado sin batch, y
-una condición de carrera ausente), no un argumento a favor de un motor
-relacional: una tabla con el mismo patrón ingenuo de borrado individual
-tendría el mismo problema bajo el mismo timeout. La decisión de motor se
-cierra con esto; los dos hallazgos pasan a trabajo futuro (capítulo 9).
-Validación: `npm run verify` completo en verde (687 unitarias), sandbox real
-desplegado y destruido (145 recursos).
+Ambos hallazgos son operativos (timeout + algoritmo de borrado sin batch, y una
+condición de carrera ausente), no un argumento a favor de un motor relacional:
+una tabla con el mismo patrón ingenuo de borrado individual tendría el mismo
+problema bajo el mismo timeout. La decisión de motor se cerró con esto.
+**Correcciones posteriores ya implementadas** (PR #143/#144, 16-oct-2026):
+`delete_photo` pasa a 60 s; el borrado usa `BatchWriteCommand` de hasta 25 ítems
+con reintento de `UnprocessedItems`; `writeMatch` exige `attribute_exists(PK)`
+sobre la foto en la transacción. La aceptación combinada devolvió `204` en 2.020
+ms con 100 matches y 3.082 ms con 1.000, sin huérfanos; tampoco sobrevivieron
+match/espejo en la carrera subida/borrado ejercitada. Es evidencia de esos
+escenarios, no un percentil ni una garantía general de concurrencia. El código
+posterior de #121 (ADR-024) conserva un tombstone `deletedAt`: como `writeMatch`
+sólo comprueba existencia, esa combinación sigue requiriendo protección y
+validación específica (capítulo 9). Fuente:
+[evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
+Validación histórica de la PR #141: `npm run verify` completo en verde (687
+unitarias), sandbox real desplegado y destruido (145 recursos).
 
 ## Cierre de issue #89: edición y borrado administrativo de eventos y fotos
 
@@ -306,12 +322,12 @@ ajena al alcance de la issue: `publicEnrollment.ts` devuelve `404` para
 cualquier evento no abierto, mientras `createPhotoUploads` usa `410` en el
 mismo caso — documentada, no corregida (trabajo futuro, capítulo 9).
 
-La issue se cerró dejando explícitamente fuera de su alcance, por decisión
-de la persona responsable: el backfill del ítem espejo para datos anteriores
-a su introducción (diferido por diseño, ADR-023, sin entorno persistente que
-lo necesite), la coordinación de carreras con #86/#87 durante un borrado de
-evento en curso (sin prueba dedicada — la misma ventana de diseño que #49
-señaló), y la inconsistencia `404`/`410` citada arriba.
+La issue se cerró dejando explícitamente fuera de su alcance, por decisión de la
+persona responsable: el backfill del ítem espejo para datos anteriores a su
+introducción (diferido por diseño, ADR-023, sin entorno persistente que lo
+necesite), la coordinación de carreras con #86/#87 durante un borrado de evento
+en curso (sin prueba dedicada; distinto del caso de borrado de foto ejercitado y
+corregido por #143/#144), y la inconsistencia `404`/`410` citada arriba.
 
 ## Seguridad y gobierno de datos
 
@@ -345,44 +361,45 @@ ninguna de las tres piezas se cierra sin sincronizar las otras dos, aplicada
 como tabla. Se omiten las specs sin evidencia dedicada propia (00, 01, 13, 16, 19) porque su verificación vive en la CI general (capítulo 5), no en un
 fichero de `docs/evidence/` individual.
 
-| Spec | Issue | Evidencia                                                                                             | Estado                                                         |
-| ---- | ----- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                        |
-| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`, `issue-49-fanout-benchmark-run.json`                          | Cerrada tras PR #141 (benchmark de fan-out real)               |
-| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                  |
-| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                        |
-| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso  |
-| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                     |
-| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                 |
-| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                     |
-| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                        |
-| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                           |
-| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)         |
-| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                   |
-| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                        |
-| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)           |
-| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)         |
-| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                        |
-| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Cerrada con esta entrega                                       |
-| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                        |
-| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                           |
-| 20   | #98   | `issue-98-ses-production.md`                                                                          | Cerrada tras PR #153 (aceptación y entregabilidad verificadas) |
-| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                 |
-| 23   | #89   | `issue-89-admin-event-photo-lifecycle.md`                                                             | Cerrada tras PR #120/#147/#148                                 |
-| 05   | #121  | `issue-121-photo-upload-retry.md`                                                                     | Cerrada tras PR #149-#152                                      |
-| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados; PR #154)               |
-| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Cerrada tras PR #129/#139                                      |
+| Spec | Issue | Evidencia                                                                                             | Estado                                                             |
+| ---- | ----- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                            |
+| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`, `issue-49-fanout-benchmark-run.json`                          | Cerrada tras PR #141 (benchmark de fan-out real)                   |
+| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                      |
+| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                            |
+| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso      |
+| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                         |
+| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                     |
+| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                         |
+| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                            |
+| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                               |
+| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)             |
+| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                       |
+| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                            |
+| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)               |
+| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)             |
+| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                            |
+| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Cerrada con esta entrega                                           |
+| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                            |
+| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                               |
+| 20   | #98   | `issue-98-ses-production.md`                                                                          | Reabierta: falta evidencia de dos proveedores; un buzón verificado |
+| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                     |
+| 23   | #89   | `issue-89-admin-event-photo-lifecycle.md`                                                             | Cerrada tras PR #120/#147/#148                                     |
+| 05   | #121  | `issue-121-photo-upload-retry.md`                                                                     | Cerrada tras PR #149-#152                                          |
+| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados; PR #154)                   |
+| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Cerrada tras PR #129/#139                                          |
 
-La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md)
-distingue, issue por issue, qué criterios están respaldados por evidencia
-desplegada y cuáles siguen dependiendo de una suite mock o Floci. Con el
-cierre de `#49`, `#86`, `#87` y `#89`, todas las filas de esta tabla están
-cerradas: `#18` —esta misma memoria— se cierra con esta entrega, al quedar
-reflejado el recorrido ampliado que la mantenía abierta. Ninguna de las
-filas cerradas representa cero riesgo residual: el capítulo 9 documenta dos
-hallazgos reales sin corregir (timeout de borrado con alto fan-out y una
-carrera de diseño sin forzar en `writeMatch`, ambos de la investigación de
-`#49`) junto con el resto de limitaciones vigentes.
+La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md) distingue,
+issue por issue, qué criterios están respaldados por evidencia desplegada y
+cuáles siguen dependiendo de una suite mock o Floci. Con el cierre de `#49`,
+`#86`, `#87` y `#89`, la entrega académica de #18 quedó cerrada, al reflejar el
+recorrido ampliado que la mantenía abierta. La revisión actual conserva los
+cierres respaldados y reabre #98 por el criterio de dos proveedores no
+acreditado. Ninguna de las filas cerradas representa cero riesgo residual. Los
+dos hallazgos originales de #49 ya están corregidos; el capítulo 9 describe los
+límites actuales, incluidos tombstones/TTL de foto, doble escritura DynamoDB/SQS
+y cobertura de entregabilidad pendiente. #98 se reabre para completar esa
+evidencia sin redefinir el criterio de dos proveedores.
 
 ## Actualización operativa de correo — 2026-10-15
 
@@ -418,6 +435,8 @@ clasificación de spam, autenticación criptográfica estricta (SPF pass en
 `bounce.findly.barcelona`, DKIM pass con firmas de 2048 y 1024 bits, y DMARC
 pass alineado), y la apertura y visualización interactiva de la galería privada
 por el participante. La sincronización formal en la PR #142 cerró la issue #86;
-la issue #98 completa y cierra su verificación con la evidencia sintética y de
-entrega transaccional en producción, y la issue #49 quedó cerrada mediante el
-benchmark de la PR #141.
+la issue #98 se cerró entonces con la evidencia sintética y de entrega
+transaccional en un buzón. El 23-oct-2026 se reabre por falta de evidencia del
+criterio de dos proveedores; esa reapertura no invalida los nueve escenarios
+ni el recibo ya acreditado. La issue #49 permanece cerrada con ADR-022 y el
+benchmark de la PR #141, completado por las correcciones de #143/#144.

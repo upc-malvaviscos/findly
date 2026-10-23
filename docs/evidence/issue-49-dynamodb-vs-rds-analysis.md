@@ -2,6 +2,20 @@
 
 <!-- requirement: REQ-DATABASE-DECISION-INVENTORY -->
 
+## Síntesis vigente — 2026-10-23
+
+Las issues #49 y #89 están cerradas. Los apartados 1–10 conservan la investigación y
+los resultados de su fecha; los `500` y las tareas propuestas no describen
+el código actual `7fc0376`. PR #143/#144 corrigieron timeout/lotes y
+comprobación de existencia, con aceptación AWS histórica; PR #146/#147/#148
+completaron la entrega administrativa. El responsable confirma que el código
+actual está desplegado. No se ha ejecutado AWS nuevo en esta auditoría.
+
+El tombstone posterior de #121 conserva PK; `attribute_exists(PK)` no verifica
+`deletedAt` ni el TTL lógico. Ese riesgo se sigue en
+[#166](https://github.com/upc-malvaviscos/findly/issues/166), separado de la
+decisión de conservar DynamoDB. Detalle y límites en la [auditoría del 2026-10-23](2026-10-23-code-truth-sync.md).
+
 Estado: **motor de persistencia y contratos de acceso decididos (ADR-022,
 2026-10-12); #87 y el ítem espejo de #89 ya están implementados; el
 benchmark de convergencia/fan-out que mantenía #49 abierta (sección 9) ya

@@ -16,10 +16,10 @@ Congelar el alcance del MVP, establecer la arquitectura de registro de decisione
 
 - **Web Pública y Registro**: Interfaz React + Vite estática servida desde S3 + CloudFront para captura de selfies y registro público.
 - **Panel de Administración**: Autenticación mediante AWS Cognito User Pools para organizadores y subida masiva de fotos.
-- **Motor de Matching Facial**: Procesamiento asíncrono serverless utilizando AWS Rekognition (`IndexFaces` y `SearchFacesByImage`) desacoplado mediante Amazon SQS.
+- **Motor de Matching Facial**: Procesamiento asíncrono serverless utilizando AWS Rekognition (`IndexFaces`, `SearchFaces` y `DeleteFaces`) desacoplado mediante Amazon SQS.
 - **Galería Privada**: Entrega de galerías individuales accesibles mediante tokens temporales y URLs prefirmadas de Amazon S3 (`GET`).
 - **Cumplimiento GDPR**: Consentimiento explícito, minimización biométrica, TTL en DynamoDB, S3 Lifecycle y purga automatizada mediante EventBridge Scheduler.
-- **Infraestructura como Código**: Terraform para aprovisionamiento reproducible con arquitectura Serverless de coste fijo cero.
+- **Infraestructura como Código**: Terraform para aprovisionamiento reproducible con arquitectura serverless sin instancias de coste fijo; consumo y configuración medidos por entorno.
 
 ### Exclusiones Explícitas (Out of Scope)
 
@@ -65,7 +65,7 @@ Se exige registrar los siguientes ADRs en `docs/adr/`:
 
 ## Errores Comunes a Evitar (Pitfalls)
 
-- ❌ **ERROR**: Intentar añadir funcionalidades adicionales fuera del alcance (ej. servidor Express, correo con SES, o soporte multirregión).
+- ❌ **ERROR**: Intentar añadir funcionalidades adicionales fuera del alcance (ej. servidor Express, campañas de correo o soporte multirregión; el envío manual de galerías con SES sí está aprobado por la spec 20).
   - _Solución_: Mantiene el alcance estrictamente acotado al MVP serverless definido.
 
 ## Lista de Verificación Pre-PR (Junior Checklist)

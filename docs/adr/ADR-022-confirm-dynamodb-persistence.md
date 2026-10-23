@@ -3,12 +3,11 @@
 ## Estado y alcance
 
 Aceptado por la persona responsable el 2026-10-12 para la issue #49, en el
-contexto de #87 y #89. **#49 sigue abierta**: este ADR fija el motor de
-persistencia y los dos contratos de acceso pendientes, pero no sustituye el
-benchmark sintético de convergencia/fan-out de #87 (sección 7 del
+contexto de #87 y #89. **#49 está cerrada**: el benchmark sintético
+de convergencia/fan-out se ejecutó el 2026-10-16 (sección 7 del
 [análisis de evidencia](../evidence/issue-49-dynamodb-vs-rds-analysis.md)).
-La issue #49 se cierra únicamente cuando ese benchmark exista y esté
-documentado. No autoriza implementar #87/#89, migrar datos, aplicar Terraform
+Las issues #87/#89 están implementadas; las secciones de decisión conservan el contexto
+de aprobación original. La revisión del 2026-10-23 contrasta el código `7fc0376`. No autoriza implementar #87/#89, migrar datos, aplicar Terraform
 ni ejecutar AWS nuevo. ADR-002 queda confirmado, no sustituido.
 
 ## Decisión: DynamoDB para todo el backlog abierto
@@ -56,8 +55,8 @@ benchmark real pudiera invalidarla con esta forma de carga.
 
 Esto no resuelve por sí solo la incertidumbre de fan-out/convergencia que la
 issue #87 introduce sobre el modelo actual: esa incertidumbre es sobre el
-**diseño** dentro de DynamoDB, no sobre la elección DynamoDB-vs-RDS, y se
-resuelve con el contrato de la siguiente sección más el benchmark pendiente.
+**diseño** dentro de DynamoDB, no sobre la elección DynamoDB-vs-RDS, y
+se resolvió con el contrato de la siguiente sección y el benchmark documentado.
 
 ## Contrato de acceso inverso foto→match (#89)
 
@@ -67,7 +66,7 @@ match original:
 - `PK = PHOTO#{eventId}#{photoId}`, `SK = MATCH#{registrationId}`.
 - Mismos atributos que el match (`similarity`, `matchedAt`, `ttl`); sin
   duplicar datos sensibles adicionales.
-- `writeMatch` (hoy en `photoMatcher.ts`) añade este `Put` al mismo
+- `writeMatch` (actualmente en `src/lambdas/lib/matching.ts`) añade este `Put` al mismo
   `TransactWriteCommand` que ya escribe `REG#id/MATCH#photoId`; ambos items se
   crean o ninguno, preservando la idempotencia existente
   (`ConditionExpression: 'attribute_not_exists(PK)'`).
@@ -139,11 +138,24 @@ aplicada: el match y su ítem espejo ya no sobreviven (antes sí) — ver
 
 ## Qué no decide este ADR
 
-- No implementa #87 ni #89; fija su contrato de acceso para que su
-  implementación no tenga que repetir esta decisión.
-- No cierra #49: el benchmark sintético de convergencia/fan-out (sección 7 del
-  análisis de evidencia) sigue pendiente de ejecutarse y documentarse antes de
-  cerrar esa issue.
+- La decisión original fijó el contrato de #87/#89; su implementación y
+  aceptación posterior están trazadas en sus evidencias.
+- El cierre de #49 incorpora el benchmark documentado en la sección 7 del
+  análisis de evidencia; no representa una migración a RDS.
 - No autoriza AWS nuevo, Terraform ni cambios de IAM.
 - No afecta a #98/SES ni a la decisión de #86, que ya usa DynamoDB bajo
   ADR-019.
+
+## Límite actual tras ADR-024 — 2026-10-23
+
+La adenda del 2026-10-16 verificó ausencia **física** de la fila Photo.
+`attribute_exists(PK)` no evalúa expiración lógica: una fila con TTL vencido
+puede seguir existiendo hasta la eliminación eventual de DynamoDB. Además,
+la issue #121/ADR-024 cambió el borrado administrativo para conservar un tombstone con
+`deletedAt`; ese marcador conserva PK y satisface la condición actual.
+La galería omite fotos sin `s3Key`, pero esa protección no impide por sí misma
+escribir nuevos matches/espejos. El protocolo temporal entre la barrera y la
+consulta/limpieza inversa requiere revisión, no solo una condición adicional
+al final del DELETE. Riesgo trazado por código en
+[#166](https://github.com/upc-malvaviscos/findly/issues/166); no reproducido en
+AWS en esta auditoría. No se adopta aquí una decisión funcional nueva.

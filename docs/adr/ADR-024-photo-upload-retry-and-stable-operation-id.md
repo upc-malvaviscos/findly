@@ -85,8 +85,8 @@ crear una foto nueva.
 `fileName` eliminados) en vez de borrar la fila por completo, siguiendo el
 mismo patrón que el locator durable de selfies (ADR-014/ADR-013). Un
 `operationId` reutilizado contra una foto borrada se rechaza
-(`PHOTO_DELETED`) en vez de resucitarla silenciosamente. El tombstone no
-lleva TTL propio: se purga junto con el resto de la partición del evento
+(`PHOTO_DELETED`) en vez de resucitarla silenciosamente. El borrado no asigna TTL nuevo: conserva el TTL existente, si lo había,
+y el marcador también se purga junto con el resto de la partición del evento
 (`EVENT#{eventId}`) cuando el evento se elimina, igual que cualquier otro
 ítem de esa partición. `listEventPhotos` excluye los tombstones del listado
 (`FilterExpression: attribute_not_exists(deletedAt)`).

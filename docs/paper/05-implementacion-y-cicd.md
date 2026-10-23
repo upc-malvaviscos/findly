@@ -1,26 +1,30 @@
 # 5. Implementación y CI/CD
 
-La preparación de producción de #98 incorpora el workflow manual compartido
-de ADR-020: identidad SES y certificado de `www.findly.barcelona` en estados
+La preparación de producción de #98 incorpora el workflow manual compartido de
+ADR-020: identidad SES y certificado de `www.findly.barcelona` en estados
 independientes, rol OIDC limitado y environment production restringido a main.
-Este bootstrap no equivale al despliegue del stack ni a entregabilidad real;
-los resultados y pendientes constan en la evidencia de #98. La publicación
-de producción se separó del correo por autorización del 2026-10-05: la SPA y
-el backend pueden publicarse con envío deshabilitado; su activación explícita
+Este bootstrap no equivale al despliegue del stack ni a entregabilidad real; los
+resultados y pendientes constan en la evidencia de #98. La publicación de
+producción se separó del correo por autorización del 2026-10-05: la SPA y el
+backend pueden publicarse con envío deshabilitado; su activación explícita
 conserva los controles SES. El despliegue OIDC 38781070488 del 2026-10-15
 habilitó el módulo de correo y publicó la SPA tras revisar un plan sin cambios
 de Cognito ni borrados. HTTPS y `/gallery` pasan; el detalle de aceptación se
-registra por separado en [la evidencia de #98](../evidence/issue-98-ses-production.md).
-Su rol de despliegue exige un límite de permisos en los roles de ejecución,
-separado de las políticas específicas de cada función. Los gates previos
-comprueban correo autenticado, acceso regional SES y certificado; el smoke
-HTTPS posterior es sólo una comprobación del origen y la ruta pública.
-La aceptación de correo usa un workflow independiente con manifiesto privado,
-permisos del operador OIDC limitados a seis horas, sesiones STS de una hora y
-limpieza de fixtures propias. Las pruebas locales
-validan su coordinación; feedback AWS y recepción/apertura siguen pendientes.
-La fase explícita `single-recipient` permite una verificación parcial con un
-solo buzón autorizado; la aceptación completa conserva dos proveedores.
+registra por separado en
+[la evidencia de #98](../evidence/issue-98-ses-production.md). Su rol de
+despliegue exige un límite de permisos en los roles de ejecución, separado de
+las políticas específicas de cada función. Los gates previos comprueban correo
+autenticado, acceso regional SES y certificado; el smoke HTTPS posterior es sólo
+una comprobación del origen y la ruta pública. La aceptación de correo usa un
+workflow independiente con manifiesto privado, permisos del operador OIDC
+limitados a seis horas, sesiones STS de una hora y limpieza de fixtures propias.
+Las pruebas locales validan su coordinación. En AWS, el run `38950320818` pasó
+los nueve escenarios de resiliencia/feedback y el run `38955016584` verificó
+recepción, apertura e identificación SPF/DKIM/DMARC en un buzón corporativo
+autorizado. La fase `single-recipient` es evidencia parcial: falta el segundo
+proveedor independiente para completar el criterio de #98, reabierta en esta
+revisión. No se presenta el envío aceptado por SES como prueba suficiente de
+llegada.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la
@@ -78,18 +82,18 @@ tabla DynamoDB adicional gestiona el lock.
 
 ### `ci.yml` — validación estática en cada PR y en cada push a `main`
 
-Cuatro jobs en **paralelo**, sin AWS: `frontend` (lint, tipos, 331 tests con
-cobertura, build, sube `dist/` y el informe de cobertura como artefactos);
+Cuatro jobs en **paralelo**, sin AWS: `frontend` (lint, tipos, suite unitaria
+con cobertura, build, sube `dist/` y el informe de cobertura como artefactos);
 `terraform` (`actionlint`, `terraform fmt -check`, `terraform validate`,
 `tflint`); `security-and-sync` (Markdown, `npm audit` de dependencias de
 producción, y `sync:check`, capítulo 2); `e2e` (Playwright contra el mock del
 navegador, un tramo intermedio de 14 pruebas de integración aisladas
 (`npm run test:floci:integration`) que llaman a `selfieIndexer` directamente
 contra un contenedor Floci propio sin pasar por el navegador, y Playwright de
-nuevo contra Floci; los tres comparten caché de binarios por sistema operativo
-y `package-lock.json`). GitHub también ejecuta CodeQL mediante su configuración
-de análisis de código por defecto a nivel de repositorio, no como un fichero
-de workflow versionado en este repositorio.
+nuevo contra Floci; los tres comparten caché de binarios por sistema operativo y
+`package-lock.json`). GitHub también ejecuta CodeQL mediante su configuración de
+análisis de código por defecto a nivel de repositorio, no como un fichero de
+workflow versionado en este repositorio.
 
 ### `ephemeral-pr-e2e.yml` — el único check que despliega AWS real
 
@@ -107,17 +111,18 @@ ejecuciones del mismo PR nunca se solapen:
 3. Genera el plan, lo convierte a JSON y **rechaza explícitamente** cualquier
    recurso de coste fijo (`aws_vpc`, `aws_nat_gateway`, `aws_instance`,
    `aws_db_instance`/`_cluster`, `aws_lb`, `aws_eks_cluster`) antes de aplicar
-   nada — el mismo guardián que en el despliegue manual (`check-deployment-plan.mjs`,
-   siguiente sección, aunque aquí embebido en el propio workflow).
+   nada — el mismo guardián que en el despliegue manual
+   (`check-deployment-plan.mjs`, siguiente sección, aunque aquí embebido en el
+   propio workflow).
 4. Aplica, y verifica con `aws s3api` que el bucket de cargas desplegado tiene
    las cuatro banderas de bloqueo público activas y SSE-S3.
 5. Instala Chromium e invoca dos scripts contra el stack **real y ya
    desplegado**: `deployed-ephemeral-happy-path.mjs` (organizador: eventos,
    carga masiva, vía la API con un token de Cognito real) y
-   `deployed-issue-70-acceptance.mjs` (330 líneas: recorrido completo con un
-   navegador Chromium real — inscripción, indexación, matching, galería,
-   borrado — más comprobaciones directas por SDK de DynamoDB y Rekognition
-   para confirmar la limpieza).
+   `deployed-issue-70-acceptance.mjs` (recorrido completo con un navegador
+   Chromium real — inscripción, indexación, matching, galería, borrado — más
+   comprobaciones directas por SDK de DynamoDB y Rekognition para confirmar la
+   limpieza).
 6. Destruye el entorno en un paso con `if: always()`, incluso si el paso
    anterior falló, siempre que la asunción del rol OIDC haya tenido éxito.
 

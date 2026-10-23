@@ -91,7 +91,7 @@ docker compose up local-api
 VITE_API_BASE_URL=http://localhost:8787 npm run dev
 ```
 
-Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. El root Terraform declara la base compartida de DynamoDB, S3 y API Gateway, además de `GalleryReader` y su ruta pública `GET /gallery`; no se aplica desde desarrollo local. Las rutas administrativas permanecen en la issue #5.
+Abre `/gallery?token=demo-gallery`. El seeder usa únicamente datos sintéticos y el mock sigue disponible si `VITE_API_BASE_URL` está vacío. El root Terraform declara la base compartida de DynamoDB, S3 y API Gateway, además de `GalleryReader` y su ruta pública `GET /gallery`; no se aplica desde desarrollo local. Las rutas administrativas ya están implementadas; #5 y #89 están cerradas.
 
 La consola opcional de Floci se abre visitando `http://localhost:4566/_floci/ui`; la imagen necesita el socket Docker montado para crear su contenedor sidecar y queda disponible en `http://localhost:4500/console/aws`.
 
@@ -124,7 +124,7 @@ Los recursos se etiquetan con `Project`, `Environment`, `ManagedBy`, `CostCenter
 
 ## Siguiente paso
 
-La implementación se distribuye mediante las issues derivadas de [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md). La primera entrega de código deberá añadir la herramienta de construcción y los comandos de validación definidos en la issue de fundación.
+La implementación se distribuye mediante las issues derivadas de [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md). Las herramientas de construcción, pruebas y validación ya están implementadas en `package.json`. La [instantánea actual](docs/evidence/2026-10-23-code-truth-sync.md) distingue capacidades entregadas, evidencias y pendientes reales.
 
 ## Operación y CI/CD
 
@@ -171,7 +171,9 @@ AWS. La demo publicada y las cinco series de errores de #22 se verificaron
 en el [run 37198156959](https://github.com/upc-malvaviscos/findly/actions/runs/37198156959).
 El ciclo manual y la conservación del backend están documentados en
 [la evidencia posterior a PR #93](docs/evidence/2026-10-04-pr-93-demo-acceptance.md).
-Las issues #10 y #13 mantienen sus criterios propios pendientes. `npm run verify`
+Las issues #10 y #13 están cerradas; sus evidencias conservan el historial
+de verificación. La instantánea del 2026-10-23 toma el código `7fc0376` como
+referencia y registra su despliegue según confirmación del responsable. `npm run verify`
 valida gates locales; Playwright se ejecuta con `npm run test:e2e` y
 `npm run test:e2e:local`. Un merge o una suite mock verde no acredita demo AWS.
 
@@ -206,5 +208,8 @@ AWS y la recepción/apertura requieren su evidencia específica; una prueba
 parcial con un buzón no completa el requisito de dos proveedores. Diseño aprobado en
 [ADR-019](docs/adr/ADR-019-manual-gallery-email-capabilities.md), configuración en
 [runbook SES](docs/runbooks/gallery-email-ses-acens.md) y pruebas/pendientes en
-[evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 permanece
-abierta.
+[evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 está
+cerrada y mantiene DynamoDB (ADR-022). #98 se reabre por falta de evidencia
+de recepción/apertura en un segundo proveedor; #166 sigue el riesgo actual
+de matching frente al tombstone de foto y TTL lógico. Transactional Outbox
+es una propuesta futura, sin implementación en el código actual.
