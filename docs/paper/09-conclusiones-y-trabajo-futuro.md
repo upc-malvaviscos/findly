@@ -80,9 +80,11 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   general de concurrencia: #166 incorpora la barrera `deletedAt` antes de la
   consulta y revalida ausencia de marca y TTL vigente en la transacción,
   verificados localmente con unitarias y Floci. #168 está integrada y supera el
-  smoke AWS efímero con teardown. Quedan pendientes los ensayos específicos de
-  carreras/TTL en AWS, la publicación permanente y los ensayos de borrado de
-  evento con backfill/correo en curso. El detalle histórico está en
+  smoke AWS efímero con teardown. Por decisión del responsable del 23-oct-2026,
+  la aceptación AWS específica de carreras y TTL lógico se aplaza a una próxima
+  etapa; #166 permanece abierta con ese criterio sin verificar. La publicación
+  permanente es una actuación operativa independiente. Los ensayos de borrado de
+  evento con backfill/correo en curso quedan fuera del alcance de #166. El detalle histórico está en
   [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md), y
   el estado posterior al merge en
   [la evidencia de #166](../evidence/issue-166-photo-matching-barrier.md).
@@ -139,12 +141,19 @@ verde.
 1. Completar la aceptación de correo de #98 con dos proveedores independientes y
    recibos/cabeceras verificables. El único buzón corporativo acreditado no
    satisface por sí solo ese criterio.
-2. Completar los ensayos AWS específicos de carreras/TTL y la publicación
-   permanente de #166, integrada por #168 con smoke AWS efímero y teardown:
-   la implementación ya incorpora barrera previa, ausencia de `deletedAt`,
-   TTL lógico vigente y espejos conservados hasta borrar matches por página.
-   Añadir pruebas dedicadas de borrado de evento con backfill/correo en curso. Los lotes y el timeout de 60 s ya están
-   implementados y desplegados.
+2. Retomar en una próxima etapa la aceptación AWS específica de #166. La
+   implementación está integrada por #168, con pruebas locales y smoke AWS
+   efímero con teardown; no se propone rehacer la barrera. La ampliación de
+   validación requerirá un arnés con pausas controladas antes y durante el
+   commit, ambos disparadores de matching, TTL lógico vencido con la fila aún
+   presente y recuperación tras fallos parciales. Se comprobará la ausencia de
+   matches y espejos residuales, la operación estable y la limpieza de recursos,
+   con datos sintéticos, evidencia reproducible y autorización operativa previa.
+   Este trabajo queda aplazado, sin fecha comprometida ni aceptación completa;
+   #166 conserva su criterio AWS pendiente. La publicación permanente se
+   decidirá por separado. Los ensayos de borrado completo de evento con
+   backfill/correo en curso son otra línea de mejora, fuera de #166; los lotes y
+   el timeout de 60 s ya están implementados y desplegados.
 3. Unificar el código de respuesta (`404` frente a `410`) entre
    `publicEnrollment.ts` y `createPhotoUploads` ante un evento cerrado o con
    retención vencida (hallazgo de la PR #148 de la issue #89), y decidir cuál de

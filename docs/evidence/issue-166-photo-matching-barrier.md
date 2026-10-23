@@ -8,6 +8,19 @@ con unitarias y Floci; después se ejecutó el ciclo AWS efímero de la PR #168,
 integrada en `main` el 2026-10-23 (`535262bd4e3c54c76ed1a91f8756396611d40a3e`).
 Esta revisión documental lee esa evidencia; no inicia otro despliegue ni correo.
 La aceptación AWS de carreras deterministas y TTL lógico sigue pendiente.
+El 23-oct-2026 el responsable decide aplazarla como mejora de validación para
+una próxima etapa, sin fecha comprometida. #166 permanece abierta con ese
+criterio sin verificar; la publicación permanente se decide por separado y no
+es un criterio explícito de cierre de la issue. No se ejecuta AWS en esta tarea.
+
+La decisión se refleja en las limitaciones y mejoras de fase II de
+`memoria-postgrado.md` y en el capítulo 9. La presentación nativa se edita en
+el mismo archivo: diapositivas 24/26 y notas de 1/24/26; se conservan las 26
+diapositivas, su orden y geometría. Readback confirmado, comprobador estructural
+sin errores (dos avisos tipográficos preexistentes) y render completo revisado.
+PDF de verificación: 653.744 bytes, SHA-256
+`6b7873f03f86f839321743b9219d4ecb7720da6e35c6593aef188fdb8c8ccc05`.
+El PDF académico no se recompila; se actualiza su fuente Markdown.
 
 ## Protocolo implementado
 
