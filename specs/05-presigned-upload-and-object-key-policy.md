@@ -117,3 +117,13 @@ listado.
 
 Verificación:
 [`docs/evidence/issue-121-photo-upload-retry.md`](../docs/evidence/issue-121-photo-upload-retry.md).
+
+### Barrera de borrado antes de limpiar (#166)
+
+El marcador de ADR-024 se persiste antes de leer espejos y limpiar matches.
+`if_not_exists` conserva su fecha inicial y no cambia TTL. La transacción de
+matching exige foto vigente sin `deletedAt`; el backfill omite marcadores.
+La validación local se documenta en
+[evidencia #166](../docs/evidence/issue-166-photo-matching-barrier.md);
+aceptación AWS y despliegue pendientes. Esta spec y ADR-024 gobiernan reintentos:
+no existe una spec 24 en el inventario actual del repositorio.

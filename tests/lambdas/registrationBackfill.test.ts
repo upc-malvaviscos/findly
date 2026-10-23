@@ -106,6 +106,34 @@ describe('registrationBackfill', () => {
     expect(sqsMock.calls()).toHaveLength(0);
   });
 
+  it.each([
+    ['tombstone with a stale S3 key', { deletedAt: 'synthetic-deletion' }],
+    ['present but empty deletion marker', { deletedAt: '' }],
+    ['missing TTL', { ttl: undefined }],
+    ['missing S3 key', { s3Key: undefined }],
+    ['empty S3 key', { s3Key: '' }],
+  ])(
+    'does not send an inactive photo to matching (%s)',
+    async (_label, overrides) => {
+      dynamoMock.on(GetCommand).resolves({ Item: enrolledRegistration() });
+      dynamoMock.on(QueryCommand).resolves({
+        Items: [
+          {
+            PK: 'EVENT#demo-2026',
+            SK: 'PHOTO#photo-a',
+            ttl: NOW_EPOCH + 3600,
+            s3Key: 'events/demo-2026/photos/photo-a.jpg',
+            ...overrides,
+          },
+        ],
+      });
+      expect(
+        (await registrationBackfill({ Records: [job()] })).batchItemFailures,
+      ).toEqual([]);
+      expect(matchPhotoMock).not.toHaveBeenCalled();
+    },
+  );
+
   it('requeues a continuation message carrying the DynamoDB cursor when more photos remain', async () => {
     dynamoMock.on(GetCommand).resolves({ Item: enrolledRegistration() });
     dynamoMock.on(QueryCommand).resolves({

@@ -185,7 +185,8 @@ La issue #49 está cerrada; ADR-022 confirma DynamoDB y su benchmark está docum
 
 Estado vigente 2026-10-23: ADR-022, backfill y espejo están implementados;
 Las issues #49/#87/#89 cerradas. El análisis inferior conserva las alternativas de su
-fecha. #166 sigue el riesgo actual tombstone/TTL lógico, sin migración RDS.
+fecha. #166 implementa la barrera tombstone/TTL lógico con validación local,
+pendiente de aceptación AWS específica; sin migración RDS.
 
 El [análisis actualizado de #49](../docs/evidence/issue-49-dynamodb-vs-rds-analysis.md)
 contrasta las 12 issues abiertas de la instantánea con las claves y handlers

@@ -188,19 +188,21 @@ el listado de administración, filtrando en memoria los eventos cuya
 
 ### Borrado por lotes y elegibilidad de fotografía
 
-`adminEvents.deleteEventPhoto` consulta por páginas la partición de espejos,
-borra matches y espejos en lotes de 25 con `BatchWriteCommand`, reintenta
-`UnprocessedItems`, elimina el objeto S3 y deja un tombstone `deletedAt` sin
-`s3Key`, `fileName` ni `uploadedAt` (ADR-024). El timeout de la Lambda es 60 s.
+`adminEvents.deleteEventPhoto` persiste primero un tombstone `deletedAt` sin
+`s3Key`, `fileName` ni `uploadedAt` (ADR-024/#166), conservando fecha inicial y
+TTL. Consulta por páginas y lectura fuerte la partición de espejos y borra
+primero todos los matches de cada página y después sus espejos, en lotes de 25
+con reintentos de `UnprocessedItems`. Por último elimina el objeto S3. El
+timeout de la Lambda sigue en 60 s.
 No desaparece necesariamente la fila `PHOTO#`: el marcador evita que un
 reintento de subida reutilice una operación ya borrada.
 
 `writeMatch` (`src/lambdas/lib/matching.ts`) escribe match y espejo en una misma
-transacción y comprueba inscripción elegible y existencia de la foto. Su
-`ConditionCheck` de foto sólo contiene `attribute_exists(PK)`: no exige
-`attribute_not_exists(deletedAt)` ni TTL lógico vigente. Ese límite actual se
-registra como riesgo pendiente en la issue #166, sin generalizar el benchmark
-anterior a los tombstones (capítulos 8 y 9).
+transacción y comprueba inscripción elegible y foto existente, sin `deletedAt`
+y con TTL posterior a la hora muestreada al construir la transacción. La
+barrera previa impide nuevas escrituras durante la limpieza. #166 verifica
+el protocolo con unitarias y Floci; aceptación AWS y despliegue pendientes.
+No revoca PUT ya emitidos ni cubre purga física del marcador (capítulos 8 y 9).
 
 ### Claves de objeto S3
 

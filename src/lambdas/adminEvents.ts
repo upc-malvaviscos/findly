@@ -535,6 +535,28 @@ export async function deleteEventPhoto(
         );
       request.annotate({ eventId });
 
+      // #166: commit the barrier BEFORE querying mirrors. A match transaction
+      // serialized before this update is visible to the strong query; one
+      // serialized after it fails its photo condition. Leave a marker,
+      // so a retried/renewed request for this photoId's operationId is
+      // rejected (PHOTO_DELETED) rather than silently recreating the photo.
+      // No sensitive data (s3Key, fileName) survives; any existing ttl is
+      // left untouched, and the marker is otherwise purged with the rest of
+      // the event's partition - no retention is extended by deleting.
+      await dynamo.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: photoKey(eventId, photoId),
+          UpdateExpression:
+            'SET deletedAt = if_not_exists(deletedAt, :deletedAt), eventId = :eventId, photoId = :photoId REMOVE s3Key, fileName, uploadedAt',
+          ExpressionAttributeValues: {
+            ':deletedAt': new Date().toISOString(),
+            ':eventId': eventId,
+            ':photoId': photoId,
+          },
+        }),
+      );
+
       // ADR-022 mirror item: finds every REG#.../MATCH#{photoId} this photo
       // produced by key, no Scan. Matches written before that item existed
       // (no persistent demo has ever held real data) have no mirror to find
@@ -557,11 +579,17 @@ export async function deleteEventPhoto(
         const registrationIds = (page.Items ?? [])
           .map((item) => item.registrationId)
           .filter((id): id is string => typeof id === 'string');
+        // Keep every mirror until ALL forward deletes in this page succeed.
+        // A partial batch failure must leave its discovery keys for a retry.
         await batchDeleteItems(
-          registrationIds.flatMap((registrationId) => [
+          registrationIds.map((registrationId) =>
             matchKey(registrationId, photoId),
+          ),
+        );
+        await batchDeleteItems(
+          registrationIds.map((registrationId) =>
             matchMirrorKey(eventId, photoId, registrationId),
-          ]),
+          ),
         );
         matchesDeleted += registrationIds.length;
         matchCursor = page.LastEvaluatedKey as
@@ -578,26 +606,6 @@ export async function deleteEventPhoto(
       } catch (deleteError) {
         if (!isMissingResourceError(deleteError)) throw deleteError;
       }
-
-      // Issue #121 tombstone: leaves a marker instead of removing the item,
-      // so a retried/renewed request for this photoId's operationId is
-      // rejected (PHOTO_DELETED) rather than silently recreating the photo.
-      // No sensitive data (s3Key, fileName) survives; any existing ttl is
-      // left untouched, and the marker is otherwise purged with the rest of
-      // the event's partition - no retention is extended by deleting.
-      await dynamo.send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: photoKey(eventId, photoId),
-          UpdateExpression:
-            'SET deletedAt = :deletedAt, eventId = :eventId, photoId = :photoId REMOVE s3Key, fileName, uploadedAt',
-          ExpressionAttributeValues: {
-            ':deletedAt': new Date().toISOString(),
-            ':eventId': eventId,
-            ':photoId': photoId,
-          },
-        }),
-      );
 
       request.info('admin_event_photo_deleted', { eventId, matchesDeleted });
       return noContent();

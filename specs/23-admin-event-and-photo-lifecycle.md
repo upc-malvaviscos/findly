@@ -1,6 +1,7 @@
 # 23 - Edición y borrado administrativo de eventos y fotografías
 
 <!-- requirement: REQ-ADMIN-EVENT-PHOTO-LIFECYCLE -->
+<!-- requirement: REQ-PHOTO-MATCHING-BARRIER -->
 
 Seguimiento: [issue #89](https://github.com/upc-malvaviscos/findly/issues/89).
 Continúa spec [04](04-admin-event-management-and-cognito-authorization.md); no
@@ -36,8 +37,9 @@ ADR-014 (selfies inmutables), ADR-015 (colecciones por entorno), ADR-022
 spec consume).
 
 La issue #49 está cerrada tras su benchmark AWS y ADR-022 sigue vigente.
-Esta spec está implementada y #89 cerrada; el riesgo posterior del tombstone
-de #121 frente al matching se sigue por separado en #166. No se extrapolan
+Esta spec está implementada y #89 cerrada; el protocolo posterior del tombstone
+de #121 frente al matching está implementado localmente en #166, pendiente
+de aceptación AWS específica. No se extrapolan
 las carreras históricas a todos los estados del código actual.
 
 ## Decisiones de diseño (acordadas antes de implementar)
@@ -111,26 +113,32 @@ las carreras históricas a todos los estados del código actual.
 
 ### `DELETE /admin/events/{eventId}/photos/{photoId}` (borrar una foto)
 
-- Borra el objeto S3 de la foto, el ítem `Photo`, y todas las coincidencias
-  asociadas en ambas direcciones: consulta
-  `PK = PHOTO#{eventId}#{photoId}` (ítem espejo, ADR-022) para encontrar cada
-  `REG#{registrationId}` afectado sin Scan, y borra tanto
-  `REG#{registrationId}/MATCH#{photoId}` como
-  `PHOTO#{eventId}#{photoId}/MATCH#{registrationId}` para cada uno.
-- Idempotente: repetir el borrado sobre una foto ya ausente devuelve `204` sin
-  fallar (mismo criterio que `deleteRegistration`).
-- No reactiva ni recrea nada si un evento S3 tardío llega después:
-  `writeMatch` (`src/lambdas/lib/matching.ts`) condiciona la escritura del
-  match y su ítem espejo a que el ítem `Photo` siga existiendo
-  (`attribute_exists(PK)` en la misma transacción); un `matchPhoto` tardío
-  (vía S3 o el backfill de #87) que termine después del borrado o la
-  expiración por `ttl` de la foto se descarta en silencio. Reforzado el
-  2026-10-16 tras que el benchmark de #49 confirmara la carrera contra AWS
-  real — ver la adenda de
-  [ADR-022](../docs/adr/ADR-022-confirm-dynamodb-persistence.md#adenda-2026-10-16-writematch-condiciona-la-escritura-a-que-la-foto-exista)
-  y `docs/evidence/issue-89-admin-event-photo-lifecycle.md`. Verificado por
-  unitarias y, contra AWS real, repitiendo ese mismo escenario de carrera
-  con la corrección aplicada: el match y su ítem espejo ya no sobreviven.
+- Persiste primero el tombstone `deletedAt` (con `if_not_exists` para conservar
+  la primera fecha), elimina `s3Key`, `fileName` y `uploadedAt`, y conserva el
+  TTL existente. Esa escritura es la barrera antes de consultar espejos.
+- Consulta por páginas y con lectura fuerte `PK = PHOTO#{eventId}#{photoId}`
+  (ADR-022), sin Scan. Por página borra primero todos los
+  `REG#{registrationId}/MATCH#{photoId}` y sólo después sus espejos
+  `PHOTO#{eventId}#{photoId}/MATCH#{registrationId}`, en lotes de 25 con
+  reintento de `UnprocessedItems`. Así un fallo parcial no elimina las claves
+  necesarias para descubrir coincidencias pendientes en el reintento.
+- Borra S3 por la clave determinista y responde `204` tras completar la limpieza.
+  Repetir el borrado mantiene fecha, TTL e identificador de operación;
+  las nuevas solicitudes de subida reciben `PHOTO_DELETED`.
+- `writeMatch` revalida atómicamente existencia, ausencia de `deletedAt` y
+  `ttl > :now` en la transacción de match/espejo. `:now` se toma del reloj
+  de la Lambda al construir la transacción; no es un reloj servidor DynamoDB.
+  Una transacción serializada antes de la barrera queda visible a la consulta
+  fuerte; una posterior falla la condición. Ambos triggers comparten esa regla.
+- [#166](https://github.com/upc-malvaviscos/findly/issues/166) implementa este protocolo con pruebas unitarias y Floci. La aceptación
+  AWS específica y el despliegue siguen pendientes; el benchmark histórico
+  de #89 no demuestra esta nueva interacción con tombstones. Véase
+  [evidencia #166](../docs/evidence/issue-166-photo-matching-barrier.md).
+- No hay transacción conjunta con S3/Rekognition. Una URL PUT emitida antes
+  del borrado no se revoca: un PUT tardío puede recrear un objeto S3 hasta la
+  limpieza de retención, pero no habilita matches con el tombstone vigente.
+  No se promete cobertura tras la eliminación física del marcador por TTL ni
+  se cambia la coordinación del borrado de evento completo.
 
 ### `DELETE /admin/events/{eventId}` (borrar evento completo)
 

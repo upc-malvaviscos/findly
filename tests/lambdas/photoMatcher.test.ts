@@ -149,7 +149,8 @@ describe('photoMatcher', () => {
       putCalls[0]?.args[0].input.TransactItems?.[3]?.ConditionCheck,
     ).toMatchObject({
       Key: { PK: 'EVENT#demo-2026', SK: 'PHOTO#photo-1' },
-      ConditionExpression: 'attribute_exists(PK)',
+      ConditionExpression:
+        'attribute_exists(PK) AND attribute_not_exists(deletedAt) AND #ttl > :now',
     });
 
     const deleteCalls = rekognitionMock.commandCalls(DeleteFacesCommand);

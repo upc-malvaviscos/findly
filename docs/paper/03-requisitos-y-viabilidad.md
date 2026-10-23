@@ -74,7 +74,9 @@ corrigieron el timeout/borrado por lotes y añadieron la condición de existenci
 de foto a `writeMatch`; la aceptación combinada registró `204` en 2.020 ms con
 100 matches y 3.082 ms con 1.000, sin huérfanos en los escenarios ejercitados.
 ADR-024 añadió posteriormente el tombstone `deletedAt`: la condición de
-existencia no comprueba esa marca, por lo que no se generaliza el ensayo
+existencia histórica no comprobaba esa marca. #166 persiste el marcador antes
+de consultar espejos y revalida tombstone/TTL atómicamente, con pruebas locales;
+aceptación AWS específica y despliegue pendientes. No se generaliza el ensayo
 anterior a todas las carreras actuales.
 
 Ningún motor incluye S3, Rekognition o SES en su transacción. La publicación a

@@ -210,6 +210,7 @@ parcial con un buzón no completa el requisito de dos proveedores. Diseño aprob
 [runbook SES](docs/runbooks/gallery-email-ses-acens.md) y pruebas/pendientes en
 [evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 está
 cerrada y mantiene DynamoDB (ADR-022). #98 se reabre por falta de evidencia
-de recepción/apertura en un segundo proveedor; #166 sigue el riesgo actual
-de matching frente al tombstone de foto y TTL lógico. Transactional Outbox
+de recepción/apertura en un segundo proveedor; #166 incorpora una barrera
+previa a la limpieza y revalidación atómica de tombstone/TTL de foto, verificadas
+localmente; aceptación AWS específica y despliegue pendientes. Transactional Outbox
 es una propuesta futura, sin implementación en el código actual.

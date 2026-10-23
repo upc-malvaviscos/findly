@@ -664,6 +664,52 @@
         "docs/adr/ADR-024-photo-upload-retry-and-stable-operation-id.md",
         "specs/04-admin-event-management-and-cognito-authorization.md"
       ]
+    },
+    {
+      "id": "REQ-PHOTO-MATCHING-BARRIER",
+      "description": "Barrera previa al borrado de foto y condición atómica de tombstone/TTL lógico, probadas localmente; aceptación AWS específica pendiente.",
+      "issues": [166],
+      "spec": "specs/23-admin-event-and-photo-lifecycle.md",
+      "implementation": [
+        "src/lambdas/adminEvents.ts",
+        "src/lambdas/lib/matching.ts",
+        "src/lambdas/registrationBackfill.ts"
+      ],
+      "verification": [
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/lambdas/adminEvents.test.ts",
+            "tests/lambdas/photoMatcher.test.ts",
+            "tests/lambdas/registrationBackfillMatching.test.ts",
+            "tests/lambdas/registrationBackfill.test.ts"
+          ]
+        },
+        {
+          "command": "test:floci:integration",
+          "environment": "floci",
+          "files": ["tests/integration/photoDeletionBarrier.test.ts"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-166-photo-matching-barrier.md",
+          "environment": "unit"
+        },
+        {
+          "file": "docs/evidence/issue-166-photo-matching-barrier.md",
+          "environment": "floci"
+        }
+      ],
+      "documentation": [
+        "specs/21-matching-from-selfie-and-photo-uploads.md",
+        "specs/05-presigned-upload-and-object-key-policy.md",
+        "docs/adr/ADR-022-confirm-dynamodb-persistence.md",
+        "docs/adr/ADR-024-photo-upload-retry-and-stable-operation-id.md",
+        "docs/paper/04-arquitectura-y-decisiones.md",
+        "docs/paper/memoria-findly/memoria-postgrado.md"
+      ]
     }
   ]
 }
