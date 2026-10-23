@@ -94,6 +94,7 @@ it('writes the gallery match and photo deletion index atomically through the rea
   // deletion or TTL expiry.
   expect(transaction?.[3]?.ConditionCheck).toMatchObject({
     Key: { PK: 'EVENT#demo', SK: 'PHOTO#photo-1' },
-    ConditionExpression: 'attribute_exists(PK)',
+    ConditionExpression:
+      'attribute_exists(PK) AND attribute_not_exists(deletedAt) AND #ttl > :now',
   });
 });

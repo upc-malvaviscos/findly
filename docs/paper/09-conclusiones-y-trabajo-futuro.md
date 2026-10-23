@@ -77,12 +77,11 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   `writeMatch` añade un `ConditionCheck` sobre la foto. La aceptación AWS
   combinada registró `204` en 2.020 ms con 100 matches y 3.082 ms con 1.000, sin
   huérfanos, y pasó la carrera subida/borrado ejercitada. No es una garantía
-  general de concurrencia: ADR-024 deja hoy un tombstone `deletedAt`, mientras
-  `writeMatch` sólo comprueba `attribute_exists(PK)`, sin exigir ausencia de esa
-  marca ni TTL vigente de la foto. Una fila existente puede estar borrada
-  lógicamente o expirada. La issue #166 registra el riesgo de foto; quedan
-  pendientes esa coordinación y los ensayos específicos de borrado de evento con
-  backfill/correo en curso. El detalle histórico y los runs están en
+  general de concurrencia: #166 incorpora la barrera `deletedAt` antes de la
+  consulta y revalida ausencia de marca y TTL vigente en la transacción,
+  verificados localmente con unitarias y Floci. Quedan pendientes aceptación AWS
+  y despliegue de ese protocolo, además de los ensayos específicos de borrado de
+  evento con backfill/correo en curso. El detalle histórico y los runs están en
   [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
 - **WebKit no completa la descarga real contra S3, Chromium y Firefox sí.**
   Verificado contra el entorno efímero real (issue #88, PR #130): Chromium y
@@ -137,10 +136,10 @@ verde.
 1. Completar la aceptación de correo de #98 con dos proveedores independientes y
    recibos/cabeceras verificables. El único buzón corporativo acreditado no
    satisface por sí solo ese criterio.
-2. Reforzar/verificar la condición transaccional de `writeMatch` frente al
-   tombstone `deletedAt` y al TTL lógico de la foto; la comprobación de
-   existencia ya está implementada. Añadir pruebas dedicadas de borrado de
-   evento con backfill/correo en curso. Los lotes y el timeout de 60 s ya están
+2. Completar la aceptación AWS autorizada y despliegue del protocolo #166,
+   implementado y verificado localmente: barrera previa, ausencia de `deletedAt`,
+   TTL lógico vigente y espejos conservados hasta borrar matches por página.
+   Añadir pruebas dedicadas de borrado de evento con backfill/correo en curso. Los lotes y el timeout de 60 s ya están
    implementados y desplegados.
 3. Unificar el código de respuesta (`404` frente a `410`) entre
    `publicEnrollment.ts` y `createPhotoUploads` ante un evento cerrado o con

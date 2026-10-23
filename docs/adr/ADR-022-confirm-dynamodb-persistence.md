@@ -146,7 +146,7 @@ aplicada: el match y su ítem espejo ya no sobreviven (antes sí) — ver
 - No afecta a #98/SES ni a la decisión de #86, que ya usa DynamoDB bajo
   ADR-019.
 
-## Límite actual tras ADR-024 — 2026-10-23
+## Riesgo observado tras ADR-024 — revisión previa a #166, 2026-10-23
 
 La adenda del 2026-10-16 verificó ausencia **física** de la fila Photo.
 `attribute_exists(PK)` no evalúa expiración lógica: una fila con TTL vencido
@@ -158,4 +158,34 @@ escribir nuevos matches/espejos. El protocolo temporal entre la barrera y la
 consulta/limpieza inversa requiere revisión, no solo una condición adicional
 al final del DELETE. Riesgo trazado por código en
 [#166](https://github.com/upc-malvaviscos/findly/issues/166); no reproducido en
-AWS en esta auditoría. No se adopta aquí una decisión funcional nueva.
+AWS en esa auditoría. La adenda siguiente recoge el protocolo aprobado y su
+validación local posterior.
+
+## Adenda 2026-10-23: barrera previa a la limpieza (#166)
+
+Protocolo aprobado por la persona responsable el 2026-10-23, implementado
+localmente y pendiente de aceptación AWS y despliegue:
+
+1. `deleteEventPhoto` confirma `deletedAt = if_not_exists(deletedAt, :deletedAt)`
+   antes de consultar los espejos; elimina los campos de foto y conserva TTL.
+2. `writeMatch` exige en su `ConditionCheck` de foto `attribute_exists(PK)`,
+   `attribute_not_exists(deletedAt)` y `ttl > :now`. La transacción sigue
+   escribiendo match y espejo juntos. `:now` es el reloj muestreado de la Lambda,
+   no una función de hora del servidor DynamoDB.
+3. La consulta fuerte descubre las escrituras serializadas antes de la barrera;
+   la condición rechaza las posteriores. Por página se borran todos los matches
+   directos antes de borrar cualquier espejo, para mantener descubribilidad
+   si un lote falla parcialmente. Los reintentos mantienen fecha y TTL.
+4. Backfill omite tombstones, TTL ausente/vencido y clave S3 ausente o vacía.
+
+No cambia claves, permisos, infraestructura ni retención. El protocolo usa el
+marcador mientras exista; no revoca URLs PUT anteriores ni resuelve borrado de
+evento con trabajo concurrente. Un objeto S3 recreado por un PUT tardío requiere
+la limpieza de retención existente. Una petición de subida ya en curso antes de
+la barrera puede terminar de firmar; la transacción de matching sigue rechazando
+la foto. No se garantiza rechazo perpetuo del identificador tras purgar el
+marcador por TTL. Estas son limitaciones conservadas, no garantías nuevas.
+
+La evidencia histórica anterior se conserva con su alcance. Regresiones locales,
+fallos parciales y pendientes en
+[evidencia #166](../evidence/issue-166-photo-matching-barrier.md).

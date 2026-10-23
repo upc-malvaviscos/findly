@@ -1035,11 +1035,13 @@ El código actual incorpora además ADR-024 (#121): al borrar una foto deja una
 marca `deletedAt` o _tombstone_, elimina `s3Key`, `fileName` y `uploadedAt`, y
 conserva el TTL existente; así un reintento de la operación de subida no recrea
 silenciosamente la foto. Por ello, existir en DynamoDB no equivale a ser una
-foto activa: la condición de `writeMatch` sólo exige existencia y no comprueba
-`deletedAt`. El ensayo histórico anterior al tombstone no demuestra esa nueva
-combinación concurrente. Queda por reforzar/verificar la coordinación entre
-tombstones, TTL lógico de foto y matching tardío (issue #166), así como las
-carreras específicas de borrado de evento con backfill y correo en curso. No se
+foto activa. #166 persiste esa barrera antes de consultar espejos y exige
+ausencia de `deletedAt` y TTL lógico vigente en la transacción de matching.
+Borra primero los matches de cada página y luego los espejos para recuperar
+fallos parciales. El protocolo tiene pruebas unitarias y Floci deterministas;
+aceptación AWS específica y despliegue siguen pendientes, igual que las carreras
+de borrado de evento con backfill y correo en curso. El ensayo histórico
+anterior al tombstone no acredita esta nueva combinación concurrente. No se
 afirma que todas las carreras estén resueltas.
 
 ADR-022 confirma DynamoDB e ítem espejo como decisión vigente; no hay una

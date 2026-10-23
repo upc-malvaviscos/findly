@@ -14,8 +14,19 @@ test('organizer creates, selects, and uploads a photo through Floci', async ({
   await page.getByLabel('Nombre del evento').fill('E2E Floci event');
   await page.getByLabel('Fecha').fill('2026-09-17T12:00');
   await page.getByLabel('Retención (días)').fill('7');
+  // Other browser tests may already have created an evt-* in the shared
+  // emulator. Wait for THIS operation before choosing files: changing the
+  // selected event remounts the uploader and clears its pending selection.
+  const creation = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/admin/events') &&
+      response.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Crear evento' }).click();
-  await expect(page.getByLabel('Evento seleccionado')).toHaveValue(/evt-/);
+  const created: { eventId: string } = await (await creation).json();
+  await expect(page.getByLabel('Evento seleccionado')).toHaveValue(
+    created.eventId,
+  );
 
   await page.locator('input[type="file"]').setInputFiles({
     name: 'event-photo.jpg',

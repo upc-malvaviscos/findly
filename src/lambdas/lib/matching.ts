@@ -138,17 +138,18 @@ export async function writeMatch(
             },
           },
           {
-            // A late matchPhoto (S3 redelivery or #87's backfill) can finish
-            // indexing/searching after deleteEventPhoto (#89) or the photo's
-            // own TTL already removed its row; without this check the match
-            // and its mirror would still get written for a photo that no
-            // longer exists. Failing this condition lands in the same
-            // ConditionalCheckFailed-swallow path below as the ENROLLED/ttl
-            // check already did.
+            // #166: serialized against the deletion barrier before mirror
+            // cleanup. DynamoDB TTL removal is eventual, so also check logical
+            // expiry against the timestamp sampled for this transaction.
             ConditionCheck: {
               TableName: tableName,
               Key: photoKey(eventId, photoId),
-              ConditionExpression: 'attribute_exists(PK)',
+              ConditionExpression:
+                'attribute_exists(PK) AND attribute_not_exists(deletedAt) AND #ttl > :now',
+              ExpressionAttributeNames: { '#ttl': 'ttl' },
+              ExpressionAttributeValues: {
+                ':now': Math.floor(Date.now() / 1000),
+              },
             },
           },
         ],

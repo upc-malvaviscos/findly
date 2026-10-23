@@ -646,6 +646,97 @@ describe('deleteEventPhoto', () => {
       Key: 'events/evt-1/photos/photo-1.photo.jpg',
     });
   });
+  it('commits the barrier before reading mirrors and preserves the original deletion time and TTL', async () => {
+    const order: string[] = [];
+    dynamoMock.on(UpdateCommand).callsFake(async (input) => {
+      order.push('barrier');
+      expect(input.UpdateExpression).toContain(
+        'if_not_exists(deletedAt, :deletedAt)',
+      );
+      expect(input.UpdateExpression).not.toContain('#ttl');
+      expect(input.ExpressionAttributeValues).not.toHaveProperty(':ttl');
+      return {};
+    });
+    dynamoMock.on(QueryCommand).callsFake(async () => {
+      order.push('query');
+      return { Items: [{ registrationId: 'reg-1' }] };
+    });
+    dynamoMock.on(BatchWriteCommand).callsFake(async (input) => {
+      const key = input.RequestItems['findly-local'][0].DeleteRequest.Key;
+      order.push(key.PK.startsWith('REG#') ? 'forward' : 'mirror');
+      return {};
+    });
+    s3Mock.on(DeleteObjectCommand).callsFake(async () => {
+      order.push('s3');
+      return {};
+    });
+    expect(
+      (
+        await deleteEventPhoto({
+          pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+        })
+      ).statusCode,
+    ).toBe(204);
+    expect(order).toEqual(['barrier', 'query', 'forward', 'mirror', 's3']);
+  });
+
+  it('does not start cleanup if persisting the barrier fails', async () => {
+    dynamoMock
+      .on(UpdateCommand)
+      .rejects(new Error('synthetic barrier failure'));
+    await expect(
+      deleteEventPhoto({
+        pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+      }),
+    ).rejects.toThrow('synthetic barrier failure');
+    expect(dynamoMock.commandCalls(QueryCommand)).toHaveLength(0);
+    expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(0);
+  });
+
+  it('keeps mirrors discoverable after a partial forward batch failure and converges on retry', async () => {
+    dynamoMock.on(UpdateCommand).resolves({});
+    dynamoMock
+      .on(QueryCommand)
+      .resolves({ Items: [{ registrationId: 'reg-1' }] });
+    dynamoMock
+      .on(BatchWriteCommand)
+      .rejectsOnce(new Error('synthetic interrupted batch'))
+      .resolves({});
+    s3Mock.on(DeleteObjectCommand).resolves({});
+    const request = {
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    };
+    await expect(deleteEventPhoto(request)).rejects.toThrow('synthetic');
+    expect(batchDeletedKeys()).toEqual([
+      { PK: 'REG#reg-1', SK: 'MATCH#photo-1' },
+    ]);
+    expect((await deleteEventPhoto(request)).statusCode).toBe(204);
+    expect(batchDeletedKeys()).toEqual([
+      { PK: 'REG#reg-1', SK: 'MATCH#photo-1' },
+      { PK: 'REG#reg-1', SK: 'MATCH#photo-1' },
+      { PK: 'PHOTO#evt-1#photo-1', SK: 'MATCH#reg-1' },
+    ]);
+  });
+
+  it('retries the S3 cleanup after the data cleanup succeeded', async () => {
+    dynamoMock.on(UpdateCommand).resolves({});
+    dynamoMock
+      .on(QueryCommand)
+      .resolvesOnce({ Items: [{ registrationId: 'reg-1' }] })
+      .resolves({ Items: [] });
+    dynamoMock.on(BatchWriteCommand).resolves({});
+    s3Mock
+      .on(DeleteObjectCommand)
+      .rejectsOnce(new Error('synthetic S3 failure'))
+      .resolves({});
+    const request = {
+      pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
+    };
+    await expect(deleteEventPhoto(request)).rejects.toThrow('synthetic');
+    expect((await deleteEventPhoto(request)).statusCode).toBe(204);
+    expect(s3Mock.commandCalls(DeleteObjectCommand)).toHaveLength(2);
+  });
+
   it('is idempotent when the photo object is already gone', async () => {
     dynamoMock.on(QueryCommand).resolves({ Items: [] });
     dynamoMock.on(BatchWriteCommand).resolves({});
@@ -681,12 +772,12 @@ describe('deleteEventPhoto', () => {
     dynamoMock.on(QueryCommand).resolves({
       Items: [{ registrationId: 'reg-1' }],
     });
-    const mirrorKey = { PK: 'PHOTO#evt-1#photo-1', SK: 'MATCH#reg-1' };
+    const pendingKey = { PK: 'REG#reg-1', SK: 'MATCH#photo-1' };
     dynamoMock
       .on(BatchWriteCommand)
       .resolvesOnce({
         UnprocessedItems: {
-          'findly-local': [{ DeleteRequest: { Key: mirrorKey } }],
+          'findly-local': [{ DeleteRequest: { Key: pendingKey } }],
         },
       })
       .resolves({});
@@ -696,7 +787,7 @@ describe('deleteEventPhoto', () => {
       pathParameters: { eventId: 'evt-1', photoId: 'photo-1' },
     });
     expect(result.statusCode).toBe(204);
-    expect(dynamoMock.commandCalls(BatchWriteCommand)).toHaveLength(2);
+    expect(dynamoMock.commandCalls(BatchWriteCommand)).toHaveLength(3);
   });
 });
 

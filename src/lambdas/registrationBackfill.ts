@@ -116,7 +116,14 @@ async function processJob(
   let photoCount = 0;
   for (const raw of page.Items ?? []) {
     const photo = raw as PhotoEntity & { SK: string };
-    if (photo.ttl <= now) continue;
+    if (
+      'deletedAt' in photo ||
+      typeof photo.ttl !== 'number' ||
+      photo.ttl <= now ||
+      typeof photo.s3Key !== 'string' ||
+      !photo.s3Key
+    )
+      continue;
     const photoId = photo.SK.slice(PHOTO_SORT_KEY_PREFIX.length);
     await matchPhoto(photoBucket, job.eventId, photoId, photo.s3Key, onFailure);
     photoCount += 1;

@@ -136,3 +136,32 @@ permiso `s3:GetObject` nuevo, en
 [PR #150](https://github.com/upc-malvaviscos/findly/pull/150). Detalle
 completo en
 [`docs/evidence/issue-121-photo-upload-retry.md`](../evidence/issue-121-photo-upload-retry.md).
+
+## Adenda 2026-10-23: barrera previa a la limpieza (#166)
+
+Protocolo aprobado por la persona responsable el 2026-10-23, implementado
+localmente y pendiente de aceptación AWS y despliegue:
+
+1. `deleteEventPhoto` confirma `deletedAt = if_not_exists(deletedAt, :deletedAt)`
+   antes de consultar los espejos; elimina los campos de foto y conserva TTL.
+2. `writeMatch` exige en su `ConditionCheck` de foto `attribute_exists(PK)`,
+   `attribute_not_exists(deletedAt)` y `ttl > :now`. La transacción sigue
+   escribiendo match y espejo juntos. `:now` es el reloj muestreado de la Lambda,
+   no una función de hora del servidor DynamoDB.
+3. La consulta fuerte descubre las escrituras serializadas antes de la barrera;
+   la condición rechaza las posteriores. Por página se borran todos los matches
+   directos antes de borrar cualquier espejo, para mantener descubribilidad
+   si un lote falla parcialmente. Los reintentos mantienen fecha y TTL.
+4. Backfill omite tombstones, TTL ausente/vencido y clave S3 ausente o vacía.
+
+No cambia claves, permisos, infraestructura ni retención. El protocolo usa el
+marcador mientras exista; no revoca URLs PUT anteriores ni resuelve borrado de
+evento con trabajo concurrente. Un objeto S3 recreado por un PUT tardío requiere
+la limpieza de retención existente. Una petición de subida ya en curso antes de
+la barrera puede terminar de firmar; la transacción de matching sigue rechazando
+la foto. No se garantiza rechazo perpetuo del identificador tras purgar el
+marcador por TTL. Estas son limitaciones conservadas, no garantías nuevas.
+
+La evidencia histórica anterior se conserva con su alcance. Regresiones locales,
+fallos parciales y pendientes en
+[evidencia #166](../evidence/issue-166-photo-matching-barrier.md).

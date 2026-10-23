@@ -296,9 +296,10 @@ sobre la foto en la transacción. La aceptación combinada devolvió `204` en 2.
 ms con 100 matches y 3.082 ms con 1.000, sin huérfanos; tampoco sobrevivieron
 match/espejo en la carrera subida/borrado ejercitada. Es evidencia de esos
 escenarios, no un percentil ni una garantía general de concurrencia. El código
-posterior de #121 (ADR-024) conserva un tombstone `deletedAt`: como `writeMatch`
-sólo comprueba existencia, esa combinación sigue requiriendo protección y
-validación específica (capítulo 9). Fuente:
+posterior de #121 (ADR-024) conserva un tombstone `deletedAt`. #166 añade la
+barrera antes de consultar espejos y la condición atómica sin marca/TTL vigente,
+con regresiones locales deterministas; aceptación AWS y despliegue pendientes
+(capítulo 9). Fuente:
 [evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
 Validación histórica de la PR #141: `npm run verify` completo en verde (687
 unitarias), sandbox real desplegado y destruido (145 recursos).
