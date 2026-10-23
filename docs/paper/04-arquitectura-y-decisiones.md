@@ -72,8 +72,8 @@ flowchart LR
 > alinearse con `main` y llevan su propio aviso de documento histórico; el de
 > borrado, además, queda marcado "aplazado, no implementado" (capítulo 9). Toda
 > referencia a **ADR-011** en este capítulo apunta al fichero vigente,
-> `ADR-011-public-enrollment-capability.md`. La colisión de numeración en sí
-> no se ha resuelto — es una decisión pendiente de la persona responsable.
+> `ADR-011-public-enrollment-capability.md`. La colisión de numeración en sí no
+> se ha resuelto — es una decisión pendiente de la persona responsable.
 
 ### Catálogo de servicios e integraciones
 
@@ -153,20 +153,29 @@ vez; el capítulo 6 detalla cómo se reconcilian los fallos parciales.
 | `POST /admin/events`                          | `adminEvents.createAdminEvent`                 | JWT Cognito                       |
 | `POST /admin/events/{eventId}/photos/uploads` | `adminEvents.createPhotoUploads`               | JWT Cognito                       |
 
+Rutas adicionales vigentes de `adminEvents`: `PATCH /admin/events/{eventId}`,
+`GET /admin/events/{eventId}/photos`,
+`DELETE /admin/events/{eventId}/photos/{photoId}` y
+`DELETE /admin/events/{eventId}`; todas usan JWT Cognito. El correo manual usa
+`POST /admin/events/{eventId}/gallery-emails` y
+`GET /admin/events/{eventId}/gallery-emails/{operationId}` (spec 20); el enlace
+compartido conserva el contrato de capacidad de la spec 22.
+
 Contratos exactos en `src/shared/types/api.ts`. Ningún error expone datos
 internos: toda respuesta de error sigue `{ code, message, requestId }`
 (`ApiError`).
 
 ### Modelo de datos (tabla única DynamoDB)
 
-| Entidad                | `PK`                   | `SK`                   | Índice                                                                 |
-| ---------------------- | ---------------------- | ---------------------- | ---------------------------------------------------------------------- |
-| Evento                 | `EVENT#{eventId}`      | `METADATA`             | `GSI2`: `ENTITY#EVENT` / `{date}#{eventId}` (listado admin sin `Scan`) |
-| Registro (inscripción) | `EVENT#{eventId}`      | `REG#{registrationId}` | —                                                                      |
-| Foto de evento         | `EVENT#{eventId}`      | `PHOTO#{photoId}`      | —                                                                      |
-| Coincidencia           | `REG#{registrationId}` | `MATCH#{photoId}`      | —                                                                      |
-| Token de galería       | `TOKEN#{tokenHash}`    | `METADATA`             | —                                                                      |
-| Rostro → registro      | —                      | —                      | `GSI1`: `FACE#{faceId}` / `REG#{registrationId}`                       |
+| Entidad                   | `PK`                        | `SK`                     | Índice                                                                 |
+| ------------------------- | --------------------------- | ------------------------ | ---------------------------------------------------------------------- |
+| Evento                    | `EVENT#{eventId}`           | `METADATA`               | `GSI2`: `ENTITY#EVENT` / `{date}#{eventId}` (listado admin sin `Scan`) |
+| Registro (inscripción)    | `EVENT#{eventId}`           | `REG#{registrationId}`   | —                                                                      |
+| Foto de evento            | `EVENT#{eventId}`           | `PHOTO#{photoId}`        | —                                                                      |
+| Coincidencia              | `REG#{registrationId}`      | `MATCH#{photoId}`        | —                                                                      |
+| Espejo foto → inscripción | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}` | — (acceso inverso sin Scan, ADR-022)                                   |
+| Token de galería          | `TOKEN#{tokenHash}`         | `METADATA`               | —                                                                      |
+| Rostro → registro         | —                           | —                        | `GSI1`: `FACE#{faceId}` / `REG#{registrationId}`                       |
 
 `toEpochSeconds` calcula el atributo `ttl` de purga por retención; los
 constructores de clave están en `src/shared/lib/dynamoKeys.ts` y tienen
@@ -176,6 +185,22 @@ proyecto (issue #70, capítulo 2) lo corrigió para consultar `GSI2` igual que
 el listado de administración, filtrando en memoria los eventos cuya
 `createdAt + retentionDays` ya venció. El análisis de la issue #49 señaló el
 `Scan` original como riesgo; queda resuelto, no pendiente.
+
+### Borrado por lotes y elegibilidad de fotografía
+
+`adminEvents.deleteEventPhoto` consulta por páginas la partición de espejos,
+borra matches y espejos en lotes de 25 con `BatchWriteCommand`, reintenta
+`UnprocessedItems`, elimina el objeto S3 y deja un tombstone `deletedAt` sin
+`s3Key`, `fileName` ni `uploadedAt` (ADR-024). El timeout de la Lambda es 60 s.
+No desaparece necesariamente la fila `PHOTO#`: el marcador evita que un
+reintento de subida reutilice una operación ya borrada.
+
+`writeMatch` (`src/lambdas/lib/matching.ts`) escribe match y espejo en una misma
+transacción y comprueba inscripción elegible y existencia de la foto. Su
+`ConditionCheck` de foto sólo contiene `attribute_exists(PK)`: no exige
+`attribute_not_exists(deletedAt)` ni TTL lógico vigente. Ese límite actual se
+registra como riesgo pendiente en la issue #166, sin generalizar el benchmark
+anterior a los tombstones (capítulos 8 y 9).
 
 ### Claves de objeto S3
 
@@ -217,13 +242,13 @@ el capítulo 8 y en `docs/runbooks/issue-70-aws-review.md`.
 
 ### Flujos de secuencia
 
-Los siguientes diagramas muestran el orden exacto de llamadas entre
-componentes para cada recorrido de negocio, no sólo qué servicios
-intervienen. La mayoría están verificados contra AWS real en el run de
-aceptación de PR #71 (capítulo 8); el backfill de matching (issue #87) tiene
-su propio run de aceptación AWS real, independiente y posterior (2026-10-14,
-capítulo 8); el de purga es la única excepción, cuyo disparo real por
-`EventBridge Scheduler` sigue pendiente (capítulo 9).
+Los siguientes diagramas muestran el orden exacto de llamadas entre componentes
+para cada recorrido de negocio, no sólo qué servicios intervienen. La mayoría
+están verificados contra AWS real en el run de aceptación de PR #71 (capítulo
+8); el backfill de matching (issue #87) tiene su propio run de aceptación AWS
+real, independiente y posterior (2026-10-14, capítulo 8). La purga programada ya
+tiene evidencia de disparo real por `EventBridge Scheduler` (PR #84, run
+`36991833773`) y recuperación ante fallo parcial (PR #123); no sigue pendiente.
 
 **Inscripción pública e indexación facial** (ADR-011 vigente, ADR-014 — no
 confundir con el ADR-011 histórico posterior, nota de numeración más arriba):
@@ -271,16 +296,16 @@ sequenceDiagram
     O->>S: PUT foto (.photo.jpg)
     S--)Q: Evento S3 ObjectCreated
     Q->>PM: Lote de hasta 5 mensajes
+    PM->>R: IndexFaces (foto, rostros temporales)
     loop por cada rostro detectado
-        PM->>R: IndexFaces (temporal)
         PM->>R: SearchFaces por FaceId
         opt FaceId aún no visible (hasta 4 reintentos, 200-2000ms)
             PM->>R: SearchFaces (reintento)
         end
         PM->>D: Query GSI1 (FACE#{faceId})
-        PM->>D: PutItem condicional (MATCH#, idempotente)
-        PM->>R: DeleteFaces (limpieza del temporal)
+        PM->>D: TransactWrite: MATCH# + espejo, inscripción elegible y foto existente
     end
+    PM->>R: DeleteFaces (limpieza de todos los temporales, finally)
     alt fallo 3 veces
         Q->>DLQ: Redirección automática (maxReceiveCount=3)
         Note over DLQ: Dispara la alarma CloudWatch → SNS
@@ -319,7 +344,7 @@ sequenceDiagram
     RB->>D: Query PK=EVENT#{id}, SK begins_with PHOTO# (página de 25, sin Scan)
     loop por cada foto de la página
         RB->>R: matchPhoto (mismo núcleo que photoMatcher)
-        RB->>D: PutItem condicional (MATCH#, idempotente)
+        RB->>D: TransactWrite: MATCH# + espejo, inscripción elegible y foto existente
     end
     opt quedan más páginas
         RB->>QB: SendMessage (continuación con cursor)
@@ -367,7 +392,7 @@ sequenceDiagram
     GL-->>B: 404 (token ya no existe)
 ```
 
-**Purga por retención** (spec 09; disparo real por Scheduler pendiente):
+**Purga por retención** (spec 09; Scheduler real y recuperación verificados):
 
 ```mermaid
 sequenceDiagram

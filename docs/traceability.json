@@ -358,6 +358,10 @@
         {
           "file": "docs/evidence/issue-18-paper-runbook.md",
           "environment": "static"
+        },
+        {
+          "file": "docs/evidence/2026-10-23-code-truth-sync.md",
+          "environment": "static"
         }
       ],
       "documentation": ["docs/README.md", "README.md"]

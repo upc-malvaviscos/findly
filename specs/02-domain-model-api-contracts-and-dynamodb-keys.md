@@ -179,9 +179,13 @@ POST `/admin/events/{eventId}/gallery-emails` acepta `{ operationId: UUID }` y
 responde 202. GET de esa ruta con `/{operationId}` muestra RUNNING, COMPLETED o
 STALLED (sin avance durante diez minutos) y contadores sin destinatarios.
 Cognito/JWT protege ambas rutas; el módulo se habilita explícitamente por entorno.
-La issue #49 sigue abierta; el acuerdo de #86 no cierra su análisis global.
+La issue #49 está cerrada; ADR-022 confirma DynamoDB y su benchmark está documentado.
 
-## Revisión del inventario de persistencia — 2026-10-05
+## Revisión histórica del inventario de persistencia — 2026-10-05
+
+Estado vigente 2026-10-23: ADR-022, backfill y espejo están implementados;
+Las issues #49/#87/#89 cerradas. El análisis inferior conserva las alternativas de su
+fecha. #166 sigue el riesgo actual tombstone/TTL lógico, sin migración RDS.
 
 El [análisis actualizado de #49](../docs/evidence/issue-49-dynamodb-vs-rds-analysis.md)
 contrasta las 12 issues abiertas de la instantánea con las claves y handlers

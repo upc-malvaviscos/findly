@@ -35,8 +35,10 @@ ADR-014 (selfies inmutables), ADR-015 (colecciones por entorno), ADR-022
 (confirma DynamoDB y fija el contrato de acceso inverso foto→match que esta
 spec consume).
 
-La issue #49 permanece abierta (benchmark de convergencia pendiente); esta
-spec no depende de su cierre, sólo del contrato de acceso que ADR-022 ya fijó.
+La issue #49 está cerrada tras su benchmark AWS y ADR-022 sigue vigente.
+Esta spec está implementada y #89 cerrada; el riesgo posterior del tombstone
+de #121 frente al matching se sigue por separado en #166. No se extrapolan
+las carreras históricas a todos los estados del código actual.
 
 ## Decisiones de diseño (acordadas antes de implementar)
 

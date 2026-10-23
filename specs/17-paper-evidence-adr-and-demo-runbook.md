@@ -63,12 +63,15 @@ DynamoDB y su benchmark de fan-out real (issue #49, PR #141), el correo de
 galería (issue #86, PR #142), el matching convergente (issue #87, PR 129 y 139) y la edición/borrado administrativo de eventos y fotos (issue #89, PR
 120, 147 y 148) — además de las issues #70, #98, #105 y #121, cerradas en
 el mismo periodo. Esta sincronización documenta también dos
-hallazgos reales sin corregir que la investigación de la issue #49 dejó
-explícitos (timeout de borrado con alto fan-out y una ventana de carrera en
-`writeMatch`) como trabajo futuro, no como defectos ocultos. Evidencia:
+hallazgos históricos de #49 (timeout y ausencia física de foto), corregidos
+en PR #143/#144. La revisión del 2026-10-23 distingue esas correcciones del
+riesgo posterior de tombstone/TTL lógico (#166) y corrige el cierre de #98:
+falta recepción/apertura en un segundo proveedor. Outbox permanece futuro. Evidencia:
 [`docs/evidence/issue-18-paper-runbook.md`](../docs/evidence/issue-18-paper-runbook.md).
 Esta issue se cierra con esta entrega.
 
 <!-- requirement: REQ-PAPER-RUNBOOK -->
 
 Trazabilidad `REQ-PAPER-RUNBOOK`: [#18](https://github.com/upc-malvaviscos/findly/issues/18) · [evidencia](../docs/evidence/issue-18-paper-runbook.md).
+
+Instantánea vigente: [sincronización del 2026-10-23](../docs/evidence/2026-10-23-code-truth-sync.md).

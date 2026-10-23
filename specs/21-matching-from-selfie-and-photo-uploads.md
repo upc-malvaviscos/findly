@@ -29,8 +29,10 @@ real de colecciones si esa otra colección existe de verdad (una colección
 ausente rechaza `IndexFaces` con `ResourceNotFoundException`, lo que daría un
 falso positivo si el otro evento no tuviera ninguna selfie inscrita). Los
 nueve criterios de aceptación de la issue quedan acreditados con AWS real. El
-benchmark de coste/capacidad que ADR-022 exige para cerrar #49 sigue
-pendiente — es un entregable propio de #49, no de esta spec.
+benchmark de fan-out de #49 se ejecutó el 2026-10-16 y esa issue está
+cerrada; ver su evidencia. El envío del backfill sigue siendo best-effort,
+sin Transactional Outbox. El riesgo posterior entre tombstone de foto y
+condición de existencia se sigue en #166, no se presenta como resuelto.
 
 ## Alineación con AWS Well-Architected Framework
 

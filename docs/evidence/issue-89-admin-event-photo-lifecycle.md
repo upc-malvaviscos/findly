@@ -2,6 +2,23 @@
 
 <!-- requirement: REQ-ADMIN-EVENT-PHOTO-LIFECYCLE -->
 
+## Síntesis vigente — 2026-10-23
+
+Implementado y desplegado según confirmación del responsable, sobre el código
+`7fc0376`. #89 está cerrada. El bloque inicial de validación local y las
+secciones fechadas inferiores conservan las fases históricas; las aceptaciones
+AWS posteriores verifican lotes de 25 con `BatchWriteCommand`, reintento de
+`UnprocessedItems`, timeout de 60 s, existencia física de foto, edición,
+paginación, JWT y retención prospectiva.
+
+No generalizar la aceptación de PR #144 a todos los estados actuales: después,
+la issue #121 introdujo un tombstone `deletedAt` que conserva PK. La condición
+`attribute_exists(PK)` de `writeMatch` no comprueba ese atributo ni TTL lógico.
+La galería omite filas sin `s3Key`, pero eso no prueba ausencia de nuevos
+matches/espejos huérfanos. Seguimiento del riesgo por revisión de código:
+[#166](https://github.com/upc-malvaviscos/findly/issues/166). No se reabre la
+entrega histórica ni se afirma una reproducción AWS nueva. Véase la [auditoría del 2026-10-23](2026-10-23-code-truth-sync.md).
+
 Implementación de la spec [23](../../specs/23-admin-event-and-photo-lifecycle.md)
 ([issue #89](https://github.com/upc-malvaviscos/findly/issues/89)).
 

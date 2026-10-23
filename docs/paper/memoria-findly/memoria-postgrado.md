@@ -45,6 +45,15 @@ Imágenes: ![Pie](img/archivo.png){#fig:id}
 Regenerar diagramas: make diagrams (requiere graphviz y el venv de requirements.txt)
 -->
 
+# Estado de referencia de esta memoria
+
+Revisión documental: 23 de octubre de 2026. La descripción técnica se contrasta
+con el código de `main` en `7fc0376` y sus pruebas y evidencias del repositorio.
+El responsable confirma que ese código está desplegado; esa confirmación
+operativa no equivale a repetir todos los ensayos históricos en producción. Los
+resultados que siguen identifican sus escenarios y fechas, y no se extrapolan a
+garantías de rendimiento ni a todas las carreras concurrentes.
+
 # Introducción
 
 ## Contexto y problema
@@ -100,12 +109,13 @@ borrado de los propios datos:
 
 Estas capacidades se validan contra un conjunto de métricas de éxito
 cuantitativas (sección de requisitos no funcionales), se limitan a una única
-región de AWS y se diseñan desde el principio para operar dentro de los
-límites de la capa gratuita o de un presupuesto de demostración acotado, sin
-ningún componente de coste fijo por hora. Todas las imágenes usadas durante
-el desarrollo y las pruebas son sintéticas o han sido aportadas con
-autorización explícita del equipo: en ningún momento se han tratado
-fotografías reales de terceros sin consentimiento.
+región de AWS y se diseñan desde el principio para operar dentro de los límites
+de la capa gratuita o de un presupuesto de demostración acotado, sin capacidad
+de cómputo o red dedicada. El almacenamiento retenido y las alarmas pueden
+generar consumo sin tráfico. Todas las imágenes usadas durante el desarrollo y
+las pruebas son sintéticas o han sido aportadas con autorización explícita del
+equipo: en ningún momento se han tratado fotografías reales de terceros sin
+consentimiento.
 
 ## Elementos excluidos del alcance
 
@@ -174,48 +184,56 @@ aspiración sin forma de comprobarse:
 
 : Matriz de métricas de éxito del MVP {#tbl:metricas}
 
-Más allá de estos umbrales cuantitativos, el proyecto adopta explícitamente
-los seis pilares del AWS Well-Architected Framework como marco de diseño, no
-como una lista de buenas intenciones genéricas: cada decisión de arquitectura
-documentada a lo largo de esta memoria está asociada a uno o varios pilares
-concretos.
+Estos umbrales son objetivos. El umbral de similitud del 95 % no es una
+precisión estadística del 95 %. La aceptación AWS de #87 midió históricamente
+5,8–10,2 s hasta `ENROLLED`, por encima del objetivo < 3 s; no hay una campaña
+de carga que acredite p95 < 500 ms o > 98 % de éxito agregado. El borrado y el
+matching están demostrados en escenarios específicos, sin extrapolarlos al 100 %
+de todos los casos ni a una factura completa dentro del presupuesto.
 
-- **Excelencia operativa.** La base del repositorio estandariza linting,
-  tipado estricto en TypeScript y un conjunto único de scripts de
-  verificación que se ejecutan igual en local y en integración continua;
-  las puertas de calidad automatizadas combinan comprobaciones de tipos,
-  pruebas unitarias, pruebas de extremo a extremo y validación de
-  infraestructura como código en trabajos paralelos, y un runbook de
-  demostración ejecutable paso a paso documenta cómo operar el sistema.
-- **Seguridad.** Es, con diferencia, el pilar con más decisiones asociadas:
-  el alcance excluye desde el inicio datos de menores y vigilancia masiva;
-  el acceso a los buckets de almacenamiento está bloqueado a nivel de
-  servicio y sólo se concede mediante URLs firmadas de vida corta; la
-  identidad de los organizadores se gestiona con un proveedor de identidad
-  gestionado y el autorizador de tokens se valida en la propia puerta de
-  entrada de la API, no dentro de cada función; y la integración entre
-  GitHub Actions y AWS se autentica mediante un protocolo de identidad
-  federada sin ninguna clave de acceso de larga duración almacenada como
-  secreto.
+Más allá de estos umbrales cuantitativos, el proyecto adopta explícitamente los
+seis pilares del AWS Well-Architected Framework como marco de diseño, no como
+guía para decisiones concretas de arquitectura. Esta correspondencia no
+constituye una certificación ni una revisión formal completa de AWS
+Well-Architected; los resultados y límites de verificación se distinguen de los
+objetivos de diseño.
+
+- **Excelencia operativa.** La base del repositorio estandariza linting, tipado
+  estricto en TypeScript y un conjunto único de scripts de verificación que se
+  ejecutan igual en local y en integración continua; las puertas de calidad
+  automatizadas combinan comprobaciones de tipos, pruebas unitarias, pruebas de
+  extremo a extremo y validación de infraestructura como código en trabajos
+  paralelos, y un runbook de demostración ejecutable paso a paso documenta cómo
+  operar el sistema.
+- **Seguridad.** Es, con diferencia, el pilar con más decisiones asociadas: el
+  alcance excluye desde el inicio datos de menores y vigilancia masiva; el
+  acceso a los buckets de almacenamiento está bloqueado a nivel de servicio y
+  sólo se concede mediante URLs firmadas de vida corta; la identidad de los
+  organizadores se gestiona con un proveedor de identidad gestionado y el
+  autorizador de tokens se valida en la propia puerta de entrada de la API, no
+  dentro de cada función; y la integración entre GitHub Actions y AWS se
+  autentica mediante un protocolo de identidad federada sin ninguna clave de
+  acceso de larga duración almacenada como secreto.
 - **Fiabilidad.** La ingesta de fotografías se desacopla mediante una cola de
-  mensajería con una cola de mensajes fallidos, de modo que un pico de
-  carga o un fallo transitorio no provocan pérdida de mensajes; el
-  procesamiento de cada rostro es idempotente ante reintentos.
-- **Eficiencia del rendimiento.** El modelo de datos usa una única tabla con
-  un diseño de tabla única y un índice secundario global que permite
-  resolver en tiempo constante la pregunta "¿qué registro corresponde a
-  este rostro?", sin recurrir nunca a un recorrido completo de la tabla.
-- **Optimización de costes.** Ningún componente de la arquitectura tiene un
-  coste fijo por hora: el cómputo, la base de datos, el almacenamiento, la
-  pasarela de API y el reconocimiento facial se facturan por uso real, y un
-  presupuesto con alertas automáticas vigila que el gasto mensual no supere
-  el umbral fijado para cada entorno.
+  mensajería con una cola de mensajes fallidos, de modo que un pico de carga o
+  un fallo transitorio no provocan pérdida de mensajes; el procesamiento de cada
+  rostro es idempotente ante reintentos.
+- **Eficiencia del rendimiento.** El modelo de datos usa una única tabla con un
+  diseño de tabla única y un índice secundario global que permite resolver
+  mediante un índice la pregunta "¿qué registro corresponde a este rostro?", sin
+  recurrir nunca a un recorrido completo de la tabla.
+- **Optimización de costes.** No se aprovisionan servidores, RDS ni NAT. El
+  cómputo y las peticiones escalan con el uso; el almacenamiento retenido y las
+  alarmas pueden facturar sin tráfico. AWS Budgets configura una alerta al 80 %
+  del presupuesto, no un límite de gasto ni una parada automática. La entrega
+  SNS está verificada; no se ha observado el disparo propio de Budgets ni se
+  acredita aquí una factura completa del sistema.
 - **Sostenibilidad.** Al facturar y ejecutar por petición, la arquitectura no
   mantiene capacidad de cómputo reservada e infrautilizada a la espera de
-  tráfico, a diferencia de un servidor encendido permanentemente; los
-  entornos de prueba se destruyen por completo al finalizar cada ejecución
-  de integración continua, de modo que no queda infraestructura ociosa entre
-  una comprobación y la siguiente.
+  tráfico, a diferencia de un servidor encendido permanentemente; los entornos
+  de prueba se destruyen por completo al finalizar cada ejecución de integración
+  continua, de modo que no queda infraestructura ociosa entre una comprobación y
+  la siguiente.
 
 ## Gestión interna del proyecto
 
@@ -556,19 +574,18 @@ ni detalles de implementación al navegador.
 
 ### DynamoDB
 
-El modelo de datos de Findly usa una única tabla de base de datos no
-relacional, con un diseño de tabla única: eventos, inscripciones,
-fotografías, coincidencias y tokens de galería conviven en la misma tabla,
-diferenciados por el prefijo de sus claves de partición y de ordenación. Un
-índice secundario global permite resolver en tiempo constante la pregunta
-"¿a qué inscripción corresponde este rostro indexado?" sin tener que
-recorrer la tabla entera, y un segundo índice permite listar los eventos de
-un organizador ordenados por fecha sin necesidad de un recorrido completo
-tampoco para esa consulta. Ninguna función de la aplicación ejecuta un
-recorrido completo de la tabla: la primera versión de la función de purga
-por retención sí lo hacía, y se corrigió para usar el mismo índice de
-eventos que ya empleaba el listado de administración, filtrando en memoria
-únicamente los eventos cuyo periodo de retención ya ha vencido.
+El modelo de datos de Findly usa una única tabla de base de datos no relacional,
+con un diseño de tabla única: eventos, inscripciones, fotografías, coincidencias
+y tokens de galería conviven en la misma tabla, diferenciados por el prefijo de
+sus claves de partición y de ordenación. Un índice secundario global permite
+resolver mediante un índice la pregunta "¿a qué inscripción corresponde este
+rostro indexado?" sin tener que recorrer la tabla entera, y un segundo índice
+permite listar los eventos de un organizador ordenados por fecha sin necesidad
+de un recorrido completo tampoco para esa consulta. Ninguna función de la
+aplicación ejecuta un recorrido completo de la tabla: la primera versión de la
+función de purga por retención sí lo hacía, y se corrigió para usar el mismo
+índice de eventos que ya empleaba el listado de administración, filtrando en
+memoria únicamente los eventos cuyo periodo de retención ya ha vencido.
 
 ### Buckets S3 privados y URLs prefirmadas
 
@@ -818,17 +835,18 @@ relajar privilegios IAM ni alterar la configuración de Cognito en producción. 
 20 de octubre se confirmó la recepción de la clave temporal por los usuarios y
 su acceso exitoso al sistema en producción, cerrando los criterios de la issue #105.
 
-Esta verificación empírica de extremo a extremo permitió dar por satisfechos
-todos los criterios de la especificación 20. La
+Esta verificación empírica de extremo a extremo respaldó la implementación del
+envío manual de la especificación 20; la aceptación de dos proveedores
+independientes conserva su propio criterio pendiente en #98. La
 [PR #142](https://github.com/upc-malvaviscos/findly/pull/142) sincronizó la
 documentación formal y evidencias, superó los nueve checks obligatorios de CI
 (incluyendo el entorno efímero de despliegue y destrucción) y se integró en la
-rama principal, cerrando formalmente la issue #86. La issue #98 permanece
-abierta para el seguimiento de entregabilidad a largo plazo con dos proveedores
-independientes (Google Workspace y Microsoft 365), y la issue #49 continúa
-abierta de acuerdo con la gobernanza arquitectural del proyecto. No se
-publican direcciones de prueba, tokens, enlaces privados, credenciales ni
-datos biométricos reales como evidencia.
+rama principal, cerrando formalmente la issue #86. La issue #49 está cerrada con
+ADR-022 y benchmark AWS. #98 se cerró inicialmente con nueve escenarios de
+resiliencia y recepción real en un buzón corporativo autorizado; esta revisión
+la reabre porque esa evidencia no satisface el criterio de dos proveedores
+independientes. No se publican direcciones de prueba, tokens, enlaces privados,
+credenciales ni datos biométricos reales como evidencia.
 
 ## Minimización y retención de datos
 
@@ -958,43 +976,75 @@ entre una comprobación y la siguiente.
 A lo largo de esta memoria, cada pilar del AWS Well-Architected Framework se
 ha traducido en acciones concretas, no en una declaración de intenciones:
 
-- **Excelencia operativa**: un único conjunto de comprobaciones de calidad
-  se ejecuta igual en local y en integración continua, y una auditoría de
-  cierre independiente —más allá de los propios checks automáticos— resultó
-  necesaria para confirmar que el trabajo dado por terminado realmente lo
-  estaba.
-- **Seguridad**: ningún almacenamiento es público, ninguna credencial de AWS
-  de larga duración se almacena como secreto, cada función de cómputo
-  dispone de los permisos mínimos para su propia tarea, y la identidad de
-  los organizadores se separa completamente de la capacidad de acceso de los
-  asistentes.
-- **Fiabilidad**: la ingesta de fotografías está desacoplada mediante una
-  cola de mensajería con cola de mensajes fallidos, y las operaciones más
-  sensibles del sistema —el borrado de datos de un asistente— se diseñaron
-  para ser repetibles sin error ante un fallo parcial.
-- **Eficiencia del rendimiento**: el modelo de datos resuelve en tiempo
-  constante las dos consultas más frecuentes del sistema —qué inscripción
-  corresponde a un rostro y qué eventos administra un organizador— sin
-  recorrer nunca la tabla completa.
-- **Optimización de costes**: ningún componente de la arquitectura tiene un
-  coste fijo por hora, y un presupuesto automático con alertas vigila el
-  gasto real en todo momento.
+- **Excelencia operativa**: un único conjunto de comprobaciones de calidad se
+  ejecuta igual en local y en integración continua, y una auditoría de cierre
+  independiente —más allá de los propios checks automáticos— resultó necesaria
+  para confirmar que el trabajo dado por terminado realmente lo estaba.
+- **Seguridad**: ningún almacenamiento es público, ninguna credencial de AWS de
+  larga duración se almacena como secreto, cada función de cómputo dispone de
+  los permisos mínimos para su propia tarea, y la identidad de los organizadores
+  se separa completamente de la capacidad de acceso de los asistentes.
+- **Fiabilidad**: la ingesta de fotografías está desacoplada mediante una cola
+  de mensajería con cola de mensajes fallidos, y las operaciones más sensibles
+  del sistema —el borrado de datos de un asistente— se diseñaron para ser
+  repetibles sin error ante un fallo parcial.
+- **Eficiencia del rendimiento**: el modelo de datos resuelve por clave e índice
+  las dos consultas más frecuentes del sistema —qué inscripción corresponde a un
+  rostro y qué eventos administra un organizador— sin recorrer nunca la tabla
+  completa.
+- **Optimización de costes**: se evita capacidad de cómputo y red dedicada, se
+  usan servicios por petición y se destruyen los entornos efímeros. El
+  almacenamiento y la observabilidad pueden facturar sin tráfico; Budgets
+  alerta, pero no impide superar el presupuesto.
 - **Sostenibilidad**: al facturar y ejecutar por petición, el sistema no
-  mantiene capacidad de cómputo reservada e infrautilizada, y cada entorno
-  de prueba se destruye por completo al terminar de usarse.
+  mantiene capacidad de cómputo reservada e infrautilizada, y cada entorno de
+  prueba se destruye por completo al terminar de usarse.
 
-Dicho esto, esta memoria no presenta el proyecto como una implementación
-cerrada y exenta de limitaciones operativas: aunque los recorridos nucleares,
-el disparo del planificador de retención, las alertas de observabilidad y la
-entrega de correo en producción con autenticación criptográfica estricta han
-sido demostrados en AWS real, persisten límites empíricos concretos. Entre
-ellos: la comprobación de entregabilidad se acota a un único buzón corporativo
-autorizado sin contrastar aún proveedores comerciales externos (como Google
-Workspace o Microsoft 365); el borrado de fotografías bajo escenarios de alto
-volumen de coincidencias incurre en límite de tiempo de ejecución al emplear
-borrado secuencial ítem a ítem; y la descarga directa de ficheros desde URLs
-prefirmadas de S3 presenta incidencias de temporización en motores WebKit
-frente al comportamiento validado en Chromium y Firefox.
+Dicho esto, esta memoria no presenta el proyecto como una implementación cerrada
+y exenta de limitaciones operativas: aunque los recorridos nucleares, el disparo
+del planificador de retención, las alertas de observabilidad y la entrega de
+correo en producción con autenticación criptográfica estricta han sido
+demostrados en AWS real, persisten límites empíricos concretos. Entre ellos: la
+comprobación de entregabilidad se acota a un único buzón corporativo autorizado
+sin contrastar aún proveedores comerciales externos (como Google Workspace o
+Microsoft 365); la descarga directa de ficheros desde URLs prefirmadas de S3
+presenta incidencias de temporización en motores WebKit frente al comportamiento
+validado en Chromium y Firefox; y las carreras concurrentes conservan límites
+específicos que se describen a continuación.
+
+## Hallazgos corregidos y límites actuales de DynamoDB
+
+El benchmark de la PR #141 detectó un timeout real al borrar una foto con 100 o
+1.000 coincidencias y una ventana de escritura de matches tardíos. Estos
+hallazgos ya no son tareas pendientes: las PR #143/#144 elevaron el timeout de
+`delete_photo` de 3 a 60 segundos, agruparon el borrado en `BatchWriteCommand`
+de hasta 25 ítems con reintento de `UnprocessedItems`, y añadieron a
+`writeMatch` una precondición transaccional `attribute_exists(PK)` sobre la fila
+de la foto. Las pruebas se encuentran en `tests/lambdas/adminEvents.test.ts`,
+`photoMatcher.test.ts` y `registrationBackfillMatching.test.ts`.
+
+La aceptación AWS combinada del 16 de octubre registró respuestas `204` en 2.020
+ms para 100 matches y 3.082 ms para 1.000, con cero huérfanos en esos
+escenarios; tampoco sobrevivieron el match y su espejo en la carrera
+subida/borrado ejercitada. No es un percentil de carga ni una garantía para
+cualquier volumen. Las PR #146/#147/#148 completaron la aceptación de edición,
+paginación, borrado y cierre administrativos. La evidencia y sus runs se
+conservan en `docs/evidence/issue-89-admin-event-photo-lifecycle.md`.
+
+El código actual incorpora además ADR-024 (#121): al borrar una foto deja una
+marca `deletedAt` o _tombstone_, elimina `s3Key`, `fileName` y `uploadedAt`, y
+conserva el TTL existente; así un reintento de la operación de subida no recrea
+silenciosamente la foto. Por ello, existir en DynamoDB no equivale a ser una
+foto activa: la condición de `writeMatch` sólo exige existencia y no comprueba
+`deletedAt`. El ensayo histórico anterior al tombstone no demuestra esa nueva
+combinación concurrente. Queda por reforzar/verificar la coordinación entre
+tombstones, TTL lógico de foto y matching tardío (issue #166), así como las
+carreras específicas de borrado de evento con backfill y correo en curso. No se
+afirma que todas las carreras estén resueltas.
+
+ADR-022 confirma DynamoDB e ítem espejo como decisión vigente; no hay una
+migración a RDS pendiente. Estos límites son de protocolo de escritura y
+recuperación, no evidencia de que cambiar de motor los resuelva.
 
 ## Mejoras para una fase II
 
@@ -1003,38 +1053,37 @@ Una continuación natural del proyecto debería, por orden de prioridad:
 1. **Adopción del patrón _Transactional Outbox_ para resolver las escrituras
    dobles**: En la arquitectura actual existen dos flujos críticos donde una
    función sin servidor persiste un cambio en DynamoDB e intenta inmediatamente
-   encolar un mensaje en Amazon SQS: la transición a `ENROLLED` en la
-   indexación de selfies (que debe disparar el proceso de _backfill_ contra las
-   fotos ya existentes del evento) y la solicitud de envío masivo de correos de
-   galería (que crea el registro de operación antes de encolar el trabajo). Si
-   la llamada a SQS falla tras haberse confirmado la escritura en DynamoDB —por
-   un fallo transitorio de red, limitación de tasa o interrupción de la
-   función—, se produce una inconsistencia de escritura doble: la inscripción
-   queda en `ENROLLED` pero el _backfill_ se omite silenciosamente al ser
-   tratado como un esfuerzo secundario (_best-effort_), o la operación de
-   correo queda en estado `RUNNING` delegando su recuperación exclusivamente en
-   que el cliente reintente la petición. La implementación del patrón
-   _Transactional Outbox_ mediante Amazon DynamoDB Streams y Amazon EventBridge
-   Pipes permitiría escribir el evento en la misma transacción atómica de
-   DynamoDB y desacoplar la emisión del mensaje hacia SQS con garantías de
-   entrega _at-least-once_, eliminando estas ventanas de incoherencia sin añadir
-   costes fijos.
-2. **Optimización del borrado masivo y consistencia ante carreras en DynamoDB**:
-   paginar y procesar en lotes (`BatchWriteItem`) el borrado de coincidencias
-   e ítems espejo al eliminar una fotografía, incrementando el tiempo límite
-   de la función sin servidor para prevenir tiempos de espera agotados bajo
-   alto _fan-out_, e incorporar una precondición en la creación de
-   coincidencias que verifique la persistencia activa de la foto objetivo,
-   impidiendo que ejecuciones desfasadas de _backfill_ revivan coincidencias
-   sobre imágenes ya suprimidas.
-3. **Verificación de entregabilidad multicanal con proveedores externos**:
+   encolar un mensaje en Amazon SQS: la transición a `ENROLLED` en la indexación
+   de selfies (que debe disparar el proceso de _backfill_ contra las fotos ya
+   existentes del evento) y la solicitud manual de envío de correos de galería
+   (que crea el registro de operación antes de encolar el trabajo). Si la
+   llamada a SQS falla tras haberse confirmado la escritura en DynamoDB —por un
+   fallo transitorio de red, limitación de tasa o interrupción de la función—,
+   se produce una inconsistencia de escritura doble: la inscripción queda en
+   `ENROLLED` pero el _backfill_ se omite silenciosamente al ser tratado como un
+   esfuerzo secundario (_best-effort_), o la operación de correo queda en estado
+   `RUNNING` delegando su recuperación exclusivamente en que el cliente
+   reintente la petición. La implementación del patrón _Transactional Outbox_
+   mediante Amazon DynamoDB Streams y Amazon EventBridge Pipes permitiría
+   escribir el evento en la misma transacción atómica de DynamoDB y desacoplar
+   la emisión del mensaje hacia SQS con garantías de entrega _at-least-once_,
+   reduciendo estas ventanas de incoherencia. La adopción de Streams/Pipes es
+   una propuesta pendiente de ADR y de evaluación de coste y recuperación; el
+   consumidor seguiría necesitando idempotencia ante duplicados.
+2. **Coordinación de borrado con trabajo concurrente**: verificar y reforzar la
+   elegibilidad de la foto en `writeMatch` frente a `deletedAt`, porque la
+   precondición existente sólo comprueba que la fila exista. Añadir evidencia
+   dedicada de borrado de evento mientras hay backfill o correo en curso. El
+   borrado por lotes, sus reintentos y el timeout de 60 s ya están implementados
+   y desplegados; no se proponen de nuevo como Fase II.
+3. **Verificación de entregabilidad multiproveedor**:
    extender la aceptación del servicio de correo transaccional de galerías
    verificando la llegada efectiva a la bandeja de entrada y la ausencia de
-   desvíos a correo no deseado en cuentas gestionadas por al menos dos
-   proveedores independientes adicionales (Google Workspace y Microsoft 365).
+   desvíos a correo no deseado en cuentas gestionadas por dos proveedores independientes, manteniendo el criterio de #98; la
+   prueba existente no acredita por sí sola esa diversidad.
 4. **Unificación de contratos HTTP ante recursos expirados**: armonizar el
-   código de respuesta (`404 Not Found` frente a `410 Gone`) entre los puntos
-   de entrada de inscripción pública y carga administrativa de fotografías ante
+   código de respuesta (`404 Not Found` frente a `410 Gone`) entre los puntos de
+   entrada de inscripción pública y carga administrativa de fotografías ante
    eventos cerrados o con retención vencida, acordando un criterio semántico
    único en la especificación de la API.
 5. **Migración formal de colecciones faciales heredadas**: decidir y documentar
@@ -1048,8 +1097,8 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    DynamoDB.
 7. Fuera del alcance de este trabajo académico y sin planificación prevista
    quedan, de forma deliberada: una revisión legal formal de protección de
-   datos, campañas de marketing por correo o SMS, el escalado a más de un
-   evento concurrente, y la operación en producción con soporte continuo.
+   datos, campañas de marketing por correo o SMS, el escalado a más de un evento
+   concurrente, y la operación en producción con soporte continuo.
 
 # Referencias
 

@@ -185,4 +185,6 @@ acreditó la recepción real de la galería privada en el buzón autorizado
 `info@findly.barcelona`, la apertura del enlace HTTPS y la verificación de
 cabeceras autenticadas (SPF: pass, DKIM: pass, DMARC: pass, carpeta inbox) sin
 registros de spam. Con estos resultados, los requisitos de implementación de la
-issue #86 y de configuración/entregabilidad de la issue #98 quedan completados y cerrados.
+issue #86 quedan completados. #98 se cerró históricamente, pero la auditoría
+del 2026-10-23 la reabre: falta recepción con cabeceras y apertura en un
+segundo proveedor. SPF/DKIM/DMARC pass no sustituyen esa evidencia.

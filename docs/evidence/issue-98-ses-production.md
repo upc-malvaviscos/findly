@@ -2,6 +2,18 @@
 
 <!-- requirement: REQ-PRODUCTION-DOMAIN -->
 
+## Corrección de alcance vigente — 2026-10-23
+
+El código actual está desplegado según confirmación del responsable. La
+evidencia disponible acredita configuración, nueve escenarios AWS sintéticos y
+recepción/apertura en **un buzón** (`single-recipient` 38955016584).
+SPF/DKIM/DMARC correctos no acreditan recepción en otro proveedor. Se corrige
+la conclusión del cierre histórico inferior: #98 se reabre y su criterio de
+dos proveedores queda sin marcar hasta aportar la segunda recepción con
+cabeceras y apertura. #86 conserva su cierre de implementación.
+
+No se han enviado mensajes ni ejecutado AWS en esta auditoría. Véase la [auditoría del 2026-10-23](2026-10-23-code-truth-sync.md).
+
 ## Alcance y autorización — 2026-10-04
 
 Seguimiento de #86, spec 20 y ADR-019/ADR-020. El responsable autorizó el plan,
@@ -632,17 +644,17 @@ acreditó la entrega transaccional en el buzón autorizado `info@findly.barcelon
 
 Con esta evidencia, los criterios de implementación de la issue #86 quedaron completados y cerrados.
 
-### Cierre de la issue #98 — 2026-10-19
+### Cierre histórico de la issue #98 — 2026-10-19 (corregido el 2026-10-23)
 
-Todos los criterios de aceptación de la issue #98 han sido verificados satisfactoriamente:
+El cierre histórico enumeró los siguientes resultados; el punto 6 no acredita el criterio multiproveedor y la conclusión global se corrige en esta revisión:
 
 1. **Identidad regional y DNS**: Dominio `findly.barcelona` verificado en Amazon SES `eu-west-1`. Easy DKIM (claves RSA de 2048 y 1024 bits), MAIL FROM personalizado (`bounce.findly.barcelona`) con SPF y alineación DMARC (`p=reject`/`p=quarantine`) validados en cabeceras de entrega real.
 2. **Acceso de producción**: Fuera del sandbox de SES concedido por AWS, con cuotas regionales registradas (50.000 msgs/día, 14 msgs/s) y envío habilitado.
 3. **Origen HTTPS y certificado**: SPA y API operativas en `https://www.findly.barcelona` con certificado ACM emitido y verificado; ruta `/gallery` interactiva y validación de tokens de galería opacos probada en navegador.
 4. **Seguridad y mínimos privilegios**: Permisos IAM delimitados mediante políticas y boundary en producción; endpoints protegidos con JWT y worker SQS FIFO operando con permisos estrictos de envío y actualización DynamoDB.
 5. **Recuperación y resiliencia**: Ejecución sintética ([run 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)) con 9 escenarios completos en AWS real: recuperación de estados inyectados, idempotencia por UUID, encauzamiento DLQ, rebotes, quejas y omisiones por expiración/borrado.
-6. **Entregabilidad y recepción en buzón real**: Ejecución `single-recipient` ([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)) demostró recepción en bandeja de entrada (`inbox`) de `info@findly.barcelona`, sin clasificación de spam, con `spf: pass`, `dkim: pass`, `dmarc: pass` y apertura verificada del enlace por el usuario. La entregabilidad multiproveedor queda documentada y respaldada por la alineación estricta de estándares SPF/DKIM/DMARC.
+6. **Entregabilidad y recepción en buzón real**: Ejecución `single-recipient` ([run 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)) demostró recepción en bandeja de entrada (`inbox`) de `info@findly.barcelona`, sin clasificación de spam, con `spf: pass`, `dkim: pass`, `dmarc: pass` y apertura verificada del enlace por el usuario. La alineación SPF/DKIM/DMARC respalda la autenticación del mensaje recibido, pero no demuestra entregabilidad en un segundo proveedor; ese criterio permanece pendiente.
 7. **Limpieza e higiene de datos**: Limpieza al 100% verificada sin residuos en DynamoDB ni S3 tras todas las ejecuciones.
 8. **Trazabilidad y gobernanza**: Sincronización completa con ADR-019/020, spec 20, runbooks operativos y memoria de postgrado.
 
-Con todos los criterios acreditados y contrastados con evidencia empírica en AWS, se procede al cierre formal de la issue #98.
+La issue #98 se cerró en esa fecha; la auditoría del 2026-10-23 la reabre por falta de evidencia del segundo proveedor. Se conservan los resultados demostrados y no se repiten envíos en esta revisión.
