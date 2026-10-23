@@ -81,9 +81,11 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   consulta y revalida ausencia de marca y TTL vigente en la transacción,
   verificados localmente con unitarias y Floci. #168 está integrada y supera el
   smoke AWS efímero con teardown. Quedan pendientes los ensayos específicos de
-  carreras/TTL en AWS, la publicación permanente y el borrado de
-  evento con backfill/correo en curso. El detalle histórico y los runs están en
-  [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md).
+  carreras/TTL en AWS, la publicación permanente y los ensayos de borrado de
+  evento con backfill/correo en curso. El detalle histórico está en
+  [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md), y
+  el estado posterior al merge en
+  [la evidencia de #166](../evidence/issue-166-photo-matching-barrier.md).
 - **WebKit no completa la descarga real contra S3, Chromium y Firefox sí.**
   Verificado contra el entorno efímero real (issue #88, PR #130): Chromium y
   Firefox descargan el adjunto con nombre y contenido correctos navegando
