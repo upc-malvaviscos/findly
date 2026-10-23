@@ -996,8 +996,13 @@ AWS efímero superó el recorrido funcional estándar, incluido el borrado de un
 foto con coincidencia y el rechazo de la operación de subida ya eliminada, y
 se destruyeron los 147 recursos gestionados por Terraform. Las pausas
 deterministas antes y durante la barrera y los casos dedicados de TTL lógico
-siguen acreditados por unitarias y Floci, con aceptación AWS específica
-pendiente. Tampoco se acredita un despliegue permanente de esta revisión ni las
+siguen acreditados por unitarias y Floci. Por decisión del responsable del
+23-oct-2026, la aceptación AWS específica se aplaza como mejora de validación
+para una próxima etapa, sin fecha comprometida; #166 permanece abierta con ese
+criterio sin verificar. La corrección ya integrada no se presenta como trabajo
+por implementar ni la validación aplazada como aceptación completa. La
+publicación permanente es una actuación operativa independiente. Tampoco se
+acredita un despliegue permanente de esta revisión ni las
 carreras de borrado de evento con backfill y correo en curso. El ensayo histórico
 anterior al tombstone no acredita esta nueva combinación concurrente. No se
 afirma que todas las carreras estén resueltas.
@@ -1030,13 +1035,20 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    reduciendo estas ventanas de incoherencia. La adopción de Streams/Pipes es
    una propuesta pendiente de ADR y de evaluación de coste y recuperación; el
    consumidor seguiría necesitando idempotencia ante duplicados.
-2. **Aceptación del borrado con trabajo concurrente**: completar en AWS los
-   ensayos deterministas de la barrera y del TTL lógico de la foto. La
-   revalidación de `deletedAt` y caducidad ya está implementada e integrada;
-   tiene pruebas locales y un recorrido funcional estándar en AWS efímero.
-   Quedan aparte su publicación en un entorno permanente y los ensayos de
-   borrado de evento con backfill o correo en curso. El borrado por lotes,
-   sus reintentos y el timeout de 60 s tampoco son capacidades por implementar.
+2. **Ampliación de la aceptación del borrado en una próxima etapa**: se aplazan
+   los ensayos AWS específicos de carreras y TTL lógico de #166, sin fecha
+   comprometida. La barrera `deletedAt` y la revalidación de caducidad ya están
+   implementadas e integradas, con pruebas locales y un recorrido funcional
+   estándar en AWS efímero. Para retomar la validación se propone un arnés con
+   pausas controladas antes y durante el commit, ambos disparadores de matching,
+   TTL vencido con la fila aún presente y recuperación tras fallos parciales.
+   La aceptación deberá comprobar matches y espejos, operación estable y
+   limpieza de recursos, con datos sintéticos, evidencia reproducible y
+   autorización operativa previa. Hasta entonces #166 conserva su criterio AWS
+   pendiente. La publicación permanente se decidirá por separado; los ensayos de
+   borrado completo de evento con backfill o correo en curso son otra línea de
+   mejora, fuera de #166. El borrado por lotes, sus reintentos y el timeout de
+   60 s tampoco son capacidades por implementar.
 3. **Verificación de entregabilidad multiproveedor**:
    extender la aceptación del servicio de correo transaccional de galerías
    verificando la llegada efectiva a la bandeja de entrada y la ausencia de
