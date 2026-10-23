@@ -144,8 +144,8 @@ verde.
 2. Retomar en una próxima etapa la aceptación AWS específica de #166. La
    implementación está integrada por #168, con pruebas locales y smoke AWS
    efímero con teardown; no se propone rehacer la barrera. La ampliación de
-   validación requerirá un arnés con pausas controladas antes y durante el
-   commit, ambos disparadores de matching, TTL lógico vencido con la fila aún
+   validación requerirá un arnés con pausas controladas antes del commit y
+   durante la limpieza, ambos disparadores de matching, TTL vencido con la fila aún
    presente y recuperación tras fallos parciales. Se comprobará la ausencia de
    matches y espejos residuales, la operación estable y la limpieza de recursos,
    con datos sintéticos, evidencia reproducible y autorización operativa previa.
