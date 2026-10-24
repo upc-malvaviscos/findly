@@ -26,3 +26,9 @@ export type InvitationOptions = InvitationInput & {
 export declare function inviteAdministrator(
   options: InvitationOptions,
 ): Promise<{ sent: boolean }>;
+
+export declare function validateProductionPool(
+  options: Omit<InvitationOptions, 'username' | 'email' | 'send'> & {
+    roleName?: string;
+  },
+): Promise<import('@aws-sdk/client-cognito-identity-provider').UserPoolType>;

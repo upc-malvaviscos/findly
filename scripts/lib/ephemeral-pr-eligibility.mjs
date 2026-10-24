@@ -56,3 +56,13 @@ export function requiresEphemeralDeployment(changedFiles) {
 
   return changedFiles.some((file) => !isDocumentationFile(file));
 }
+
+/** Explicit operator-reviewed opt-out; ordinary code changes still deploy. */
+export function approvedEphemeralSkip(author, labels, title) {
+  return (
+    ['anyulled', 'orLuzuriaga', 'raati5674', 'surinyach'].includes(author) &&
+    ((Array.isArray(labels) && labels.includes('skip-ephemeral-approved')) ||
+      (typeof title === 'string' &&
+        title.endsWith('[skip-ephemeral-approved]')))
+  );
+}

@@ -82,6 +82,27 @@ export function createCognitoGateway(
       }
       return authenticatedSession(payload, username.trim());
     },
+    async completePasswordRecovery(username, code, password) {
+      if (!config) throw new Error('COGNITO_NOT_CONFIGURED');
+      const response = await fetch(
+        `https://cognito-idp.${config.region}.amazonaws.com/`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-amz-json-1.1',
+            'x-amz-target':
+              'AWSCognitoIdentityProviderService.ConfirmForgotPassword',
+          },
+          body: JSON.stringify({
+            ClientId: config.clientId,
+            Username: username.trim(),
+            ConfirmationCode: code.trim(),
+            Password: password,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error('RECOVERY_REJECTED');
+    },
     async completeNewPassword(challenge, password) {
       if (!config) throw new Error('COGNITO_NOT_CONFIGURED');
       if (Date.now() >= challenge.expiresAt)

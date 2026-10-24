@@ -432,7 +432,12 @@
         "scripts/invite-admin.mjs",
         "scripts/lib/admin-invitations.mjs",
         "scripts/check-admin-invitation-aws.mjs",
-        ".github/workflows/ephemeral-pr-e2e.yml"
+        ".github/workflows/ephemeral-pr-e2e.yml",
+        "scripts/recover-organizer.mjs",
+        "scripts/lib/organizer-recovery.mjs",
+        "scripts/print-organizer-recovery-role.mjs",
+        ".github/workflows/recover-organizer.yml",
+        "src/web/components/admin/PasswordRecoveryForm.tsx"
       ],
       "verification": [
         {
@@ -442,13 +447,18 @@
             "tests/web/auth.test.tsx",
             "tests/web/cognitoGateway.test.ts",
             "tests/infra/admin-invitations.test.ts",
-            "tests/infra/adminInvitationAcceptance.test.ts"
+            "tests/infra/adminInvitationAcceptance.test.ts",
+            "tests/infra/organizerRecovery.test.ts",
+            "tests/web/passwordRecovery.test.tsx"
           ]
         },
         {
           "command": "test:e2e",
           "environment": "unit",
-          "files": ["e2e/admin-invitation.spec.ts"]
+          "files": [
+            "e2e/admin-invitation.spec.ts",
+            "e2e/password-recovery.spec.ts"
+          ]
         },
         {
           "command": "terraform:test:findly-stack",
@@ -460,12 +470,17 @@
         {
           "file": "docs/evidence/admin-invitations-aws-plan.md",
           "environment": "unit"
+        },
+        {
+          "file": "docs/evidence/organizer-recovery.md",
+          "environment": "unit"
         }
       ],
       "documentation": [
         "docs/runbooks/admin-invitations.md",
         "README.md",
-        "docs/adr/ADR-021-administrator-invitations.md"
+        "docs/adr/ADR-021-administrator-invitations.md",
+        "docs/runbooks/organizer-recovery.md"
       ]
     },
     {

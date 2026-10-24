@@ -19,6 +19,11 @@ export type AuthGateway = {
     username: string,
     password: string,
   ) => Promise<AuthSession | NewPasswordChallenge>;
+  completePasswordRecovery?: (
+    username: string,
+    code: string,
+    password: string,
+  ) => Promise<void>;
   completeNewPassword?: (
     challenge: NewPasswordChallenge,
     password: string,
@@ -96,6 +101,15 @@ export function AuthProvider({
           }
           throw error;
         }
+      },
+      async completePasswordRecovery(username, code, password) {
+        if (!gateway.completePasswordRecovery)
+          throw new Error('RECOVERY_UNSUPPORTED');
+        const current = ++request.current;
+        setSession(null);
+        setChallenge(null);
+        await gateway.completePasswordRecovery(username, code, password);
+        if (current !== request.current) throw new Error('AUTH_CANCELLED');
       },
       cancelNewPassword() {
         ++request.current;

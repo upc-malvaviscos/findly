@@ -38,6 +38,49 @@ export async function inviteAdministrator({
   now = Date.now(),
 }) {
   validateInvitationInput({ account, poolId, username, email });
+  await validateProductionPool({
+    sts,
+    cognito,
+    credentials,
+    account,
+    poolId,
+    now,
+  });
+
+  if (!send) return { sent: false };
+  try {
+    await cognito.send(
+      new AdminCreateUserCommand({
+        UserPoolId: poolId,
+        Username: username,
+        UserAttributes: [{ Name: 'email', Value: email }],
+        DesiredDeliveryMediums: ['EMAIL'],
+      }),
+    );
+  } catch (error) {
+    if (error?.name === 'UsernameExistsException')
+      throw new Error('The account already exists; no invitation was resent.');
+    throw new Error(
+      'Invitation was not confirmed. Check Cognito before retrying; do not resend automatically.',
+    );
+  }
+  return { sent: true };
+}
+
+export async function validateProductionPool({
+  sts,
+  cognito,
+  credentials,
+  account,
+  poolId,
+  now = Date.now(),
+  roleName,
+}) {
+  if (
+    !/^\d{12}$/.test(account ?? '') ||
+    !/^eu-west-1_[A-Za-z0-9]+$/.test(poolId ?? '')
+  )
+    throw new Error('Invalid production account or pool.');
   if (
     !credentials.sessionToken ||
     !(credentials.expiration instanceof Date) ||
@@ -52,7 +95,11 @@ export async function inviteAdministrator({
   if (
     identity.Account !== account ||
     !new RegExp(`^arn:aws:(?:sts|iam)::${account}:`).test(identity.Arn ?? '') ||
-    identity.Arn?.endsWith(':root')
+    identity.Arn?.endsWith(':root') ||
+    (roleName &&
+      !identity.Arn?.startsWith(
+        `arn:aws:sts::${account}:assumed-role/${roleName}/`,
+      ))
   )
     throw new Error(
       'The AWS identity is not an authorized non-root account identity.',
@@ -93,22 +140,5 @@ export async function inviteAdministrator({
       'The user pool does not match the approved production configuration.',
     );
 
-  if (!send) return { sent: false };
-  try {
-    await cognito.send(
-      new AdminCreateUserCommand({
-        UserPoolId: poolId,
-        Username: username,
-        UserAttributes: [{ Name: 'email', Value: email }],
-        DesiredDeliveryMediums: ['EMAIL'],
-      }),
-    );
-  } catch (error) {
-    if (error?.name === 'UsernameExistsException')
-      throw new Error('The account already exists; no invitation was resent.');
-    throw new Error(
-      'Invitation was not confirmed. Check Cognito before retrying; do not resend automatically.',
-    );
-  }
-  return { sent: true };
+  return pool;
 }

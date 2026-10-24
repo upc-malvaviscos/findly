@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
-import { requiresEphemeralDeployment } from './lib/ephemeral-pr-eligibility.mjs';
+import {
+  approvedEphemeralSkip,
+  requiresEphemeralDeployment,
+} from './lib/ephemeral-pr-eligibility.mjs';
 
 const baseRef = process.env.GITHUB_BASE_REF || 'main';
 
@@ -38,11 +41,27 @@ for (const file of changedFiles) {
   console.log(`  - ${file}`);
 }
 
-const deployRequired = requiresEphemeralDeployment(changedFiles);
+let labels = [];
+try {
+  labels = JSON.parse(process.env.PR_LABELS ?? '[]');
+} catch {
+  /* Fail closed: regular deployment eligibility applies. */
+}
+const approvedSkip = approvedEphemeralSkip(
+  process.env.PR_AUTHOR,
+  labels,
+  process.env.PR_TITLE,
+);
+const deployRequired =
+  !approvedSkip && requiresEphemeralDeployment(changedFiles);
 
 if (deployRequired) {
   console.log(
     '::notice::Executable code, infrastructure, or configuration changes detected. Ephemeral PR environment deployment is required.',
+  );
+} else if (approvedSkip) {
+  console.log(
+    '::notice::Explicit operator-approved skip of ephemeral AWS deployment; local and CI checks still apply.',
   );
 } else {
   console.log(

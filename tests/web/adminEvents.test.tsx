@@ -30,6 +30,7 @@ const fakeAuth: AuthContextValue = {
   login: vi.fn(),
   newPasswordChallenge: null,
   challengeExpired: false,
+  completePasswordRecovery: vi.fn(),
   completeNewPassword: vi.fn(),
   cancelNewPassword: vi.fn(),
   logout: vi.fn(),
