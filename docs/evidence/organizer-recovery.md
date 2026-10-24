@@ -7,7 +7,9 @@
 - Workflow manual deshabilitado por defecto hasta FINDLY_RECOVERY_ENABLED=true,
   sin destinatario arbitrario, limitado a cuatro operadores y
   al actor original de las reejecuciones.
-- Mapeo privado GitHub → usuario Cognito; rechaza destinos compartidos.
+- Mapeo privado GitHub → correo registrado; resuelve el usuario canónico en
+  Cognito, rechaza cero/varios resultados y destinos compartidos. Comprueba que
+  el correo no haya cambiado entre la búsqueda y la lectura del usuario.
 - Lectura de estado y validación de pool/cuenta/región/rol temporal antes del
   envío. `FORCE_CHANGE_PASSWORD` usa RESEND; `CONFIRMED`/`RESET_REQUIRED` usan
   AdminResetUserPassword con correo verificado y recuperación por email.
@@ -61,3 +63,8 @@ o la publicación web. Tampoco se han enviado invitaciones o códigos reales.
 La acción se anunciará como lista sólo tras integrar, publicar la SPA y verificar
 la configuración y una aceptación autorizada. Procedimiento:
 [runbook de recuperación](../runbooks/organizer-recovery.md).
+
+El responsable aportó los correos de los cuatro titulares. No se guardan en
+archivos del repositorio ni se asume que sean el username Cognito; se utilizan
+únicamente al configurar el secret privado del environment. La configuración
+remota sigue bloqueada por los permisos de la integración.
