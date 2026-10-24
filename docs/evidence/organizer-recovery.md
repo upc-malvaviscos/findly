@@ -50,9 +50,8 @@ validación Firefox/WebKit de esta entrega.
 
 La publicación estuvo inicialmente bloqueada por HTTP 403 de la integración.
 Tras aprobar su instalación en la organización propietaria, se creó la
-[issue #175](https://github.com/upc-malvaviscos/findly/issues/175). La rama y PR
-se publican después de pasar los hooks; la ejecución remota y el merge se
-registrarán al completarse. La referencia #105 corresponde al alta histórica,
+[issue #175](https://github.com/upc-malvaviscos/findly/issues/175). La issue reúne los enlaces de rama, PR, ejecuciones remotas y resultado de
+integración. La validación local no acredita por sí misma aceptación AWS. La referencia #105 corresponde al alta histórica,
 no a la aceptación de esta recuperación.
 
 El entorno no tiene identidad AWS ni acceso a variables/secrets del environment
