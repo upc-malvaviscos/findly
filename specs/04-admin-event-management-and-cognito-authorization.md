@@ -193,3 +193,11 @@ dobles; no acreditan entrega de mensajes, OIDC efectivo ni login real.
 
 Véanse [ADR-025](../docs/adr/ADR-025-limited-organizer-recovery-publication.md)
 y la [evidencia de recuperación](../docs/evidence/organizer-recovery.md).
+
+El 2026-10-25, PR #177 y publicación 40144592272 verifican la SPA servida por
+CDN y el formulario. El rol/configuración y los prerrequisitos de las cuatro
+cuentas están comprobados; el autoservicio queda habilitado sin aprobación
+externa por solicitud. Santi (surinyach) conserva primer acceso pendiente y
+debe ejecutar su propia acción para recibir la invitación. La recepción,
+asunción del rol de recuperación y login real no se declaran probados;
+La issue #175 permanece abierta. No se solicita un reset de anyulled para esa aceptación.

@@ -1,8 +1,17 @@
 # Recuperar mi acceso a Findly
 
-La acción prevista es [Recuperar mi acceso a Findly](https://github.com/upc-malvaviscos/findly/actions/workflows/recover-organizer.yml).
-Sólo estará disponible después de integrar el workflow y completar los requisitos
-operativos siguientes. Este enlace no acredita que esté habilitada.
+La acción manual es [Recuperar mi acceso a Findly](https://github.com/upc-malvaviscos/findly/actions/workflows/recover-organizer.yml).
+El 2026-10-25 quedó habilitada tras configurar el environment, verificar las
+cuentas y publicar/comprobar el formulario mediante el workflow limitado.
+No requiere aprobación de otra persona en cada ejecución. La recepción y el
+login real siguen pendientes de aceptación por los titulares; el estado de la
+acción no acredita por sí solo esos resultados.
+
+Santi utiliza su cuenta GitHub `surinyach`. Su estado comprobado es
+FORCE_CHANGE_PASSWORD: la acción solicitará el reenvío de una invitación con
+contraseña temporal y su usuario Cognito. Tras comprobar la recepción, entra con esos datos en el login y
+elige una contraseña definitiva. No necesita que anyulled ejecute nada por él;
+la acción de anyulled sólo podría recuperar la cuenta de anyulled.
 
 ## Uso por el organizador
 

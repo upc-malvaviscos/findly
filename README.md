@@ -228,3 +228,9 @@ compone la última web publicada y los archivos de autenticación de #176, sin
 aplicar infraestructura ni incorporar los controles de fotos/eventos pendientes.
 `npm run test:recovery-web` comprueba ese artefacto con Cognito simulado; no
 acredita recepción real ni activa la acción de recuperación.
+
+El 2026-10-25 se publicó y verificó el formulario en producción y se habilitó
+el autoservicio, con environment limitado a main y sin aprobación externa por
+solicitud. Cada titular utiliza su propia cuenta GitHub; Santi corresponde a
+surinyach. La recepción del mensaje y el login real siguen pendientes de su
+primera ejecución; la issue #175 conserva esa aceptación abierta.
