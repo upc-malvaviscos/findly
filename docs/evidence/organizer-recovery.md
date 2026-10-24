@@ -48,12 +48,12 @@ validación Firefox/WebKit de esta entrega.
 
 ## Bloqueos operativos y trazabilidad remota
 
-La creación de la issue fue rechazada tanto por el conector como por `gh issue
-create`: HTTP 403 / `Resource not accessible by integration`. Crear la rama
-remota mediante Git refs produjo el mismo error. No se ha publicado PR, no hay
-checks remotos de esta entrega y no se afirma merge ni habilitación del workflow.
-La nueva issue queda pendiente de permisos; el requisito existente conserva la
-referencia histórica #105, sin afirmar que esa issue cubra la aceptación nueva.
+La publicación estuvo inicialmente bloqueada por HTTP 403 de la integración.
+Tras aprobar su instalación en la organización propietaria, se creó la
+[issue #175](https://github.com/upc-malvaviscos/findly/issues/175). La rama y PR
+se publican después de pasar los hooks; la ejecución remota y el merge se
+registrarán al completarse. La referencia #105 corresponde al alta histórica,
+no a la aceptación de esta recuperación.
 
 El entorno no tiene identidad AWS ni acceso a variables/secrets del environment
 de producción. No se ha comprobado ni aplicado el rol de recuperación, el mapeo
@@ -67,7 +67,7 @@ la configuración y una aceptación autorizada. Procedimiento:
 El responsable aportó los correos de los cuatro titulares. No se guardan en
 archivos del repositorio ni se asume que sean el username Cognito; se utilizan
 únicamente al configurar el secret privado del environment. La configuración
-remota sigue bloqueada por los permisos de la integración.
+privada sigue pendiente de verificación operativa.
 
 ## Instrucciones en la página de administración
 
@@ -80,5 +80,5 @@ publican contactos ni se cambian permisos o envíos con esta edición de textos.
 
 Verificación focal de los textos: 25 pruebas de autenticación/gateway/recuperación,
 typecheck y build web correctos. Los E2E Chromium de primer acceso y recuperación
-también pasan. La publicación sigue bloqueada por el HTTP 403 de GitHub; crear
-la issue se volvió a intentar y fue rechazado.
+también pasan. La publicación estuvo bloqueada por HTTP 403 de GitHub y se reanudó tras
+aprobar la instalación de la organización. La issue de seguimiento es #175.

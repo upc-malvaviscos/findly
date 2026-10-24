@@ -422,7 +422,7 @@
     {
       "id": "REQ-ADMIN-INVITATIONS",
       "description": "Altas administrativas por invitación y primer acceso Cognito sin contraseñas en Terraform o almacenamiento persistente.",
-      "issues": [105],
+      "issues": [105, 175],
       "spec": "specs/04-admin-event-management-and-cognito-authorization.md",
       "implementation": [
         "infra/modules/cognito/main.tf",
