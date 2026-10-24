@@ -54,8 +54,8 @@ Tras aprobar su instalación en la organización propietaria, se creó la
 integración. La validación local no acredita por sí misma aceptación AWS. La referencia #105 corresponde al alta histórica,
 no a la aceptación de esta recuperación.
 
-El entorno no tiene identidad AWS ni acceso a variables/secrets del environment
-de producción. No se ha comprobado ni aplicado el rol de recuperación, el mapeo
+La sesión cloud original no tenía identidad AWS ni acceso a variables/secrets
+del environment de producción. No se comprobó ni aplicó el rol de recuperación, el mapeo
 de los cuatro usuarios, la configuración efectiva de recuperación/email_verified
 o la publicación web. Tampoco se han enviado invitaciones o códigos reales.
 
@@ -76,6 +76,64 @@ correo más reciente y seguir la rama de contraseña temporal o código. El prim
 acceso explica por qué pide una contraseña nueva y el formulario de recuperación
 detalla qué introducir y cómo volver a iniciar sesión al terminar. No se
 publican contactos ni se cambian permisos o envíos con esta edición de textos.
+
+## Publicación limitada preparada — 2026-10-25
+
+La CLI local confirma administración de anyulled y permisos write de los otros
+tres actores. El environment organizer-recovery, inicialmente ausente, queda
+configurado y releído: únicamente rama main, sin aprobación/espera externa,
+cuenta/pool/rol esperados, secreto privado existente y activación en false.
+El mapeo se extrajo fuera del repositorio, con permisos restringidos, y se
+cifró por stdin mediante GitHub CLI; no se publica su contenido.
+
+El responsable renovó la sesión local como raíz. Se utilizó exclusivamente
+para consultas AWS de lectura; no se ejecutó con ella una recuperación ni se
+modificó AWS. El trust del rol dedicado coincide exactamente con el generador,
+su única política inline también y no hay políticas adjuntas. Esto verifica
+los documentos IAM desplegados, no una asunción OIDC efectiva desde Actions.
+
+El configurador privado comprueba pool, remitente, recuperación por correo,
+contacto sin cambios, unicidad y ausencia de MFA de correo incompatible. El
+resultado real, sin contactos ni nombres Cognito, es:
+
+| Actor GitHub | Estado Cognito        | Correo verificado | Prerrequisitos |
+| ------------ | --------------------- | ----------------- | -------------- |
+| anyulled     | CONFIRMED             | true              | OK             |
+| orLuzuriaga  | FORCE_CHANGE_PASSWORD | true              | OK             |
+| raati5674    | CONFIRMED             | true              | OK             |
+| surinyach    | FORCE_CHANGE_PASSWORD | true              | OK             |
+
+El login público continúa sirviendo la web anterior, sin formulario de código.
+Su bundle coincide con el registrado por el despliegue 38808198446. Se registra
+su hash SHA-256, sin fijar su nombre, como predecesor permitido para evitar que
+una reejecución posterior sustituya otra versión de la web.
+
+El responsable aprueba la publicación limitada descrita en ADR-025. Se añade
+un workflow manual de producción, sin Terraform ni ampliaciones de permisos,
+que compone los commits fijados de la web anterior y la recuperación de #176.
+Las fuentes ajenas a los cinco archivos de autenticación proceden del commit
+desplegado anterior. El artefacto incluye sus hashes; no incorpora los nuevos
+controles de fotos/eventos de main ni modifica su código en el repositorio.
+
+Comprobaciones focales observadas:
+
+- Cinco pruebas locales de autorización, outputs públicos, rechazo de destinos
+  incorrectos y composición byte a byte pasan.
+- TypeScript del repositorio y de las fuentes compuestas pasa.
+- Chromium sobre el artefacto compuesto: tres E2E pasan, para primer acceso,
+  confirmación de código y conservación del correo de galerías sin añadir los
+  controles administrativos pendientes. Cognito/API están simulados.
+- ESLint de los scripts/tests nuevos y actionlint de todos los workflows pasan.
+- `npm run verify`: suite completa, lint, tipos, build, validaciones Terraform
+  aisladas, auditoría de producción sin vulnerabilidades y trazabilidad pasan.
+- `npm run test:e2e -- --project=chromium`: 16 pruebas habituales pasan, incluida
+  la subida actual de main; la prueba exclusiva de composición tiene su propia
+  configuración y no se ejecuta contra el frontend completo.
+
+La publicación real, los permisos OIDC efectivos, la recepción y el login
+siguen pendientes. No se han ejecutado Deployment,
+Terraform apply, AWS efímero ni envíos de recuperación. No se acredita la
+recuperación operativa con esta validación local. La issue #175 permanece abierta.
 
 Verificación focal de los textos: 25 pruebas de autenticación/gateway/recuperación,
 typecheck y build web correctos. Los E2E Chromium de primer acceso y recuperación

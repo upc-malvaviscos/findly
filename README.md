@@ -222,3 +222,9 @@ El [runbook de recuperación](docs/runbooks/organizer-recovery.md) describe la
 acción manual para recuperar la cuenta del propio operador y sus prerrequisitos
 externos. No anunciarla como habilitada hasta integrar el workflow, publicar el
 formulario web y verificar configuración y aceptación AWS.
+
+La publicación limitada de [ADR-025](docs/adr/ADR-025-limited-organizer-recovery-publication.md)
+compone la última web publicada y los archivos de autenticación de #176, sin
+aplicar infraestructura ni incorporar los controles de fotos/eventos pendientes.
+`npm run test:recovery-web` comprueba ese artefacto con Cognito simulado; no
+acredita recepción real ni activa la acción de recuperación.

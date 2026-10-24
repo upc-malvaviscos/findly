@@ -178,3 +178,18 @@ GitHub y distinguir el correo de contraseña temporal del correo con código de
 recuperación. Explica cada botón, la rama main, la revisión de spam y el regreso
 al login tras guardar la nueva contraseña. El formulario de código y el primer
 acceso también explican qué debe hacer el organizador en ese momento.
+
+### Publicación limitada aprobada — issue #175
+
+El workflow manual publish-organizer-recovery.yml compone la web del último
+despliegue correcto con los cinco archivos de autenticación y dependencias
+bloqueadas de #176. No despliega las nuevas funciones de fotos/eventos de main,
+no ejecuta Terraform ni amplía IAM. Conserva el correo de galerías habilitado.
+Los destinos se leen del estado y se contrastan con los recursos desplegados;
+se registran commits y hashes públicos y se comprueban CDN y formulario tras
+publicar. ADR-025 documenta la decisión y el límite de compatibilidad con un
+backend parcialmente aplicado. Las pruebas Chromium de esta composición usan
+dobles; no acreditan entrega de mensajes, OIDC efectivo ni login real.
+
+Véanse [ADR-025](../docs/adr/ADR-025-limited-organizer-recovery-publication.md)
+y la [evidencia de recuperación](../docs/evidence/organizer-recovery.md).
