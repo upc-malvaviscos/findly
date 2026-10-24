@@ -74,9 +74,12 @@ export function publicRecoveryOutputs(state) {
     ].map((name) => [name, output(name)]),
   );
   assert.match(values.api_id, /^[a-z0-9]+$/);
-  assert.equal(
-    values.api_endpoint,
-    `https://${values.api_id}.execute-api.${region}.amazonaws.com`,
+  assert(
+    [
+      `https://${values.api_id}.execute-api.${region}.amazonaws.com`,
+      `https://${values.api_id}.execute-api.${region}.amazonaws.com/`,
+    ].includes(values.api_endpoint),
+    'Unexpected deployed API endpoint',
   );
   assert.equal(values.cognito_user_pool_id, 'eu-west-1_73pdc5T9W');
   assert.match(values.cognito_client_id, /^[a-z0-9]{1,128}$/);
@@ -102,7 +105,10 @@ export function verifyRecoveryDestinations(
     'Existing deployment role session required',
   );
   assert.equal(api.ApiId, values.api_id);
-  assert.equal(api.ApiEndpoint, values.api_endpoint);
+  assert.equal(
+    api.ApiEndpoint?.replace(/\/$/, ''),
+    values.api_endpoint.replace(/\/$/, ''),
+  );
   assert.equal(api.ProtocolType, 'HTTP');
   assert.equal(pool.Id, values.cognito_user_pool_id);
   assert.equal(pool.Name, 'findly-production-organizers');
