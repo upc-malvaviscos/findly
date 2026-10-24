@@ -10,6 +10,7 @@ import {
   publicRecoveryOutputs,
   recoveryRelease,
   verifyRecoveryDestinations,
+  verifyRecoveryPredecessor,
 } from '../../scripts/lib/recovery-publication.mjs';
 
 const env = {
@@ -81,6 +82,14 @@ const live = () => ({
 });
 
 describe('limited recovery publication (local source and simulated AWS metadata)', () => {
+  it('allows an idempotent publication but refuses an unrelated predecessor', () => {
+    expect(() =>
+      verifyRecoveryPredecessor('synthetic-release', 'synthetic-release'),
+    ).not.toThrow();
+    expect(() =>
+      verifyRecoveryPredecessor('newer-unrelated-release', 'synthetic-release'),
+    ).toThrow();
+  });
   it('requires the existing production boundary before credentials', () => {
     expect(() => authorizeRecoveryPublication(env)).not.toThrow();
     for (const change of [

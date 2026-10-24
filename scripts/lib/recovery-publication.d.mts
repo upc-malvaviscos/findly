@@ -5,6 +5,10 @@ export declare const recoveryRelease: {
   dependencyFiles: string[];
 };
 export declare const recoveryOrigin: string;
+export declare function verifyRecoveryPredecessor(
+  currentAsset: string,
+  nextAsset: string,
+): void;
 export declare function authorizeRecoveryPublication(
   env: NodeJS.ProcessEnv,
 ): void;

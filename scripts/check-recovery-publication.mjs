@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
-import { recoveryOrigin } from './lib/recovery-publication.mjs';
+import {
+  recoveryOrigin,
+  verifyRecoveryPredecessor,
+} from './lib/recovery-publication.mjs';
 
 const local = 'artifacts/organizer-recovery-web/dist';
 const entry = readFileSync(`${local}/index.html`, 'utf8');
@@ -16,6 +19,24 @@ const fetchText = async (path) => {
   assert.equal(response.status, 200, 'Published route unavailable');
   return response.text();
 };
+if (process.argv.includes('--before')) {
+  const currentEntry = await fetchText('/admin/login');
+  const currentScript = currentEntry.match(
+    /type="module"[^>]*src="([^"]+)"/,
+  )?.[1];
+  assert(
+    currentScript?.startsWith('/assets/'),
+    'Expected a deployed application asset',
+  );
+  verifyRecoveryPredecessor(
+    await fetchText(currentScript),
+    readFileSync(`${local}${script}`, 'utf8'),
+  );
+  console.log(
+    'Current web matches the verified production predecessor or this limited release. Publication may proceed.',
+  );
+  process.exit(0);
+}
 for (const route of ['/', '/gallery', '/admin/login']) {
   const body = await fetchText(route);
   assert(body.includes(script), 'CDN is not serving this release');

@@ -53,6 +53,8 @@ jobs:
         run: node scripts/prepare-recovery-publication.mjs
       - name: Build the approved limited release with production public values
         run: npm run build:recovery-web
+      - name: Reject replacing an unrelated production web version
+        run: node scripts/check-recovery-publication.mjs --before
       - name: Publish assets before replacing the entry point
         run: |
           test -n "$RECOVERY_WEB_BUCKET"

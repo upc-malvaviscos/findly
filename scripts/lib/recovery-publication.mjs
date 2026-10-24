@@ -20,6 +20,19 @@ export const recoveryRelease = {
 };
 
 export const recoveryOrigin = 'https://www.findly.barcelona';
+// Read from production on 2026-10-25 and tied to deployment 38808198446.
+// A future replay must not replace a newer, unrelated application.
+const predecessorAssetHash =
+  '12a1c915617822635fef6d76a218ebe2d1818b6a6d3b588d1c9958eae6ff724b';
+
+export function verifyRecoveryPredecessor(currentAsset, nextAsset) {
+  const hash = (asset) => createHash('sha256').update(asset).digest('hex');
+  assert(
+    [predecessorAssetHash, hash(nextAsset)].includes(hash(currentAsset)),
+    'Production web has changed; review a new release instead of replacing it',
+  );
+}
+
 const account = '567158658992';
 const region = 'eu-west-1';
 
