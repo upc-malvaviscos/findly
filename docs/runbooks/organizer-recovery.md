@@ -78,6 +78,50 @@ gestiona mediante el [procedimiento de alta](admin-invitations.md).
 
 ## Pruebas y operación
 
+### Publicar únicamente la recuperación
+
+Tras integrar la PR correspondiente, el workflow manual
+`publish-organizer-recovery.yml` publica la composición aprobada en ADR-025.
+Ejecutarlo sólo desde main con una de las cuatro identidades autorizadas.
+Usa el environment production y el rol existente; requiere sus variables
+FINDLY_AWS_ACCOUNT_ID, AWS_TERRAFORM_STATE_BUCKET y AWS_DEPLOY_ROLE_ARN.
+No utiliza las variables de bucket ausentes: obtiene los destinos del estado
+desplegado y los contrasta con API, Cognito y CloudFront mediante lecturas AWS.
+El rol debe disponer ya de esos permisos; un AccessDenied detiene el flujo,
+sin ampliar políticas ni cambiar de identidad.
+
+El artefacto contiene la web del despliegue correcto 38808198446 y únicamente
+los cinco archivos de autenticación de #176, con sus dependencias bloqueadas.
+El manifiesto público recovery-release.json registra los commits y hashes.
+El build conserva el correo de galerías habilitado y rechaza deriva de
+dependencias. No publica los controles posteriores de edición/borrado ni el
+nuevo contrato de subida; no cambia su implementación en main.
+
+Validación local del artefacto, sin llamadas AWS ni envíos:
+
+```sh
+npm ci
+npm run test:recovery-web
+```
+
+La prueba compila las fuentes compuestas, comprueba tipos y ejecuta Chromium
+con respuestas simuladas de Cognito/API. CI la ejecuta además de sus suites
+habituales. No sustituye la aceptación en producción.
+
+El workflow no llama a Terraform. Publica en S3 sin borrar assets anteriores,
+rechaza sustituir una web que no coincida con el hash del predecesor comprobado
+o con el nuevo artefacto idéntico,
+conserva el index previo como artefacto del runner, invalida CloudFront y espera
+su finalización. Después compara los bytes servidos con el build y abre el
+formulario de código en el navegador sin introducir datos. Ante un fallo tras
+una escritura, inspeccionar el estado antes de reintentar; no hay rollback
+automático. No ejecutar Deployment para publicar únicamente este formulario.
+
+La publicación no activa la recuperación ni prueba los endpoints de fotos del
+backend parcialmente aplicado. Requiere igualmente las cuentas elegibles,
+el mapeo privado y la aceptación de recepción/login antes de anunciarla lista.
+Véase [ADR-025](../adr/ADR-025-limited-organizer-recovery-publication.md).
+
 Las pruebas unitarias y E2E simulan AWS. No prueban permisos IAM desplegados,
 entrega real de correo ni configuración efectiva del pool. Antes de anunciar la
 acción como lista, comprobar cada prerrequisito y hacer una aceptación autorizada

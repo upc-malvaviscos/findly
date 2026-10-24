@@ -163,6 +163,16 @@ inmediato sin esperar a que expire una caché de un año. La invalidación de
 CloudFront usa el `distribution_id` que expone la propia salida de Terraform,
 no una búsqueda por metadato.
 
+Para la recuperación de organizadores (#175), ADR-025 aprueba una publicación
+manual limitada con el rol existente de producción. Compone la última web
+publicada correctamente y cinco archivos de autenticación de #176, conserva
+dependencias bloqueadas y correo de galerías, y registra commits/hashes.
+Lee sólo outputs públicos del estado, contrasta los destinos desplegados y
+publica S3/CloudFront sin Terraform ni ampliación de IAM. Las pruebas locales
+ejercitan la composición con Cognito simulado; la comprobación posterior de
+CDN/formulario no demuestra recepción de correo ni acceso real. No se presenta
+esta vía como reparación de los recursos de fotos/backfill del apply parcial.
+
 La demo añade una lista de cuatro actores y comprueba tanto el actor original
 como el de reejecución antes de obtener credenciales, incluso al repetir sólo
 el job de despliegue. Su environment permite únicamente `main`. El rol
