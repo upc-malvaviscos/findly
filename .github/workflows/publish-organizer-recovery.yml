@@ -1,0 +1,77 @@
+name: Publish limited organizer recovery web
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Share the lock with the global deployment; never race its index publication.
+concurrency:
+  group: deployment-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: eu-west-1
+      TARGET_ENVIRONMENT: production
+      TF_WORKSPACE: default
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      STATE_BUCKET: ${{ vars.AWS_TERRAFORM_STATE_BUCKET }}
+      ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Authorize original and rerun actors before credentials
+        run: node scripts/prepare-recovery-publication.mjs --check
+      - run: npm ci
+      - run: npm exec -- playwright install --with-deps chromium
+      - name: Test the composed release with simulated Cognito
+        run: npm run test:recovery-web
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-1
+          allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+          role-session-name: findly-recovery-web-${{ github.run_id }}
+          unset-current-credentials: true
+          retry-max-attempts: 1
+      - name: Read public state outputs and compare deployed destinations
+        run: node scripts/prepare-recovery-publication.mjs
+      - name: Build the approved limited release with production public values
+        run: npm run build:recovery-web
+      - name: Publish assets before replacing the entry point
+        run: |
+          test -n "$RECOVERY_WEB_BUCKET"
+          test -n "$RECOVERY_DISTRIBUTION_ID"
+          aws s3 cp "s3://$RECOVERY_WEB_BUCKET/index.html" "$RUNNER_TEMP/recovery-previous-index.html" --only-show-errors
+          aws s3 sync artifacts/organizer-recovery-web/dist/ "s3://$RECOVERY_WEB_BUCKET" --exclude index.html --cache-control 'public,max-age=31536000,immutable' --only-show-errors
+          aws s3 cp artifacts/organizer-recovery-web/dist/recovery-release.json "s3://$RECOVERY_WEB_BUCKET/recovery-release.json" --cache-control 'no-cache' --content-type 'application/json' --only-show-errors
+          aws s3 cp artifacts/organizer-recovery-web/dist/index.html "s3://$RECOVERY_WEB_BUCKET/index.html" --cache-control 'no-cache' --content-type 'text/html' --only-show-errors
+          invalidation_id="$(aws cloudfront create-invalidation --distribution-id "$RECOVERY_DISTRIBUTION_ID" --paths '/*' --query 'Invalidation.Id' --output text)"
+          aws cloudfront wait invalidation-completed --distribution-id "$RECOVERY_DISTRIBUTION_ID" --id "$invalidation_id"
+      - name: Verify CDN bytes and the production recovery form without sending
+        run: node scripts/check-recovery-publication.mjs
+      - name: Report the acceptance boundary
+        run: echo 'Limited recovery web published and read-only UI verified. No infrastructure apply or recovery messages. Account prerequisites, email receipt and login must still be verified for issue 175.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: limited-recovery-web
+          path: |
+            artifacts/organizer-recovery-web/dist/
+            ${{ runner.temp }}/recovery-previous-index.html
+          if-no-files-found: ignore

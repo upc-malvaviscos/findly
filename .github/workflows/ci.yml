@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -72,6 +74,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -89,6 +93,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npm exec -- playwright install
       - run: npm run test:e2e
+      - run: npm run test:recovery-web
       - run: npm run test:floci:integration
       - run: npm run test:e2e:local
       - uses: actions/upload-artifact@v7
