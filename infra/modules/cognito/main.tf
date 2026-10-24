@@ -37,6 +37,13 @@ resource "aws_cognito_user_pool" "organizers" {
     }
   }
 
+  account_recovery_setting {
+    recovery_mechanism {
+      name     = "verified_email"
+      priority = 1
+    }
+  }
+
   password_policy {
     temporary_password_validity_days = 7
     minimum_length                   = 12

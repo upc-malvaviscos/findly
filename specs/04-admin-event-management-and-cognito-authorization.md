@@ -154,3 +154,21 @@ remonta (`key={eventId}`) al cambiar de evento seleccionado, igual que
 `GalleryEmailSender` y `EventPhotoManager`, para no mezclar resultados entre
 eventos. Se mantiene el máximo de tres subidas simultáneas; recuperar
 subidas tras recargar la página sigue fuera de alcance.
+
+## Recuperación autoservicio solicitada por el responsable
+
+Los cuatro operadores autorizados pueden solicitar recuperación de su cuenta
+existente mediante workflow_dispatch desde main. Una asociación privada vincula
+el actor GitHub con su usuario Cognito; no se aceptan destinatarios arbitrarios.
+FORCE_CHANGE_PASSWORD reenvía una invitación; CONFIRMED/RESET_REQUIRED envían
+código al correo verificado. La web confirma el código y la nueva contraseña sin
+autenticar ni persistir secretos. No se crea una cuenta inexistente ni se cambia
+el correo o su verificación automáticamente.
+
+Se conserva REQ-ADMIN-INVITATIONS y su referencia histórica
+[#105](https://github.com/upc-malvaviscos/findly/issues/105). La nueva issue y PR
+están pendientes de permisos de escritura de la integración; no se presentan
+como creadas ni aceptadas en AWS. Estado verificable en la
+[evidencia de recuperación](../docs/evidence/organizer-recovery.md) y operación en
+el [runbook](../docs/runbooks/organizer-recovery.md). El responsable autoriza
+omitir el entorno efímero para esta entrega, conservando checks locales y CI.

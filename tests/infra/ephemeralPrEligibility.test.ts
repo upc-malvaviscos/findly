@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  approvedEphemeralSkip,
   isDocumentationFile,
   requiresEphemeralDeployment,
 } from '../../scripts/lib/ephemeral-pr-eligibility.mjs';
@@ -92,5 +93,34 @@ describe('ephemeral PR deployment eligibility', () => {
         requiresEphemeralDeployment(['scripts/check-admin-invitation-aws.mjs']),
       ).toBe(true);
     });
+  });
+});
+
+describe('explicit operator approval to skip ephemeral AWS deployment', () => {
+  it('accepts only the reviewed label on a trusted-author PR', () => {
+    expect(approvedEphemeralSkip('anyulled', ['skip-ephemeral-approved'])).toBe(
+      true,
+    );
+    expect(approvedEphemeralSkip('outsider', ['skip-ephemeral-approved'])).toBe(
+      false,
+    );
+    expect(approvedEphemeralSkip('anyulled', [])).toBe(false);
+    expect(
+      approvedEphemeralSkip(
+        'anyulled',
+        [],
+        'feat(auth): recovery [skip-ephemeral-approved]',
+      ),
+    ).toBe(true);
+    expect(
+      approvedEphemeralSkip(
+        'outsider',
+        [],
+        'feat(auth): recovery [skip-ephemeral-approved]',
+      ),
+    ).toBe(false);
+    expect(approvedEphemeralSkip('anyulled', 'skip-ephemeral-approved')).toBe(
+      false,
+    );
   });
 });

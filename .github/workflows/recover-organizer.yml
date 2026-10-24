@@ -1,0 +1,53 @@
+name: Recuperar mi acceso a Findly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: organizer-recovery-${{ github.actor }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: organizer-recovery
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FINDLY_RECOVERY_ENABLED: ${{ vars.FINDLY_RECOVERY_ENABLED }}
+      FINDLY_AWS_ACCOUNT_ID: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+      FINDLY_COGNITO_USER_POOL_ID: ${{ vars.FINDLY_COGNITO_USER_POOL_ID }}
+      FINDLY_RECOVERY_ROLE_ARN: ${{ vars.FINDLY_RECOVERY_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Verify original actor, rerun actor and own account before AWS credentials
+        env:
+          FINDLY_ORGANIZER_ACCOUNTS: ${{ secrets.FINDLY_ORGANIZER_ACCOUNTS }}
+        run: node scripts/recover-organizer.mjs --check
+      - id: aws
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.FINDLY_RECOVERY_ROLE_ARN }}
+          aws-region: eu-west-1
+          allowed-account-ids: ${{ vars.FINDLY_AWS_ACCOUNT_ID }}
+          role-duration-seconds: 900
+          role-session-name: organizer-recovery-${{ github.run_id }}
+          unset-current-credentials: true
+          output-credentials: true
+          retry-max-attempts: 1
+      - name: Recover only my existing account
+        env:
+          FINDLY_ORGANIZER_ACCOUNTS: ${{ secrets.FINDLY_ORGANIZER_ACCOUNTS }}
+          AWS_CREDENTIAL_EXPIRATION: ${{ steps.aws.outputs.aws-expiration }}
+        run: node scripts/recover-organizer.mjs

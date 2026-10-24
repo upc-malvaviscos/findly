@@ -57,3 +57,16 @@ No se guardan contraseñas definitivas en Terraform, scripts, Git o logs.
 Referencias: [spec 04](../../specs/04-admin-event-management-and-cognito-authorization.md),
 [issue #105](https://github.com/upc-malvaviscos/findly/issues/105) y
 [runbook](../runbooks/admin-invitations.md).
+
+## Recuperación autoservicio de cuentas existentes
+
+El responsable solicita separar el alta de la recuperación de los cuatro
+operadores. El workflow manual asocia al actor con su cuenta de forma privada
+y usa el estado Cognito: RESEND para primer acceso pendiente y reset por código
+para cuentas confirmadas. El rol dedicado sólo actúa sobre el pool de producción,
+sin permisos de despliegue ni edición de atributos. El correo confirmado debe
+estar verificado; nunca se verifica por conveniencia del script. La recuperación
+requiere publicar el formulario ConfirmForgotPassword y configurar el environment
+y rol antes de habilitar su uso. Los detalles y límites están en el
+[runbook de recuperación](../runbooks/organizer-recovery.md). No cambia la política
+de invitaciones nuevas ni concede acceso a cuentas no existentes.

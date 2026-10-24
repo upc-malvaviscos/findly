@@ -7,6 +7,14 @@ variables {
 run "default_cognito_sender" {
   command = plan
   assert {
+    condition = (
+      length(one(aws_cognito_user_pool.organizers.account_recovery_setting).recovery_mechanism) == 1 &&
+      one(one(aws_cognito_user_pool.organizers.account_recovery_setting).recovery_mechanism).name == "verified_email" &&
+      one(one(aws_cognito_user_pool.organizers.account_recovery_setting).recovery_mechanism).priority == 1
+    )
+    error_message = "Account recovery must use verified email only, without SMS fallback."
+  }
+  assert {
     condition     = aws_cognito_user_pool.organizers.email_configuration[0].email_sending_account == "COGNITO_DEFAULT"
     error_message = "Nonproduction must retain the standard Cognito sender by default."
   }

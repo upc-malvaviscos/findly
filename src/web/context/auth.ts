@@ -12,6 +12,11 @@ export type AuthContextValue = {
   challengeExpired: boolean;
   completeNewPassword: (password: string) => Promise<void>;
   cancelNewPassword: () => void;
+  completePasswordRecovery: (
+    username: string,
+    code: string,
+    password: string,
+  ) => Promise<void>;
   logout: () => void;
 };
 

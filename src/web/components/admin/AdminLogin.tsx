@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/auth';
+import { PasswordRecoveryForm } from './PasswordRecoveryForm';
 
 export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const { login, newPasswordChallenge, challengeExpired } = useAuth();
+  const [recovering, setRecovering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  if (recovering)
+    return <PasswordRecoveryForm onBack={() => setRecovering(false)} />;
 
   if (newPasswordChallenge) return <NewPasswordForm onSuccess={onSuccess} />;
 
@@ -72,6 +77,17 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
             {isLoading ? 'Comprobando…' : 'Entrar'}
           </button>
         </form>
+        <button
+          className="button"
+          type="button"
+          onClick={() => {
+            setPassword('');
+            setError('');
+            setRecovering(true);
+          }}
+        >
+          Ya tengo un código de recuperación
+        </button>
       </section>
     </main>
   );
