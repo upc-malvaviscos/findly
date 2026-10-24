@@ -172,3 +172,9 @@ como creadas ni aceptadas en AWS. Estado verificable en la
 [evidencia de recuperación](../docs/evidence/organizer-recovery.md) y operación en
 el [runbook](../docs/runbooks/organizer-recovery.md). El responsable autoriza
 omitir el entorno efímero para esta entrega, conservando checks locales y CI.
+
+La página de acceso incluye instrucciones visibles para ejecutar la acción en
+GitHub y distinguir el correo de contraseña temporal del correo con código de
+recuperación. Explica cada botón, la rama main, la revisión de spam y el regreso
+al login tras guardar la nueva contraseña. El formulario de código y el primer
+acceso también explican qué debe hacer el organizador en ese momento.

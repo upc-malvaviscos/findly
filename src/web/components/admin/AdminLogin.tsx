@@ -88,6 +88,53 @@ export function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
         >
           Ya tengo un código de recuperación
         </button>
+        <aside aria-labelledby="access-help-title">
+          <h2 id="access-help-title">¿No puedes entrar?</h2>
+          <p>
+            Sigue estos pasos tanto si es tu primer acceso como si has olvidado
+            tu contraseña.
+          </p>
+          <ol>
+            <li>
+              Abre{' '}
+              <a
+                href="https://github.com/upc-malvaviscos/findly/actions/workflows/recover-organizer.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Recuperar mi acceso a Findly en GitHub (se abre en otra pestaña)
+              </a>
+              . Inicia sesión con tu cuenta habitual de GitHub.
+            </li>
+            <li>
+              Pulsa <strong>Run workflow</strong>, deja seleccionada la rama{' '}
+              <strong>main</strong> y pulsa <strong>Run workflow</strong> otra
+              vez para confirmar. No tienes que escribir ningún correo.
+            </li>
+            <li>
+              Espera a que la ejecución termine en verde. Revisa el correo
+              asociado a tu cuenta de Findly, incluida la carpeta de spam, y
+              abre el mensaje más reciente.
+            </li>
+          </ol>
+          <p>
+            <strong>Si recibes una contraseña temporal:</strong> vuelve al
+            formulario de arriba, escribe tu usuario de Findly y esa contraseña
+            y pulsa <strong>Entrar</strong>. La web te pedirá elegir una
+            contraseña nueva y escribirla dos veces.
+          </p>
+          <p>
+            <strong>Si recibes un código de recuperación:</strong> pulsa{' '}
+            <strong>Ya tengo un código de recuperación</strong>. Escribe tu
+            usuario de Findly, el código y tu nueva contraseña dos veces.
+            Después de guardarla, vuelve al inicio de sesión y entra con la
+            nueva contraseña.
+          </p>
+          <p>
+            Tu usuario de Findly es el que aparece en tu invitación original.
+            Conserva ese nombre de usuario durante todo el proceso.
+          </p>
+        </aside>
       </section>
     </main>
   );
@@ -107,6 +154,10 @@ function NewPasswordForm({ onSuccess }: { onSuccess: () => void }) {
       >
         <span className="eyebrow">Activa tu acceso de organizador</span>
         <h1 id="new-password-title">Elige tu contraseña.</h1>
+        <p>
+          Has entrado con una contraseña temporal. Ahora elige una contraseña
+          nueva y escríbela dos veces. Al guardarla, entrarás en el panel.
+        </p>
         <p id="password-help">
           Usa al menos 12 caracteres, con mayúsculas, minúsculas, números y
           símbolos.

@@ -68,3 +68,17 @@ El responsable aportó los correos de los cuatro titulares. No se guardan en
 archivos del repositorio ni se asume que sean el username Cognito; se utilizan
 únicamente al configurar el secret privado del environment. La configuración
 remota sigue bloqueada por los permisos de la integración.
+
+## Instrucciones en la página de administración
+
+El responsable pidió una guía paso a paso en la propia web. El login enlaza
+a la acción de GitHub y explica cómo pulsar Run workflow sobre main, revisar el
+correo más reciente y seguir la rama de contraseña temporal o código. El primer
+acceso explica por qué pide una contraseña nueva y el formulario de recuperación
+detalla qué introducir y cómo volver a iniciar sesión al terminar. No se
+publican contactos ni se cambian permisos o envíos con esta edición de textos.
+
+Verificación focal de los textos: 25 pruebas de autenticación/gateway/recuperación,
+typecheck y build web correctos. Los E2E Chromium de primer acceso y recuperación
+también pasan. La publicación sigue bloqueada por el HTTP 403 de GitHub; crear
+la issue se volvió a intentar y fue rechazado.
