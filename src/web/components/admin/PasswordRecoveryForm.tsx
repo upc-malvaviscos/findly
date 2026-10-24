@@ -30,9 +30,34 @@ export function PasswordRecoveryForm({ onBack }: { onBack: () => void }) {
         ) : (
           <>
             <p>
-              Introduce el código recibido por correo tras ejecutar «Recuperar
-              mi acceso a Findly» en GitHub Actions. Si recibiste una contraseña
-              temporal, vuelve al inicio de sesión.
+              Este formulario sirve para el correo que contiene un código de
+              recuperación. Si el correo contiene una contraseña temporal, pulsa
+              «Volver al inicio de sesión» y entra con ella.
+            </p>
+            <ol>
+              <li>
+                Escribe tu usuario de Findly, el que aparece en tu invitación
+                original.
+              </li>
+              <li>Copia el código del correo más reciente.</li>
+              <li>Elige una contraseña nueva y escríbela en los dos campos.</li>
+              <li>
+                Pulsa <strong>Guardar nueva contraseña</strong>. Después, vuelve
+                al inicio de sesión y entra con esa contraseña.
+              </li>
+            </ol>
+            <p>
+              ¿Todavía no tienes el código?{' '}
+              <a
+                href="https://github.com/upc-malvaviscos/findly/actions/workflows/recover-organizer.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abre la acción de recuperación en GitHub (otra pestaña)
+              </a>
+              , pulsa <strong>Run workflow</strong>, selecciona{' '}
+              <strong>main</strong> y confirma con <strong>Run workflow</strong>
+              . Después revisa tu correo y la carpeta de spam.
             </p>
             <p id="recovery-password-help">
               Usa al menos 12 caracteres, con mayúsculas, minúsculas, números y
