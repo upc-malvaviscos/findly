@@ -166,9 +166,9 @@ autenticar ni persistir secretos. No se crea una cuenta inexistente ni se cambia
 el correo o su verificación automáticamente.
 
 Se conserva REQ-ADMIN-INVITATIONS y su referencia histórica
-[#105](https://github.com/upc-malvaviscos/findly/issues/105). La nueva issue y PR
-están pendientes de permisos de escritura de la integración; no se presentan
-como creadas ni aceptadas en AWS. Estado verificable en la
+[#105](https://github.com/upc-malvaviscos/findly/issues/105). La recuperación se sigue en
+[#175](https://github.com/upc-malvaviscos/findly/issues/175). Su implementación
+no acredita por sí misma configuración o aceptación en AWS. Estado verificable en la
 [evidencia de recuperación](../docs/evidence/organizer-recovery.md) y operación en
 el [runbook](../docs/runbooks/organizer-recovery.md). El responsable autoriza
 omitir el entorno efímero para esta entrega, conservando checks locales y CI.
