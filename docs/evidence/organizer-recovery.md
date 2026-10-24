@@ -137,8 +137,8 @@ Comprobaciones focales observadas:
   la subida actual de main; la prueba exclusiva de composición tiene su propia
   configuración y no se ejecuta contra el frontend completo.
 
-La publicación real, los permisos OIDC efectivos, la recepción y el login
-siguen pendientes. No se han ejecutado Deployment,
+Al terminar la preparación, la publicación real, los permisos OIDC efectivos, la recepción y el login
+seguían pendientes. Hasta ese momento no se habían ejecutado Deployment,
 Terraform apply, AWS efímero ni envíos de recuperación. No se acredita la
 recuperación operativa con esta validación local. La issue #175 permanece abierta.
 
@@ -146,3 +146,40 @@ Verificación focal de los textos: 25 pruebas de autenticación/gateway/recupera
 typecheck y build web correctos. Los E2E Chromium de primer acceso y recuperación
 también pasan. La publicación estuvo bloqueada por HTTP 403 de GitHub y se reanudó tras
 aprobar la instalación de la organización. La issue de seguimiento es #175.
+
+## Publicación real y habilitación — 2026-10-25
+
+La [PR #177](https://github.com/upc-malvaviscos/findly/pull/177) se integró por
+rebase mediante el ruleset, con CI, CodeQL y todos los checks requeridos
+correctos, en `a3cbd6300d2e160c114108557e0baeaa6d329b07`.
+CI: [40144294661](https://github.com/upc-malvaviscos/findly/actions/runs/40144294661).
+El [job efímero](https://github.com/upc-malvaviscos/findly/actions/runs/40144294834)
+terminó correctamente con OIDC, provisión y destroy omitidos; no desplegó AWS.
+
+La [publicación limitada 40144592272](https://github.com/upc-malvaviscos/findly/actions/runs/40144592272)
+terminó SUCCESS sobre ese commit. Obtuvo OIDC como findly-production-deploy,
+contrastó destinos reales, compiló la composición aprobada, publicó assets,
+index y manifiesto en S3, invalidó CloudFront y esperó su finalización.
+La comprobación posterior comparó bytes de CDN/rutas con el build y abrió el
+formulario de código, volviendo al login sin autenticar ni enviar mensajes.
+Una lectura independiente del manifiesto público confirmó ambos commits,
+cinco archivos de autenticación, ejecución AWS y correo de galerías habilitado.
+No ejecutó Terraform ni modificó IAM, Cognito, fotos o backfill.
+
+Se releyeron los prerrequisitos de las cuatro cuentas, todos correctos, y se
+configuró/releyó FINDLY_RECOVERY_ENABLED=true. El environment sólo admite main
+y no exige revisores ni espera externa. El titular ejecuta su propia acción;
+no depende del responsable para aprobar cada solicitud.
+
+El responsable aclara que anyulled no necesita recuperación. El destinatario
+que necesita primer acceso es Santi, identificado mediante su perfil GitHub
+público como surinyach, con FORCE_CHANGE_PASSWORD y correo verificado. La
+acción resolverá su usuario canónico y solicitará RESEND sólo cuando él la
+ejecute con su cuenta. No se ejecutó recuperación de anyulled ni se suplantó
+el actor de Santi. No se han enviado mensajes a compañeros desde esta sesión.
+
+La asunción OIDC del rol de recuperación, la aceptación del envío por Cognito,
+la recepción y el login quedan pendientes de la primera ejecución real del
+titular. La asunción del rol de despliegue y la web publicada no prueban estos
+resultados. Se mantiene #175 abierta; no se fuerza un reset innecesario para
+completar una prueba y no se anuncia recepción o acceso como verificados.
