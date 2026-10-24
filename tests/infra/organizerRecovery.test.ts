@@ -1,6 +1,7 @@
 import {
   AdminCreateUserCommand,
   AdminGetUserCommand,
+  ListUsersCommand,
   AdminResetUserPasswordCommand,
   CognitoIdentityProviderClient,
   DescribeUserPoolCommand,
@@ -48,7 +49,7 @@ function options() {
     },
     account,
     poolId,
-    username: 'synthetic-organizer',
+    email: 'synthetic@example.invalid',
   };
 }
 function env() {
@@ -63,8 +64,8 @@ function env() {
     FINDLY_COGNITO_USER_POOL_ID: poolId,
     FINDLY_RECOVERY_ROLE_ARN: `arn:aws:iam::${account}:role/findly-organizer-recovery`,
     FINDLY_ORGANIZER_ACCOUNTS: JSON.stringify({
-      anyulled: 'synthetic-organizer',
-      surinyach: 'other',
+      anyulled: 'synthetic@example.invalid',
+      surinyach: 'other@example.invalid',
     }),
   };
 }
@@ -76,6 +77,9 @@ beforeEach(() => {
     Arn: `arn:aws:sts::${account}:assumed-role/findly-organizer-recovery/test`,
   });
   cognito.on(DescribeUserPoolCommand).resolves({ UserPool: pool });
+  cognito
+    .on(ListUsersCommand)
+    .resolves({ Users: [{ Username: 'synthetic-organizer' }] });
   cognito.on(AdminGetUserCommand).resolves({
     Enabled: true,
     UserStatus: 'CONFIRMED',
@@ -85,9 +89,55 @@ beforeEach(() => {
   cognito.on(AdminCreateUserCommand).resolves({});
 });
 describe('own-account organizer recovery (mocked AWS)', () => {
+  it('looks up the canonical username by the privately configured email', async () => {
+    await recoverOrganizer(options());
+    expect(cognito.commandCalls(ListUsersCommand)[0]?.args[0].input).toEqual({
+      UserPoolId: poolId,
+      Filter: 'email = "synthetic@example.invalid"',
+      Limit: 2,
+    });
+    expect(cognito.commandCalls(AdminGetUserCommand)[0]?.args[0].input).toEqual(
+      {
+        UserPoolId: poolId,
+        Username: 'synthetic-organizer',
+      },
+    );
+  });
+  it.each([
+    { users: [] },
+    { users: [{ Username: 'first' }, { Username: 'second' }] },
+  ])('rejects missing or ambiguous email matches', async ({ users }) => {
+    cognito.on(ListUsersCommand).resolves({ Users: users });
+    await expect(recoverOrganizer(options())).rejects.toThrow();
+    expect(cognito.commandCalls(AdminResetUserPasswordCommand)).toHaveLength(0);
+    expect(cognito.commandCalls(AdminCreateUserCommand)).toHaveLength(0);
+  });
+  it('checks subsequent pages before accepting a unique match', async () => {
+    cognito
+      .on(ListUsersCommand)
+      .resolvesOnce({ Users: [], PaginationToken: 'next-page' })
+      .resolvesOnce({ Users: [{ Username: 'synthetic-organizer' }] });
+    await expect(recoverOrganizer(options())).resolves.toBe('reset-code');
+    expect(
+      cognito.commandCalls(ListUsersCommand)[1]?.args[0].input.PaginationToken,
+    ).toBe('next-page');
+  });
+  it('does not send if the registered email changed after lookup', async () => {
+    cognito.on(AdminGetUserCommand).resolves({
+      Enabled: true,
+      UserStatus: 'CONFIRMED',
+      UserAttributes: [
+        { Name: 'email', Value: 'other@example.invalid' },
+        { Name: 'email_verified', Value: 'true' },
+      ],
+    });
+    await expect(recoverOrganizer(options())).rejects.toThrow();
+    expect(cognito.commandCalls(AdminResetUserPasswordCommand)).toHaveLength(0);
+    expect(cognito.commandCalls(AdminCreateUserCommand)).toHaveLength(0);
+  });
   it('resolves only the original actor and never permits a rerun to target someone else', () => {
     expect(recoveryTarget(env())).toMatchObject({
-      username: 'synthetic-organizer',
+      email: 'synthetic@example.invalid',
     });
     expect(() =>
       recoveryTarget({ ...env(), GITHUB_TRIGGERING_ACTOR: 'surinyach' }),
@@ -107,7 +157,10 @@ describe('own-account organizer recovery (mocked AWS)', () => {
     { GITHUB_REPOSITORY: 'foreign/findly' },
     { FINDLY_ORGANIZER_ACCOUNTS: '{}' },
     { FINDLY_ORGANIZER_ACCOUNTS: '{invalid' },
-    { FINDLY_ORGANIZER_ACCOUNTS: '{"anyulled":"shared","surinyach":"shared"}' },
+    {
+      FINDLY_ORGANIZER_ACCOUNTS:
+        '{"anyulled":"shared@example.invalid","surinyach":"shared@example.invalid"}',
+    },
     {
       FINDLY_RECOVERY_ROLE_ARN: `arn:aws:iam::${account}:role/findly-production-deploy`,
     },

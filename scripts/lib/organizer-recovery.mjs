@@ -1,6 +1,7 @@
 import {
   AdminCreateUserCommand,
   AdminGetUserCommand,
+  ListUsersCommand,
   AdminResetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { validateProductionPool } from './admin-invitations.mjs';
@@ -11,6 +12,14 @@ export const recoveryActors = [
   'raati5674',
   'surinyach',
 ];
+
+function validEmail(value) {
+  return (
+    typeof value === 'string' &&
+    value.length <= 254 &&
+    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value)
+  );
+}
 
 export function recoveryTarget(env) {
   if (
@@ -34,19 +43,23 @@ export function recoveryTarget(env) {
   }
   if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping))
     throw new Error('Invalid organizer mapping.');
-  const username = Object.hasOwn(mapping, env.GITHUB_ACTOR)
+  const email = Object.hasOwn(mapping, env.GITHUB_ACTOR)
     ? mapping[env.GITHUB_ACTOR]
     : null;
+  if (!validEmail(email))
+    throw new Error(
+      'No valid registered email is configured for this operator.',
+    );
   if (
-    typeof username !== 'string' ||
-    !/^[A-Za-z0-9._@+-]{1,128}$/.test(username)
+    Object.values(mapping).filter(
+      (value) =>
+        typeof value === 'string' &&
+        value.toLowerCase() === email.toLowerCase(),
+    ).length !== 1
   )
-    throw new Error('No valid account is configured for this operator.');
-  // Two GitHub identities must never share a recovery target.
-  if (Object.values(mapping).filter((value) => value === username).length !== 1)
     throw new Error('Ambiguous organizer mapping.');
   return {
-    username,
+    email,
     account: env.FINDLY_AWS_ACCOUNT_ID,
     poolId: env.FINDLY_COGNITO_USER_POOL_ID,
   };
@@ -56,12 +69,11 @@ export async function recoverOrganizer({
   sts,
   cognito,
   credentials,
-  username,
+  email: registeredEmail,
   account,
   poolId,
 }) {
-  if (!/^[A-Za-z0-9._@+-]{1,128}$/.test(username ?? ''))
-    throw new Error('Invalid recovery target.');
+  if (!validEmail(registeredEmail)) throw new Error('Invalid recovery target.');
   const pool = await validateProductionPool({
     sts,
     cognito,
@@ -70,11 +82,33 @@ export async function recoverOrganizer({
     poolId,
     roleName: 'findly-organizer-recovery',
   });
+  let username;
+  let token;
+  do {
+    const result = await cognito.send(
+      new ListUsersCommand({
+        UserPoolId: poolId,
+        Filter: `email = ${JSON.stringify(registeredEmail)}`,
+        Limit: 2,
+        ...(token && { PaginationToken: token }),
+      }),
+    );
+    for (const candidate of result.Users ?? []) {
+      if (username || !candidate.Username)
+        throw new Error(
+          'The registered email does not identify one unique account.',
+        );
+      username = candidate.Username;
+    }
+    token = result.PaginationToken;
+  } while (token);
+  if (!username)
+    throw new Error('No existing account matches the registered email.');
   const user = await cognito.send(
     new AdminGetUserCommand({ UserPoolId: poolId, Username: username }),
   );
   const email = user.UserAttributes?.find((a) => a.Name === 'email')?.Value;
-  if (!user.Enabled || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+  if (!user.Enabled || email !== registeredEmail)
     throw new Error('The existing account cannot receive a recovery email.');
   if (user.UserStatus === 'FORCE_CHANGE_PASSWORD') {
     await cognito.send(
@@ -152,6 +186,7 @@ export function recoveryRoleDocuments({ account, poolId }) {
           Action: [
             'cognito-idp:DescribeUserPool',
             'cognito-idp:AdminGetUser',
+            'cognito-idp:ListUsers',
             'cognito-idp:AdminCreateUser',
             'cognito-idp:AdminResetUserPassword',
           ],

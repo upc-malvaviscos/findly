@@ -48,15 +48,17 @@ contactos o credenciales en Git:
   Lee la cuenta y el pool de las dos primeras variables. Revisar y aplicar los
   documentos desde una sesión operativa autorizada. El trust sólo acepta el
   audience STS y el subject del environment de este repositorio. El rol sólo
-  puede describir el pool, consultar usuarios, reenviar invitaciones y solicitar
+  puede describir el pool, buscar y consultar usuarios, reenviar invitaciones y solicitar
   resets en ese pool. No tiene permisos de despliegue, SES, borrado ni edición de
   atributos. `AdminCreateUser` no distingue crear/reenviar en IAM; la barrera de
   aplicación consulta primero una cuenta existente y usa exclusivamente RESEND.
 
 - Guardar en el secret del environment `FINDLY_ORGANIZER_ACCOUNTS` un objeto JSON
-  GitHub → usuario Cognito. Claves autorizadas: `anyulled`, `orLuzuriaga`,
-  `raati5674`, `surinyach`. Cada destino debe ser único; no asumir que el nombre
-  GitHub coincide con el de Findly. No usar correos como inputs públicos.
+  GitHub → correo registrado. Claves autorizadas: `anyulled`, `orLuzuriaga`,
+  `raati5674`, `surinyach`. Cada valor es el correo registrado del titular. La
+  acción busca el usuario canónico y rechaza cero o varios resultados, revisando
+  todas las páginas. Vuelve a comprobar el correo antes de enviar; no lo cambia.
+  No usar correos como inputs públicos ni guardarlos en Git.
 - Los cuatro necesitan permiso de escritura en el repositorio para el dispatch.
   Sólo el actor original puede reejecutar su solicitud. Se comprueban rama,
   repositorio, actor, mapeo y rol antes de obtener credenciales y antes del envío.
