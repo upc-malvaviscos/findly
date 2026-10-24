@@ -60,7 +60,7 @@ jobs:
           test -n "$RECOVERY_WEB_BUCKET"
           test -n "$RECOVERY_DISTRIBUTION_ID"
           aws s3 cp "s3://$RECOVERY_WEB_BUCKET/index.html" "$RUNNER_TEMP/recovery-previous-index.html" --only-show-errors
-          aws s3 sync artifacts/organizer-recovery-web/dist/ "s3://$RECOVERY_WEB_BUCKET" --exclude index.html --cache-control 'public,max-age=31536000,immutable' --only-show-errors
+          aws s3 sync artifacts/organizer-recovery-web/dist/ "s3://$RECOVERY_WEB_BUCKET" --exclude index.html --exclude recovery-release.json --cache-control 'public,max-age=31536000,immutable' --only-show-errors
           aws s3 cp artifacts/organizer-recovery-web/dist/recovery-release.json "s3://$RECOVERY_WEB_BUCKET/recovery-release.json" --cache-control 'no-cache' --content-type 'application/json' --only-show-errors
           aws s3 cp artifacts/organizer-recovery-web/dist/index.html "s3://$RECOVERY_WEB_BUCKET/index.html" --cache-control 'no-cache' --content-type 'text/html' --only-show-errors
           invalidation_id="$(aws cloudfront create-invalidation --distribution-id "$RECOVERY_DISTRIBUTION_ID" --paths '/*' --query 'Invalidation.Id' --output text)"

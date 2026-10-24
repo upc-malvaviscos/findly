@@ -66,7 +66,7 @@ la configuración y una aceptación autorizada. Procedimiento:
 El responsable aportó los correos de los cuatro titulares. No se guardan en
 archivos del repositorio ni se asume que sean el username Cognito; se utilizan
 únicamente al configurar el secret privado del environment. La configuración
-privada sigue pendiente de verificación operativa.
+privada quedó pendiente en cloud; su uso efectivo desde la acción sigue pendiente.
 
 ## Instrucciones en la página de administración
 
@@ -107,6 +107,13 @@ El login público continúa sirviendo la web anterior, sin formulario de código
 Su bundle coincide con el registrado por el despliegue 38808198446. Se registra
 su hash SHA-256, sin fijar su nombre, como predecesor permitido para evitar que
 una reejecución posterior sustituya otra versión de la web.
+
+La lectura real del estado, seleccionando sólo outputs públicos en memoria,
+confirma los destinos API/cliente Cognito y CloudFront activo con origen S3
+privado esperado. El output de API incluye una barra final; se conserva para
+el build y se comparan ambas formas de la raíz al consultar API Gateway. La
+prueba focal cubre este caso. Estas lecturas como raíz no acreditan permisos
+efectivos del rol de despliegue; los comprobará el workflow usando OIDC.
 
 El responsable aprueba la publicación limitada descrita en ADR-025. Se añade
 un workflow manual de producción, sin Terraform ni ampliaciones de permisos,

@@ -112,6 +112,17 @@ describe('limited recovery publication (local source and simulated AWS metadata)
         resources: [{ private: 'synthetic-do-not-export' }],
       }),
     ).toEqual(values);
+    const withSlash = state();
+    withSlash.outputs.api_endpoint = { value: `${values.api_endpoint}/` };
+    expect(publicRecoveryOutputs(withSlash).api_endpoint).toBe(
+      `${values.api_endpoint}/`,
+    );
+    expect(() =>
+      verifyRecoveryDestinations(
+        { ...values, api_endpoint: `${values.api_endpoint}/` },
+        live(),
+      ),
+    ).not.toThrow();
     for (const value of [
       'https://foreign.example',
       'https://www.findly.barcelona\nINJECT=true',
