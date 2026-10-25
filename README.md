@@ -247,5 +247,7 @@ acredita recepción real ni activa la acción de recuperación.
 El 2026-10-25 se publicó y verificó el formulario en producción y se habilitó
 el autoservicio, con environment limitado a main y sin aprobación externa por
 solicitud. Cada titular utiliza su propia cuenta GitHub; Santi corresponde a
-surinyach. La recepción del mensaje y el login real siguen pendientes de su
-primera ejecución; la issue #175 conserva esa aceptación abierta.
+surinyach. La ejecución nueva 40234761439 verificó el reenvío mediante Cognito;
+el responsable transmitió la confirmación de Santi de que la recuperación le
+funcionó. La [aceptación de #175](docs/evidence/organizer-recovery.md#aceptación-real-de-santi--2026-10-25)
+distingue la evidencia AWS de esa confirmación manual del acceso.
