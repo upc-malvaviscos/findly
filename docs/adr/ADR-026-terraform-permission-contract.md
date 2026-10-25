@@ -41,7 +41,11 @@ Después lee por STS/IAM el rol de despliegue, sus políticas inline/administrad
 paginadas, sus versiones predeterminadas y la boundary runtime aplicada.
 Evalúa esos documentos leídos, no el generador presentado como IAM vigente.
 También intersecta una eventual boundary del desplegador dentro del alcance
-soportado. Un hueco o una lectura denegada impide el apply. El lector no muta IAM.
+soportado. Un hueco o una lectura denegada impide el apply. El lector no muta IAM. También comprueba rechazos de
+aislamiento sobre los documentos leídos: otra cuenta, retirada de boundary,
+PassRole a EC2, mappings/propiedad ajenos, autoedición del desplegador y borrado
+del estado. La boundary debe rechazar además otras cuentas, índices para
+BatchWriteItem y consumo de la DLQ de backfill.
 El generador prepara únicamente lecturas IAM de sí mismo y de las políticas
 de su namespace para ese control; aplicarlas requiere otra operación autorizada.
 

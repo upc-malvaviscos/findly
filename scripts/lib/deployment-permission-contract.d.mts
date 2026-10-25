@@ -18,6 +18,7 @@ export interface PermissionCase extends PermissionRequest {
 }
 export interface PermissionInventory {
   version: 1;
+  configuration: DemoConfiguration;
   resources: TerraformResource[];
   roles: TerraformResource[];
   functions: TerraformResource[];

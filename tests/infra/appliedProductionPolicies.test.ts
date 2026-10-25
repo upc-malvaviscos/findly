@@ -259,6 +259,49 @@ describe('preflight composes source, plan and applied policies before permitting
     };
     return { plan, root };
   }
+  it('rejects excess grants in applied deployment policies, not just missing permissions', () => {
+    const broad = {
+      Version: '2012-10-17',
+      Statement: [{ Effect: 'Allow', Action: '*', Resource: '*' }],
+    };
+    const { aws } = adapter({
+      'list-role-policies': { PolicyNames: ['too-broad'] },
+      'get-role-policy': { PolicyDocument: broad },
+    });
+    const { plan, root } = fixture();
+    expect(() =>
+      productionPermissionPreflight(plan, root, inventoryConfig, aws),
+    ).toThrow(/blocked apply.*unexpected permission/);
+  });
+  it('rejects an applied boundary that grants the required action across accounts', () => {
+    const { aws } = adapter();
+    const { plan, root } = fixture();
+    expect(() =>
+      productionPermissionPreflight(
+        plan,
+        root,
+        inventoryConfig,
+        (
+          service: string,
+          command: string,
+          input: Record<string, unknown> = {},
+        ) =>
+          command === 'get-policy-version' &&
+          input.PolicyArn === documents.boundaryArn
+            ? {
+                PolicyVersion: {
+                  Document: {
+                    Version: '2012-10-17',
+                    Statement: [
+                      { Effect: 'Allow', Action: '*', Resource: '*' },
+                    ],
+                  },
+                },
+              }
+            : aws(service, command, input),
+      ),
+    ).toThrow(/blocked apply.*unexpected permission/);
+  });
   it('passes the whole preflight with a read-only fake AWS adapter', () => {
     const { aws, calls } = adapter();
     const { plan, root } = fixture();
@@ -292,6 +335,52 @@ describe('preflight composes source, plan and applied policies before permitting
             : aws(service, command, input),
       ),
     ).toThrow(/blocked apply.*BatchWriteItem/);
+  });
+  it('allows grants constrained by the deployment boundary without treating them as excess effective permissions', () => {
+    const ceilingArn = `${prefix}findly-production-deploy-99`;
+    const broad = {
+      Version: '2012-10-17',
+      Statement: [{ Effect: 'Allow', Action: '*', Resource: '*' }],
+    };
+    const { aws } = adapter({
+      'get-role': {
+        Role: {
+          Arn: roleArn,
+          Tags: [
+            { Key: 'Project', Value: 'findly' },
+            { Key: 'Environment', Value: 'production' },
+          ],
+          PermissionsBoundary: { PermissionsBoundaryArn: ceilingArn },
+        },
+      },
+      'list-role-policies': { PolicyNames: ['constrained'] },
+      'get-role-policy': { PolicyDocument: broad },
+    });
+    const { plan, root } = fixture();
+    const result = productionPermissionPreflight(
+      plan,
+      root,
+      inventoryConfig,
+      (
+        service: string,
+        command: string,
+        input: Record<string, unknown> = {},
+      ) =>
+        command === 'get-policy-version' && input.PolicyArn === ceilingArn
+          ? {
+              PolicyVersion: {
+                Document: {
+                  Version: '2012-10-17',
+                  Statement: [
+                    ...documents.deploy.core.Statement,
+                    ...documents.deploy.edge.Statement,
+                  ],
+                },
+              },
+            }
+          : aws(service, command, input),
+    );
+    expect(result.runtimeCases).toBe(1);
   });
   it('blocks on an applied deploy boundary as well as its attached policies', () => {
     const { aws } = adapter({
