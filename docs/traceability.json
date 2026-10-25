@@ -844,7 +844,7 @@
     },
     {
       "id": "REQ-MEMORIA-PDF-RELEASE",
-      "description": "Compilación reproducible y publicación automática de la memoria PDF en GitHub Releases, con aceptación remota pendiente.",
+      "description": "Compilación reproducible y publicación PDF verificadas mediante callback post-merge, descarga íntegra y deduplicación por commit.",
       "issues": [186],
       "spec": "specs/17-paper-evidence-adr-and-demo-runbook.md",
       "implementation": [

@@ -259,8 +259,10 @@ recuperación verifica PR, ascendencia y rutas igual que el callback automático
 
 El tag tiene formato `memoria-2026-10-25_18-45`: hora de 24 horas en
 `Europe/Madrid`, con ajuste automático de horario de verano. La release
-enlaza su commit completo y ejecución, conserva versiones anteriores y no se
-marca como `latest` de la aplicación. El acceso a la descarga conserva la
+enlaza sus commits de datos/automatización y ejecución, y conserva versiones
+anteriores. Las descargas apuntan a un tag concreto, para mantener el acceso
+a cada versión aunque cambie la release que GitHub muestra como `Latest`.
+El acceso a la descarga conserva la
 visibilidad y permisos del repositorio.
 
 Disparadores: `memoria-postgrado.md`, `portada.tex`, `img/**`, `Makefile`,

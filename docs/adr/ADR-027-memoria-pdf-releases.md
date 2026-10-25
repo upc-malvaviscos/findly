@@ -1,8 +1,9 @@
 # ADR-027: compilación y publicación de la memoria PDF
 
-Estado: aprobado por el responsable el 2026-10-25 para
+Estado: aceptado y verificado el 2026-10-25 para
 [#186](https://github.com/upc-malvaviscos/findly/issues/186). Primera publicación
-real posterior al merge pendiente; no se acredita con pruebas simuladas.
+real y deduplicación por callback verificadas; véase la
+[evidencia final](../evidence/issue-186-memoria-pdf-releases.md#aceptación-final-publicación-descarga-y-deduplicación).
 
 ## Contexto
 
@@ -81,8 +82,9 @@ La publicación crea primero un borrador, sube el PDF y después publica. Sólo
 el job de publicación recibe `contents: write`; checkout no persiste su token
 y PR usa permisos de lectura, sin `pull_request_target`. Un rerun o callback
 del mismo commit reanuda su borrador o devuelve su release terminada; un upload
-incompleto exige revisión y falla sin reemplazarlo. Las releases documentales
-no se marcan como `latest`, para no sustituir una futura release de la aplicación.
+incompleto exige revisión y falla sin reemplazarlo. La solicitud usa
+`make_latest: false`; los enlaces documentales identifican el tag concreto y
+no dependen de qué release devuelve GitHub en `/latest`.
 
 ## Límites y validación
 

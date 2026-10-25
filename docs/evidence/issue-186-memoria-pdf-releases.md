@@ -79,11 +79,9 @@ no se publicaron previews. El workflow AWS efímero
 [40208336895](https://github.com/upc-malvaviscos/findly/actions/runs/40208336895)
 también quedó omitido por ser PR en borrador; no es evidencia AWS.
 
-Pendientes de completar antes de declarar la issue cerrada:
-
-- Tras el merge autorizado, primera release publicada por `push` a `main`.
-- Comprobar tag/commit, timestamp Madrid, asset descargable y PDF obtenido.
-- Enlazar PR, ejecuciones y release en la issue y actualizar su checklist.
+La aceptación final de callback, tag/commit, timestamp, descarga y publicación
+se recoge al final de este documento. Los checks de PR anteriores no probaban
+por sí solos la publicación real.
 
 La aprobación del plan no autoriza a integrar directamente en `main`. No se
 cierra la issue ni se declara una publicación real a partir del build local.
@@ -122,8 +120,8 @@ se dejó terminar: su conclusión y el paso `Destroy the PR environment` fueron
 Como esta corrección modifica el propio gate, esos ficheros no se añaden a la
 lista de excepciones. #187 usa la omisión operativa explícitamente aprobada
 (`skip-ephemeral-approved`); las futuras PR sólo PDF se clasifican sin etiqueta.
-Quedan pendientes el check remoto de la corrección y la primera publicación
-real en main. No se altera el ruleset ni se omiten los checks estáticos o E2E.
+La aceptación remota posterior y la publicación se registran abajo. No se
+altera el ruleset ni se omiten los checks estáticos o E2E.
 
 ## Callback post-merge sin credenciales adicionales
 
@@ -159,8 +157,8 @@ pullNumber: 187}`. Esto verifica selección real, no publicación.
 Los tests incluyen carrera entre check y auto-merge, timeout acotado, fork,
 head obsoleto, PR sin integrar, otra rama, commit fuera de main, paginación,
 enumeración incompleta, cambios ajenos, recuperación y deduplicación por SHA.
-No prueban por sí solos que GitHub entregue el callback; esa aceptación y la
-descarga de la primera release continúan pendientes.
+No prueban por sí solos que GitHub entregue el callback; la aceptación real
+y la descarga de la primera release se documentan en la sección final.
 
 El workflow debe existir en main para recibir `workflow_run`. Si los checks
 de su propia incorporación ya terminaron antes del merge, se puede repetir
@@ -185,4 +183,54 @@ de main, symlink sin seguimiento y preservación de un destino preexistente.
 Las 78 pruebas específicas pasan. Un ensayo local exportó 11 blobs reales de
 `ea536660cd71ced8d1865cba1e072a922f28f40f`; la compilación con Makefile/adaptador
 confiables y directorio de datos separado terminó con código cero y produjo
-un PDF A4 de 24 páginas. La nueva aceptación CodeQL remota continúa pendiente.
+un PDF A4 de 24 páginas. La aceptación CodeQL posterior pasó sin supresiones,
+igual que todos los checks de #188.
+
+## Aceptación final: publicación, descarga y deduplicación
+
+La [PR #188](https://github.com/upc-malvaviscos/findly/pull/188) se integró en
+`1e46708714605cc903855b145e9fe961e60d11ab`. La revisión final pasó
+`npm run verify`: 890 pruebas en 79 ficheros, tipos, lint/actionlint, build,
+Terraform simulado, auditoría sin vulnerabilidades y trazabilidad. La
+[CI remota](https://github.com/upc-malvaviscos/findly/actions/runs/40214655526),
+CodeQL y la compilación PDF también pasaron. El check AWS usó la omisión
+operativa aprobada para la modificación del propio gate; no hubo otro apply.
+
+Al existir ya el listener en main, se repitió sólo el job CI ligero
+`security-and-sync`. Su terminación provocó el callback real
+[`40215111202`](https://github.com/upc-malvaviscos/findly/actions/runs/40215111202),
+evento `workflow_run`, con selección y publicación `success`. No se creó la
+release manualmente ni se usó `workflow_dispatch` para acreditar esa ruta.
+
+Release verificada:
+[`memoria-2026-10-25_18-10`](https://github.com/upc-malvaviscos/findly/releases/tag/memoria-2026-10-25_18-10).
+[Descarga del PDF](https://github.com/upc-malvaviscos/findly/releases/download/memoria-2026-10-25_18-10/memoria.pdf).
+
+| Dato                             | Valor verificado                                                   |
+| -------------------------------- | ------------------------------------------------------------------ |
+| Release ID                       | `423542236`                                                        |
+| Tag/commit real                  | `1e46708714605cc903855b145e9fe961e60d11ab`                         |
+| Automatización/toolchain         | `1e46708714605cc903855b145e9fe961e60d11ab`                         |
+| Fecha de publicación             | `2026-10-25T17:10:44Z`, equivalente a 18:10 Madrid                 |
+| Estado                           | Publicada, `draft: false`                                          |
+| Asset                            | `memoria.pdf`, ID `675626580`, `application/pdf`                   |
+| Tamaño                           | 1.829.118 bytes                                                    |
+| SHA-256 API y fichero descargado | `edca0f829998149f1448a6af1b4bb71a2a29186210784a82dc371fbbc030b157` |
+
+El PDF descargado tiene 24 páginas A4, contiene el texto CI/CD actualizado y
+carece de marcadores de referencias no resueltas. Se renderizaron las 24
+páginas y sus píxeles coinciden con la versión revisada localmente; se revisó
+también en detalle la tabla DynamoDB corregida. La coincidencia de digest
+prueba la integridad de la descarga de este asset, no reproducibilidad byte
+a byte entre builds.
+
+Se repitió nuevamente sólo el job CI ligero. El callback
+[`40215472591`](https://github.com/upc-malvaviscos/findly/actions/runs/40215472591)
+terminó con éxito y detectó la release existente: exportación, make y upload
+quedaron `skipped`. Se conservan el mismo release ID, asset ID, tamaño,
+digest y fecha de publicación. La API devuelve exactamente una release para
+el marcador del SHA de origen: no se creó otra versión ni se reemplazó el PDF.
+
+La API recibió `make_latest: false`, pero `/releases/latest` devolvió esta
+primera release durante la comprobación. Los enlaces y la deduplicación usan
+su tag/SHA explícitos, sin depender de esa selección de GitHub.
