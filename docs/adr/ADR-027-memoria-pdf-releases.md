@@ -21,11 +21,43 @@ No instala paquetes durante la conversión ni regenera diagramas: usa las
 imágenes ya revisadas en Git. La conversión no tiene red ni credenciales y
 monta únicamente la carpeta de la memoria.
 
-Una PR relevante compila sin publicar previews. Un push relevante a `main`
-compila su revisión exacta y publica `memoria.pdf` en GitHub Releases. Los
+Una PR relevante compila sin publicar previews. Tras un merge relevante en
+`main`, se compila su revisión exacta y publica `memoria.pdf` en GitHub Releases. Los
 disparadores incluyen Markdown, portada, imágenes, Makefile, configuración del
 contenedor, scripts y workflow PDF y versión Node. Cambios en otras memorias
 Markdown o dependencias de la aplicación no publican un PDF.
+
+### Merges realizados por el bot
+
+La primera integración (#187) confirmó un límite del evento `push`: el
+auto-merge existente usa `GITHUB_TOKEN` y GitHub no inicia otros workflows
+por ese push. El responsable aprobó resolverlo sin nuevas credenciales.
+
+Se conserva `push` para merges humanos y se añade `workflow_run` al completar
+CI, AWS efímero o CodeQL. El job de selección usa sólo código de `main`,
+permisos de lectura de contenido/PR y metadatos GitHub. Comprueba repositorio,
+PR realmente integrada en `main`, correspondencia del head o merge SHA,
+ascendencia del commit en `main` y listado completo de archivos relevantes,
+incluidos renombrados y paginación. Rechaza forks, PR sin integrar, heads
+obsoletos y cambios ajenos al PDF. No descarga artefactos de PR.
+
+La terminación del último check puede preceder a la fusión: se espera hasta
+dos minutos por PR con auto-merge activo, con job limitado a cinco minutos.
+Si GitHub demora más la fusión, una terminación posterior de CI/AWS/CodeQL
+vuelve a evaluar; también existe recuperación manual, restringida a un commit
+de una PR integrada y verificado como ancestro de `main`.
+
+Sólo después de seleccionar el commit se inicia el job con `contents: write`.
+Conserva la automatización de `main` en un checkout separado y vuelve a
+comprobar ascendencia antes de obtener las fuentes del commit integrado.
+La publicación se deduplica por SHA de origen entre eventos y ejecuciones;
+si el PDF ya existe, se devuelve su enlace sin otro build ni otro asset.
+La cola serializa también push, callbacks y recuperación manual.
+
+Un workflow recién incorporado a `main` no recibe eventos de checks ya
+terminados. Su arranque puede verificarse repitiendo un job CI ligero ya
+integrado; esa nueva terminación activa el callback real. La recuperación
+manual no se presenta como prueba de publicación automática.
 
 Los tags son `memoria-YYYY-MM-DD_HH-mm`, con reloj de 24 horas y zona IANA
 `Europe/Madrid`, incluidos los cambios de horario estacional. Una colisión de
@@ -43,8 +75,8 @@ suprime ese validador ni se introduce un mecanismo externo de bloqueo.
 
 La publicación crea primero un borrador, sube el PDF y después publica. Sólo
 el job de publicación recibe `contents: write`; checkout no persiste su token
-y PR usa permisos de lectura, sin `pull_request_target`. Un rerun de la misma
-ejecución reanuda su borrador o devuelve su release terminada; un upload
+y PR usa permisos de lectura, sin `pull_request_target`. Un rerun o callback
+del mismo commit reanuda su borrador o devuelve su release terminada; un upload
 incompleto exige revisión y falla sin reemplazarlo. Las releases documentales
 no se marcan como `latest`, para no sustituir una futura release de la aplicación.
 
@@ -75,3 +107,6 @@ compilación local real, pruebas simuladas de publicación y aceptación remota.
 Referencias: [imagen oficial](https://github.com/pandoc/dockerfiles),
 [filtros de rutas](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore),
 [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
+
+Referencia de eventos y restricciones:
+[GITHUB_TOKEN y disparo de workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).

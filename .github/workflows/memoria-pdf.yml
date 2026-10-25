@@ -1,6 +1,15 @@
 name: Memoria PDF
 
 on:
+  workflow_run:
+    workflows: [CI, Ephemeral PR environment, CodeQL]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Verified merged main commit to recover (blank uses main HEAD)
+        required: false
+        type: string
   pull_request:
     paths:
       - docs/paper/memoria-findly/memoria-postgrado.md
@@ -11,6 +20,9 @@ on:
       - scripts/pandoc-container.mjs
       - scripts/lib/memoria-release.mjs
       - scripts/lib/memoria-release.d.mts
+      - scripts/lib/memoria-source.mjs
+      - scripts/lib/memoria-source.d.mts
+      - tests/infra/memoriaSource.test.ts
       - tests/infra/memoriaRelease.test.ts
       - .github/workflows/memoria-pdf.yml
       - .nvmrc
@@ -25,6 +37,9 @@ on:
       - scripts/pandoc-container.mjs
       - scripts/lib/memoria-release.mjs
       - scripts/lib/memoria-release.d.mts
+      - scripts/lib/memoria-source.mjs
+      - scripts/lib/memoria-source.d.mts
+      - tests/infra/memoriaSource.test.ts
       - tests/infra/memoriaRelease.test.ts
       - .github/workflows/memoria-pdf.yml
       - .nvmrc
@@ -46,8 +61,39 @@ jobs:
           node-version-file: .nvmrc
       - run: make -C docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
 
+  source:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          path: automation
+          persist-credentials: false
+      - name: Verify merged main source and relevant files
+        id: source
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const url = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/automation/scripts/lib/memoria-source.mjs`);
+            const { resolveMemoriaSource } = await import(url.href);
+            const source = await resolveMemoriaSource({ github, context });
+            core.setOutput('sha', source?.sha || '');
+            core.info(source ? `Verified main commit ${source.sha}` : 'No merged PDF-relevant source; no build or publication.');
+
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: source
+    if: needs.source.outputs.sha != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -58,20 +104,49 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: main
+          path: automation
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-      - run: make -C docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
-      - name: Publish the downloadable PDF
+      - name: Recheck main ancestry and deduplicate publication
+        id: release
         uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
         with:
           script: |
             const { pathToFileURL } = await import('node:url');
-            const moduleURL = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/lib/memoria-release.mjs`);
+            const base = `${process.env.GITHUB_WORKSPACE}/automation/scripts/lib/`;
+            const { verifyMainCommit } = await import(pathToFileURL(`${base}memoria-source.mjs`).href);
+            const { completedMemoriaRelease } = await import(pathToFileURL(`${base}memoria-release.mjs`).href);
+            await verifyMainCommit(github, context.repo, process.env.SOURCE_SHA);
+            const url = await completedMemoriaRelease(github, context.repo, process.env.SOURCE_SHA);
+            core.setOutput('build', url ? 'false' : 'true');
+            if (url) await core.summary.addLink('Existing PDF release', url).write();
+      - uses: actions/checkout@v6
+        if: steps.release.outputs.build == 'true'
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          path: document
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.release.outputs.build == 'true'
+        with:
+          node-version-file: automation/.nvmrc
+      - if: steps.release.outputs.build == 'true'
+        run: make -C document/docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
+      - name: Publish the downloadable PDF
+        if: steps.release.outputs.build == 'true'
+        uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const moduleURL = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/automation/scripts/lib/memoria-release.mjs`);
             const { publishMemoria } = await import(moduleURL.href);
             const url = await publishMemoria({
               github, context,
-              pdfPath: `${process.env.GITHUB_WORKSPACE}/docs/paper/memoria-findly/memoria.pdf`,
+              sourceSha: process.env.SOURCE_SHA,
+              pdfPath: `${process.env.GITHUB_WORKSPACE}/document/docs/paper/memoria-findly/memoria.pdf`,
             });
             await core.summary.addLink('Download memoria.pdf from the release', url).write();

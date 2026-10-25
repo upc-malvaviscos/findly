@@ -6,6 +6,9 @@ const paperTooling = new Set([
   'scripts/lib/memoria-release.mjs',
   'scripts/lib/memoria-release.d.mts',
   'tests/infra/memoriaRelease.test.ts',
+  'scripts/lib/memoria-source.mjs',
+  'scripts/lib/memoria-source.d.mts',
+  'tests/infra/memoriaSource.test.ts',
 ]);
 
 /**

@@ -48,9 +48,11 @@ Corrección aprobada por el responsable el 2026-10-25: el diff de la PR completa
 incluía scripts/workflow de publicación de la memoria y una entrada npm,
 clasificados como código desplegable aunque no afectan al producto AWS.
 
-Se reconocen sólo las cinco rutas de tooling PDF declaradas en
-`scripts/lib/ephemeral-pr-eligibility.mjs`. No se eximen directorios genéricos
-de scripts, pruebas ni workflows. `package.json` requiere comparar ambos
+Se reconocen sólo las rutas exactas de tooling PDF declaradas en
+`scripts/lib/ephemeral-pr-eligibility.mjs`. El selector de origen integrado,
+su declaración y pruebas específicas se incluyen entre esas rutas al añadir
+el callback de publicación post-merge. No se eximen directorios genéricos de
+scripts, pruebas ni workflows. `package.json` requiere comparar ambos
 contenidos: eliminando únicamente `scripts.paper:pdf`, el resto debe ser
 semánticamente idéntico. Se usa el mismo merge-base que el diff de archivos,
 incluso si `origin/main` ha avanzado. Un error de lectura/parseo conserva AWS.

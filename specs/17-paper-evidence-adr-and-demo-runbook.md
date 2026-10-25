@@ -82,8 +82,14 @@ Alcance aprobado en [#186](https://github.com/upc-malvaviscos/findly/issues/186)
 
 - Compilar `memoria-postgrado.md` con portada e imágenes versionadas mediante
   Pandoc, pandoc-crossref y XeLaTeX de una imagen fijada por digest.
-- En PR, validar la compilación sin publicar previews; en push relevante a
-  `main`, publicar `memoria.pdf` como asset de GitHub Release.
+- En PR, validar la compilación sin publicar previews; tras un merge relevante
+  a `main`, publicar `memoria.pdf` como asset de GitHub Release. Conservar push
+  y cubrir auto-merges con callbacks de checks, ya que el token del bot suprime push.
+- Resolver el origen con código de `main`, PR integrada, SHA exacto, ascendencia
+  en main y archivos relevantes completos. No ejecutar código de PR sin integrar
+  ni descargar sus artefactos. Deduplicar por commit antes de volver a compilar.
+- Ofrecer recuperación manual limitada a una PR integrada en main; no confundir
+  esa ejecución manual con evidencia de la ruta automática.
 - Disparar sólo por entradas de la memoria y configuración/herramientas PDF,
   sin vincular la publicación a cualquier Markdown del repositorio.
 - Conservar releases publicadas con tags `memoria-YYYY-MM-DD_HH-mm`, zona

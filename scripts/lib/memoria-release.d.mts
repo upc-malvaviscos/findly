@@ -29,6 +29,9 @@ export interface MemoriaGitHub {
     };
     repos: {
       listReleases: unknown;
+      compareCommitsWithBasehead(
+        input: Repository & { basehead: string; per_page: number },
+      ): Promise<Response<{ status: string }>>;
       getReleaseByTag(
         input: Repository & { tag: string },
       ): Promise<Response<MemoriaRelease>>;
@@ -65,6 +68,11 @@ export interface MemoriaGitHub {
   };
 }
 export declare function memoriaTag(date: Date): string;
+export declare function completedMemoriaRelease(
+  github: MemoriaGitHub,
+  repository: Repository,
+  sha: string,
+): Promise<string | undefined>;
 export declare function publishMemoria(input: {
   github: MemoriaGitHub;
   context: {
@@ -75,6 +83,7 @@ export declare function publishMemoria(input: {
     repo: Repository;
   };
   pdfPath: string;
+  sourceSha?: string;
   now?: () => Date;
   sleep?: (milliseconds: number) => Promise<unknown>;
 }): Promise<string>;

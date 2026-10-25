@@ -49,7 +49,7 @@ La verificación estática y sus límites se registran en la
 - La excepción documental incluye únicamente las rutas explícitas de la
   herramienta PDF de [#186](https://github.com/upc-malvaviscos/findly/issues/186):
   workflow `memoria-pdf.yml`, adaptador Pandoc, módulo de publicación y su
-  declaración TypeScript, y pruebas específicas de publicación. Otros
+  declaración TypeScript, selector del origen integrado y pruebas específicas. Otros
   workflows, scripts y pruebas siguen requiriendo AWS.
 - `package.json` se considera documental sólo cuando su contenido difiere
   exclusivamente en `scripts.paper:pdf` (o formato/orden sin cambio semántico).
