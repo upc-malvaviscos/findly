@@ -191,6 +191,12 @@ Incluye la fuente del diagrama y su PNG regenerado. Antes de insertar una
 figura nueva, revisa el tamaño del texto y los cruces de flechas en el PNG y
 en la página PDF a tamaño A4.
 
+### Formato numérico
+
+En la prosa, las tablas y las figuras se usa punto para agrupar miles y coma
+para decimales: `1.000 fotografías`, `2,99 USD`, `90,46 %`. Los identificadores,
+versiones y formatos de intercambio conservan su sintaxis técnica.
+
 ### Una tabla
 
 Markdown normal; si quieres que `pandoc-crossref` la numere y puedas

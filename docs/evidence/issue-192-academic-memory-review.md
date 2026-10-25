@@ -134,3 +134,9 @@ al proyecto requiere desglose por recursos o etiquetas.
 
 Validación de estilo: Markdown (146 ficheros), trazabilidad (22 requisitos),
 compilación del PDF y revisión visual de sus 38 páginas completadas.
+
+## Convención numérica
+
+Las tablas de costes y la explicación del modelo usan punto para los miles
+y coma para los decimales. El README de la memoria documenta esta convención
+para las siguientes ediciones; los formatos de intercambio mantienen su sintaxis.
