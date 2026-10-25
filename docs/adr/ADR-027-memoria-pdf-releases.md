@@ -62,6 +62,13 @@ un cambio excepcionalmente grande requiere comprobar que el workflow se ejecuta.
 Los minutos de Actions y los assets de Releases consumen las cuotas de GitHub;
 no se crean servicios de coste fijo ni se concede acceso a AWS.
 
+Las actualizaciones exclusivas de texto/tooling PDF omiten automáticamente el
+despliegue efímero de PR. La comparación de `package.json` sólo ignora la
+entrada `paper:pdf`, no las dependencias ni scripts de aplicación. Véanse la
+[spec 15](../../specs/15-scheduled-nonproduction-teardown.md) y
+[ADR-008](ADR-008-pr-scoped-ephemeral-ci.md). La corrección del propio control
+de elegibilidad conserva una autorización operativa separada por PR.
+
 La [evidencia de #186](../evidence/issue-186-memoria-pdf-releases.md) distingue
 compilación local real, pruebas simuladas de publicación y aceptación remota.
 

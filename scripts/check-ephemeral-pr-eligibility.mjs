@@ -9,6 +9,8 @@ import {
 const baseRef = process.env.GITHUB_BASE_REF || 'main';
 
 let changedFiles = [];
+let comparisonBase = `origin/${baseRef}`;
+let compareMergeBase = true;
 try {
   const diffOutput = execFileSync(
     'git',
@@ -27,12 +29,41 @@ try {
       { encoding: 'utf8' },
     );
     changedFiles = fallbackOutput.split('\n').filter(Boolean);
+    comparisonBase = 'HEAD~1';
+    compareMergeBase = false;
   } catch (fallbackError) {
     console.warn(
       `Warning: fallback git diff failed: ${fallbackError.message}.`,
     );
     // Safe default: require deployment if diff fails
     changedFiles = ['UNKNOWN_CHANGE_FALLBACK_TRIGGER'];
+  }
+}
+
+let packageChange;
+if (changedFiles.includes('package.json')) {
+  try {
+    // Compare the same ancestor used by the three-dot PR diff, not origin/main's
+    // current tip: upstream may have changed dependencies after this PR branched.
+    const ancestor = compareMergeBase
+      ? execFileSync('git', ['merge-base', comparisonBase, 'HEAD'], {
+          encoding: 'utf8',
+        }).trim()
+      : comparisonBase;
+    packageChange = {
+      basePackageJson: execFileSync(
+        'git',
+        ['show', `${ancestor}:package.json`],
+        { encoding: 'utf8' },
+      ),
+      headPackageJson: execFileSync('git', ['show', 'HEAD:package.json'], {
+        encoding: 'utf8',
+      }),
+    };
+  } catch {
+    console.warn(
+      'Unable to compare package.json revisions; requiring AWS validation for that file.',
+    );
   }
 }
 
@@ -53,7 +84,7 @@ const approvedSkip = approvedEphemeralSkip(
   process.env.PR_TITLE,
 );
 const deployRequired =
-  !approvedSkip && requiresEphemeralDeployment(changedFiles);
+  !approvedSkip && requiresEphemeralDeployment(changedFiles, packageChange);
 
 if (deployRequired) {
   console.log(
@@ -65,7 +96,7 @@ if (deployRequired) {
   );
 } else {
   console.log(
-    '::notice::All changed files are documentation or specifications. Skipping ephemeral environment deployment.',
+    '::notice::Changes affect only documentation or PDF tooling. Skipping ephemeral environment deployment.',
   );
 }
 

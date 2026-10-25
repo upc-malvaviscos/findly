@@ -852,7 +852,10 @@
         "scripts/pandoc-container.mjs",
         "scripts/lib/memoria-release.mjs",
         "docs/paper/memoria-findly/Makefile",
-        "docs/paper/memoria-findly/pdf-toolchain.json"
+        "docs/paper/memoria-findly/pdf-toolchain.json",
+        "scripts/lib/ephemeral-pr-eligibility.mjs",
+        "scripts/lib/ephemeral-pr-eligibility.d.mts",
+        "scripts/check-ephemeral-pr-eligibility.mjs"
       ],
       "verification": [
         {
@@ -866,7 +869,10 @@
         {
           "command": "test",
           "environment": "unit",
-          "files": ["tests/infra/memoriaRelease.test.ts"]
+          "files": [
+            "tests/infra/memoriaRelease.test.ts",
+            "tests/infra/ephemeralPrEligibility.test.ts"
+          ]
         },
         {
           "command": "lint:workflows",
@@ -888,7 +894,9 @@
         "docs/adr/ADR-027-memoria-pdf-releases.md",
         "docs/paper/memoria-findly/README.md",
         "docs/paper/05-implementacion-y-cicd.md",
-        "README.md"
+        "README.md",
+        "specs/15-scheduled-nonproduction-teardown.md",
+        "docs/adr/ADR-008-pr-scoped-ephemeral-ci.md"
       ]
     }
   ]
