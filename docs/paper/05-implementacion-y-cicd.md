@@ -194,13 +194,15 @@ El runbook y los resultados AWS están en
 [`permanent-demo.md`](../runbooks/permanent-demo.md) y
 [la evidencia de #15](../evidence/issue-15-permanent-demo.md).
 
-### `teardown-nonproduction.yml` — placeholder heredado, sin efecto
+### Retirada del handoff de limpieza programada
 
-Sigue programado cada 12 horas (`cron: "0 */12 * * *"`), pero su único paso es
-un `echo` que declara explícitamente que no destruye nada. ADR-008 sustituyó
-esta limpieza periódica compartida por el entorno efímero por PR; este
-workflow quedó en el repositorio como una entrega de otra spec (15) todavía
-no retirada, no como un mecanismo de teardown activo.
+El workflow heredado `teardown-nonproduction.yml` se retira el 25 de octubre
+de 2026. Su cron cada doce horas sólo ejecutaba un `echo`, sin destruir
+recursos. ADR-008 ya había sustituido la limpieza periódica compartida por
+el entorno efímero por PR. La retirada elimina esas ejecuciones sin alterar
+`ephemeral-pr-e2e.yml` ni la destrucción manual de demo. La
+[evidencia](../evidence/retire-nonproduction-teardown.md) distingue esta
+validación estática de cualquier operación AWS.
 
 ### `enable-automerge.yml` — fusión automática por REBASE
 
@@ -215,7 +217,7 @@ obligatorios del ruleset de `main` están en verde.
 
 Configuración mínima: un único ecosistema (`npm`), directorio raíz,
 periodicidad semanal. Cada actualización llega como una PR normal, sujeta a
-los mismos seis workflows y al mismo ruleset que cualquier otra. Esto tiene un
+los mismos checks obligatorios y al mismo ruleset que cualquier otra. Esto tiene un
 efecto secundario real y observado en este proyecto: cuando Dependabot abre
 varias PRs de dependencias la misma semana y se fusionan en orden, una PR
 puede quedar en conflicto contra el `main` que dejaron las fusionadas justo

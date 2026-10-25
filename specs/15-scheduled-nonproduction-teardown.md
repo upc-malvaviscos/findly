@@ -1,5 +1,7 @@
 # 15 - Entorno efímero de pull request y destrucción garantizada
 
+<!-- requirement: REQ-RETIRED-TEARDOWN-HANDOFF -->
+
 ## Objetivo
 
 Sustituir la limpieza programada compartida por un entorno AWS exclusivo de
@@ -8,6 +10,17 @@ del organizador contra el API, Cognito y S3 realmente desplegados, y lo destruye
 en un paso `always()`, incluso cuando fallan las pruebas. Floci se valida de
 forma independiente en el job E2E local. No existe cron ni una ruta que pueda
 destruir `demo` o `production`.
+
+## Retirada del handoff heredado — 2026-10-25
+
+Como continuación de [#16](https://github.com/upc-malvaviscos/findly/issues/16)
+y ADR-008, se elimina `.github/workflows/teardown-nonproduction.yml`.
+Su cron cada doce horas sólo imprimía un aviso y no realizaba limpieza.
+Se conserva el workflow efímero por PR y su paso de destrucción `always()`;
+la destrucción de demo sigue siendo una operación manual independiente.
+La retirada no requiere modificar IAM ni desplegar o destruir recursos AWS.
+La verificación estática y sus límites se registran en la
+[evidencia de retirada](../docs/evidence/retire-nonproduction-teardown.md).
 
 ## Criterios de aceptación
 
