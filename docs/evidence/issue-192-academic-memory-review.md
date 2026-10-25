@@ -109,3 +109,16 @@ registrada de commits, sin publicar emails de los integrantes.
 El modelo FinOps conserva el gasto declarado de 1,71 EUR (dos partidas), el
 [contraste parcial y capturas](finops-2026-10-25/README.md) y su discrepancia.
 No se accedió a facturación autenticada ni se desplegaron recursos.
+
+## Previsiones de coste aportadas por el equipo
+
+Se incorporan [capturas, transcripción y límites](finops-2026-10-25/team-cost-forecast.md)
+en USD: agosto/septiembre son costes reales comunicados; octubre/noviembre,
+previsiones. Noviembre suma 2,986 USD, con un 90,46 % en Rekognition. Se corrige
+la lectura de septiembre (persiste un cargo residual de RDS) y se conserva
+pendiente el alcance de cuenta/proyecto. Las cifras no se fusionan con la
+declaración anterior en EUR ni con el modelo de escenarios.
+
+Validación de esta ampliación: Markdown sin incidencias (146 ficheros),
+trazabilidad de 22 requisitos y PDF recompilado de 38 páginas, renderizado
+y revisado. Sumas y porcentajes contrastados independientemente por un subagente.

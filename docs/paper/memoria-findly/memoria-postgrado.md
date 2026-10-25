@@ -1176,6 +1176,32 @@ esos euros a los dólares del modelo ni se deduce que otros servicios costaran
 cero. Para una comparación homogénea faltan periodo, volúmenes, impuestos,
 créditos y alcance de las partidas.
 
+El equipo aporta también dos [capturas de un resumen de costes y previsiones](../../evidence/finops-2026-10-25/team-cost-forecast.md).
+Las partidas visibles están en USD y distinguen estos periodos:
+
+<!-- prettier-ignore -->
+| Periodo de 2026 | Naturaleza del dato aportado | Suma de partidas visibles (USD) |
+| --- | --- | ---: |
+| Junio y julio | Sin cargos registrados según el resumen | — |
+| Agosto | Coste real comunicado | 0,379 |
+| Septiembre | Coste real comunicado | 0,130 |
+| Octubre | Previsión parcial | 0,542 |
+| Noviembre | Previsión | 2,986 |
+
+La previsión de noviembre se redondea a 2,99 USD, con 2,014 USD de margen
+aritmético frente al objetivo de 5 USD/mes. Rekognition aporta 2,701 USD,
+aproximadamente el 90,46 % del importe previsto. Su relación con los
+0,115 USD comunicados para septiembre es de 23,49 veces; combina un dato
+real comunicado con una previsión, sin demostrar ese crecimiento observado.
+
+Las capturas también muestran EC2, RDS y VPC en agosto, y un cargo residual
+de RDS de 0,002 USD en septiembre. Esos servicios no pertenecen a la
+arquitectura vigente de Findly. El alcance de cuenta/proyecto no está confirmado:
+no se atribuyen esos cargos al sistema ni se infiere la eliminación de recursos
+por la ausencia de una fila. Falta conocer filtros, créditos, impuestos y método
+de previsión. Esta serie en USD se conserva por separado de la declaración
+previa en EUR y del modelo paramétrico; no son importes directamente conciliados.
+
 La comparación con tarifas públicas permite reproducir el cálculo, pero falta
 conciliarlo con facturación atribuible al proyecto o con una estimación completa
 exportada de AWS Pricing Calculator. Esa conciliación debe incluir dominio/DNS,
