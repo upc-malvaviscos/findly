@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   requirePermission,
   requireResourcePattern,
+  policyDecision,
   validateIdentityPolicy,
 } from './iam-policy-evaluation.mjs';
 import { flattenResources } from './terraform-permission-inventory.mjs';
@@ -442,6 +443,7 @@ export function permissionInventory(root, config) {
   );
   return {
     version: 1,
+    configuration: config,
     resources,
     roles,
     functions,
@@ -453,6 +455,95 @@ export function permissionInventory(root, config) {
       oacId: byType('aws_cloudfront_origin_access_control')[0]?.values.id,
     },
   };
+}
+
+function requireDenied(policies, request, source, ceiling) {
+  assert(
+    !(
+      policyDecision(policies, request) === 'allowed' &&
+      (!ceiling || policyDecision([ceiling], request) === 'allowed')
+    ),
+    `${source}: unexpected permission outside the isolation contract (${request.action})`,
+  );
+}
+
+function verifyDeploymentIsolation(inventory, policies, ceiling) {
+  const denied = (request, source) =>
+    requireDenied(policies, request, source, ceiling);
+  const { account, region, stateBucket } = inventory.configuration;
+  const foreign = account === '000000000000' ? '999999999999' : '000000000000';
+  for (const request of inventory.requests) {
+    if (request.resource.includes(account))
+      denied(
+        { ...request, resource: request.resource.replaceAll(account, foreign) },
+        request.source,
+      );
+    const context = { ...request.context };
+    if (request.action === 'iam:CreateRole') {
+      delete context['iam:PermissionsBoundary'];
+      denied({ ...request, context }, request.source);
+      denied(
+        { ...request, action: 'iam:DeleteRolePermissionsBoundary' },
+        request.source,
+      );
+    }
+    if (request.action === 'iam:PassRole')
+      denied(
+        {
+          ...request,
+          context: { ...context, 'iam:PassedToService': 'ec2.amazonaws.com' },
+        },
+        request.source,
+      );
+    if (request.action === 'lambda:CreateEventSourceMapping') {
+      for (const [key, value] of [
+        ['aws:RequestedRegion', 'us-east-1'],
+        ['aws:RequestTag/Project', 'foreign'],
+        ['aws:RequestTag/Environment', 'demo'],
+        [
+          'lambda:FunctionArn',
+          `arn:aws:lambda:${region}:${account}:function:foreign`,
+        ],
+      ])
+        denied(
+          { ...request, context: { ...context, [key]: value } },
+          request.source,
+        );
+      delete context['aws:RequestTag/Project'];
+      denied({ ...request, context }, request.source);
+    }
+    if (
+      ['cloudfront:TagResource', 'cognito-idp:TagResource'].includes(
+        request.action,
+      )
+    ) {
+      delete context['aws:ResourceTag/Project'];
+      delete context['aws:ResourceTag/Environment'];
+      denied({ ...request, context }, request.source);
+      denied(
+        {
+          ...request,
+          context: {
+            ...context,
+            'aws:ResourceTag/Project': 'findly',
+            'aws:ResourceTag/Environment': 'demo',
+          },
+        },
+        request.source,
+      );
+    }
+  }
+  for (const request of [
+    {
+      action: 'iam:PutRolePolicy',
+      resource: `arn:aws:iam::${account}:role/findly-production-deploy`,
+    },
+    {
+      action: 's3:DeleteObject',
+      resource: `arn:aws:s3:::${stateBucket}/findly/production/terraform.tfstate`,
+    },
+  ])
+    denied(request, 'protected deployment identity/backend');
 }
 
 export function verifyPermissionInventory(
@@ -471,6 +562,7 @@ export function verifyPermissionInventory(
         `${request.source}: deploy boundary`,
       );
   }
+  verifyDeploymentIsolation(inventory, deployPolicies, deployBoundary);
   for (const { source, policy } of inventory.runtime) {
     for (const statement of policy.Statement) {
       assert.equal(
@@ -509,6 +601,31 @@ export function verifyPermissionInventory(
             request,
             `${source}: runtime boundary`,
           );
+          const account = inventory.configuration.account;
+          if (resource.includes(account))
+            requireDenied(
+              [boundary],
+              {
+                ...request,
+                resource: resource.replaceAll(
+                  account,
+                  account === '000000000000' ? '999999999999' : '000000000000',
+                ),
+              },
+              `${source}: runtime boundary`,
+            );
+          if (action === 'dynamodb:BatchWriteItem')
+            requireDenied(
+              [boundary],
+              { ...request, resource: `${resource}/index/GSI1` },
+              `${source}: runtime boundary`,
+            );
+          if (resource.endsWith('-backfill-queue'))
+            requireDenied(
+              [boundary],
+              { ...request, resource: resource.replace(/-queue$/, '-dlq') },
+              `${source}: runtime boundary`,
+            );
           runtimeCases++;
         }
       }

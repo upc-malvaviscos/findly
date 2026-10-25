@@ -57,8 +57,9 @@ No usan procesos AWS ni envían mensajes. Se reemplaza el test anterior de ocho
 módulos enumerados por el recorrido de todos los roles/políticas del grafo.
 Permanecen los tests de aislamiento y límites de tamaño de políticas.
 
-Las **60 regresiones nuevas** pasan, incluidos fallos de lecturas IAM,
-boundary aplicada obsoleta, propiedad anterior, valores desconocidos, comodines
+Las **63 regresiones nuevas** pasan, incluidos fallos de lecturas IAM,
+boundary aplicada obsoleta o excesiva, grants de despliegue excesivos e
+intersección con su boundary, propiedad anterior, valores desconocidos, comodines
 literales en `StringEquals` y rechazo de tablas/colas de otra cuenta/entorno.
 `BatchWriteItem` queda limitado a la tabla, excluyendo sus índices; la cola de
 backfill se permite sin conceder consumo de su DLQ. La comparación del
