@@ -48,8 +48,12 @@ vuelve a evaluar; también existe recuperación manual, restringida a un commit
 de una PR integrada y verificado como ancestro de `main`.
 
 Sólo después de seleccionar el commit se inicia el job con `contents: write`.
-Conserva la automatización de `main` en un checkout separado y vuelve a
-comprobar ascendencia antes de obtener las fuentes del commit integrado.
+Hace checkout exclusivamente de `main`, conservando su automatización,
+Makefile y toolchain. Tras volver a comprobar ascendencia por API y Git local,
+exporta únicamente blobs de Markdown, portada e imágenes del commit integrado,
+sin hacer checkout de ese commit ni ejecutar sus scripts/Makefile. Rechaza
+symlinks y submódulos; el directorio de datos se monta aislado en el contenedor.
+La release registra tanto el SHA de datos como el de automatización/toolchain.
 La publicación se deduplica por SHA de origen entre eventos y ejecuciones;
 si el PDF ya existe, se devuelve su enlace sin otro build ni otro asset.
 La cola serializa también push, callbacks y recuperación manual.

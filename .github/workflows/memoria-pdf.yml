@@ -22,6 +22,9 @@ on:
       - scripts/lib/memoria-release.d.mts
       - scripts/lib/memoria-source.mjs
       - scripts/lib/memoria-source.d.mts
+      - scripts/lib/memoria-export.mjs
+      - scripts/lib/memoria-export.d.mts
+      - tests/infra/memoriaExport.test.ts
       - tests/infra/memoriaSource.test.ts
       - tests/infra/memoriaRelease.test.ts
       - .github/workflows/memoria-pdf.yml
@@ -39,6 +42,9 @@ on:
       - scripts/lib/memoria-release.d.mts
       - scripts/lib/memoria-source.mjs
       - scripts/lib/memoria-source.d.mts
+      - scripts/lib/memoria-export.mjs
+      - scripts/lib/memoria-export.d.mts
+      - tests/infra/memoriaExport.test.ts
       - tests/infra/memoriaSource.test.ts
       - tests/infra/memoriaRelease.test.ts
       - .github/workflows/memoria-pdf.yml
@@ -106,6 +112,7 @@ jobs:
         with:
           ref: main
           path: automation
+          fetch-depth: 0
           persist-credentials: false
       - name: Recheck main ancestry and deduplicate publication
         id: release
@@ -122,18 +129,21 @@ jobs:
             const url = await completedMemoriaRelease(github, context.repo, process.env.SOURCE_SHA);
             core.setOutput('build', url ? 'false' : 'true');
             if (url) await core.summary.addLink('Existing PDF release', url).write();
-      - uses: actions/checkout@v6
-        if: steps.release.outputs.build == 'true'
-        with:
-          ref: ${{ needs.source.outputs.sha }}
-          path: document
-          persist-credentials: false
       - uses: actions/setup-node@v6
         if: steps.release.outputs.build == 'true'
         with:
           node-version-file: automation/.nvmrc
+      - name: Export academic data without checking out historical code
+        if: steps.release.outputs.build == 'true'
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+        run: node automation/scripts/lib/memoria-export.mjs automation document
       - if: steps.release.outputs.build == 'true'
-        run: make -C document/docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
+        env:
+          FINDLY_PAPER_SOURCE_DIRECTORY: ${{ github.workspace }}/document
+        run: >-
+          make -C document -f "$GITHUB_WORKSPACE/automation/docs/paper/memoria-findly/Makefile"
+          pdf "PANDOC=node $GITHUB_WORKSPACE/automation/scripts/pandoc-container.mjs"
       - name: Publish the downloadable PDF
         if: steps.release.outputs.build == 'true'
         uses: actions/github-script@v8
@@ -144,9 +154,12 @@ jobs:
             const { pathToFileURL } = await import('node:url');
             const moduleURL = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/automation/scripts/lib/memoria-release.mjs`);
             const { publishMemoria } = await import(moduleURL.href);
+            const { execFileSync } = await import('node:child_process');
+            const automationSha = execFileSync('git', ['-C', `${process.env.GITHUB_WORKSPACE}/automation`, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
             const url = await publishMemoria({
               github, context,
               sourceSha: process.env.SOURCE_SHA,
-              pdfPath: `${process.env.GITHUB_WORKSPACE}/document/docs/paper/memoria-findly/memoria.pdf`,
+              automationSha,
+              pdfPath: `${process.env.GITHUB_WORKSPACE}/document/memoria.pdf`,
             });
             await core.summary.addLink('Download memoria.pdf from the release', url).write();

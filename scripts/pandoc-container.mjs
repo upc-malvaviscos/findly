@@ -2,9 +2,9 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const paper = fileURLToPath(
-  new URL('../docs/paper/memoria-findly/', import.meta.url),
-);
+const paper =
+  process.env.FINDLY_PAPER_SOURCE_DIRECTORY ??
+  fileURLToPath(new URL('../docs/paper/memoria-findly/', import.meta.url));
 const { image, platform } = JSON.parse(
   readFileSync(
     new URL('../docs/paper/memoria-findly/pdf-toolchain.json', import.meta.url),

@@ -242,9 +242,11 @@ Los merges del bot no generan otro workflow `push` por las restricciones de
 `GITHUB_TOKEN`. Por eso se evalúa también la terminación de CI, AWS efímero y
 CodeQL: primero se confirma que la PR ya está integrada en `main` y que cambió
 alguna entrada PDF. La comprobación ligera puede ejecutarse para otros cambios,
-pero éstos no compilan ni publican. La automatización se obtiene de `main`,
-las fuentes del commit integrado se verifican contra `main`, y no se consumen
-código ni artefactos de PR sin integrar.
+pero éstos no compilan ni publican. El checkout, scripts, Makefile y toolchain
+son exclusivamente de `main`. Las fuentes del commit integrado se verifican
+contra main y se exportan como datos (Markdown, portada e imágenes), sin
+symlinks ni ejecución de código histórico. La release enlaza ambos SHAs. No
+se consumen artefactos de PR ni código de PR sin integrar.
 
 Si varios eventos corresponden al mismo commit, se conserva una sola release
 y se evita repetir el build cuando su PDF ya está publicado. La selección

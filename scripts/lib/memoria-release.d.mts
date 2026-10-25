@@ -84,6 +84,7 @@ export declare function publishMemoria(input: {
   };
   pdfPath: string;
   sourceSha?: string;
+  automationSha?: string;
   now?: () => Date;
   sleep?: (milliseconds: number) => Promise<unknown>;
 }): Promise<string>;
