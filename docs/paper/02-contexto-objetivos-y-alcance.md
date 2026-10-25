@@ -13,8 +13,8 @@ procesamiento de selfie inferior a tres segundos, una respuesta p95 de galería
 inferior a 500 ms y un umbral de similitud de Rekognition de al menos 95,0 %
 (capítulo 3 detalla la fuente y el estado de verificación de cada métrica). Se
 limita a una única región AWS (ADR-004) y a una arquitectura serverless sin
-capacidad de cómputo/red dedicada (ADR-002). No implica factura cero: el
-almacenamiento y la observabilidad pueden generar consumo sin tráfico.
+capacidad de cómputo/red dedicada (ADR-002). El almacenamiento y la
+observabilidad pueden generar consumo durante periodos sin tráfico.
 
 Quedan fuera del alcance la vigilancia o el vídeo en tiempo real, imágenes no
 autorizadas, menores, incluso con autorización de tutor, alta
@@ -84,7 +84,7 @@ timeline
 se crean el mismo día, una por cada spec de la 00 a la 17: el equipo congela
 primero el backlog completo (alcance, ADRs, métricas, fundación técnica,
 contratos, y cada capacidad de producto y de plataforma) y lo publica entero
-antes de empezar a implementar, en vez de descubrirlo incrementalmente.
+antes de empezar a implementar, con el alcance definido desde el inicio.
 
 **Fase 2 — Evolución y verificación puntual (04-sep a 19-sep).** Tras
 completar la primera vuelta de implementación, aparecen issues de dos tipos
@@ -108,7 +108,8 @@ AWS ni cambiar código en la propia auditoría
 (`docs/evidence/issue-checklist-audit.md`). El resultado reabre cinco issues por
 no tener evidencia desplegada — `#6`, `#8`, `#10`, `#13`, `#22` — pese a que sus
 checks de CI estaban en verde: una suite con `aws-sdk-client-mock`, HTTP
-interceptado o Floci no acredita AWS real, y la auditoría lo señala
+interceptado o Floci acredita únicamente el comportamiento simulado; la auditoría
+señala que la verificación en AWS real queda pendiente
 explícitamente issue por issue. La corrección se organiza con **tres agentes en
 worktrees Git separados**, trabajando en paralelo sobre inscripción pública,
 borrado/retención y verificación, integrados en una única PR (`#71`) que sí
@@ -160,11 +161,11 @@ evidencia que exige `AGENTS.md` para cerrar una issue. `anyulled` abrió
 después la PR #81 para sincronizar `specs/06` y su evidencia con ese
 resultado; su primer intento quedó `BEHIND` de `main` porque el probe de
 aceptación heredado exigía dos permisos Rekognition que el rol OIDC efímero
-no tenía. En vez de aprobar un permiso puntual más, el equipo sustituyó el
+no tenía. El equipo sustituyó el
 patrón de propuestas por número de PR (`docs/evidence/issue-07-ci-permissions-proposal.json`,
 el usado para PR #72) por una única política gestionada y permanente,
 `findly-ephemeral-pr-extensions`, generalizada por prefijo `findly-pr-*` y
-etiqueta `Ephemeral=true` en vez de por número de PR
+etiqueta `Ephemeral=true`, con alcance definido por etiqueta y prefijo
 (`docs/evidence/permanent-ephemeral-ci-iam.md`). Validada con el simulador de
 IAM y Access Analyzer (cero _findings_) antes de confiar en ella, autorizó el
 rebase de PR #81, que se fusionó el 02-oct
@@ -176,18 +177,17 @@ real.
 ### La auditoría como puerta de calidad
 
 El hallazgo metodológico más relevante de este proyecto es que **una suite de CI
-en verde no fue tratada como criterio suficiente de cierre**. `AGENTS.md` ya lo
-exigía por escrito desde el inicio («no se cierra una issue sin evidencia
+en verde se complementó con evidencia verificable para cerrar cada issue**. `AGENTS.md` ya exigía esa evidencia por escrito desde el inicio («no se cierra una issue sin evidencia
 verificable»), pero la fase 3 demuestra que hizo falta una auditoría explícita e
-independiente — no la propia implementación autoevaluándose — para hacerlo
+independiente para hacerlo
 cumplir de forma sistemática sobre issues que ya se habían dado por cerradas.
 `docs/evidence/issue-checklist-audit.md` documenta, issue por issue, la
 distinción entre "cierre respaldado" y "cierre no respaldado por todos sus
 criterios", con el comando o el run exacto que falta en cada caso. La issue #18
 permaneció abierta hasta reflejar el recorrido ampliado y la evidencia de demo;
 esa entrega académica ya está cerrada. En la revisión del 23-oct-2026 se reabre
-\#98 al comprobar que su criterio de dos proveedores no está demostrado por la
-prueba de un único buzón. #86, #87, #89 y #49 conservan los cierres respaldados,
+\#98 al comprobar que quedaba pendiente demostrar su criterio de dos proveedores con
+evidencia de un segundo proveedor. #86, #87, #89 y #49 conservan los cierres respaldados,
 con sus límites documentados.
 
 La confirmación manual posterior del equipo del 23-oct-2026 completó el

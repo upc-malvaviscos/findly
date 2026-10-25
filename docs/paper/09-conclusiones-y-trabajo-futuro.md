@@ -5,7 +5,7 @@
 El recorrido completo de negocio — inscripción pública con consentimiento
 biométrico, indexación facial, matching asíncrono, galería privada temporal y
 derecho al olvido — está implementado, probado unitariamente y **verificado
-contra servicios AWS reales**, no sólo simulados, en el run de aceptación de
+contra servicios AWS reales**, además de las pruebas simuladas, en el run de aceptación de
 [PR #71](https://github.com/upc-malvaviscos/findly/pull/71) (capítulo 8). La
 arquitectura serverless (ADR-002) se sostiene sin RDS, EC2, NAT ni VPC dedicada;
 el entorno efímero de pull request (ADR-008) y los tres modos de ejecución local
@@ -44,8 +44,9 @@ cerrada por confirmación manual multiproveedor posterior).
 ## Limitaciones verificadas
 
 Se distinguen resultados históricos, límites de evidencia y riesgos
-identificados en el código de referencia `7fc0376` (23-oct-2026). Un riesgo
-comprobado por lectura no se presenta como una carrera reproducida en AWS.
+identificados en el código de referencia `7fc0376` (23-oct-2026). La lectura
+de código identifica riesgos; la reproducción en AWS de las carreras señaladas
+queda pendiente.
 
 - **Invitaciones administrativas por Cognito verificadas.** La entrega de correo
   de galerías en producción quedó verificada con entrega real en bandeja de
@@ -71,8 +72,9 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   `BatchWriteCommand` en lotes de 25 y reintento de `UnprocessedItems`;
   `writeMatch` añade un `ConditionCheck` sobre la foto. La aceptación AWS
   combinada registró `204` en 2.020 ms con 100 matches y 3.082 ms con 1.000, sin
-  huérfanos, y pasó la carrera subida/borrado ejercitada. No es una garantía
-  general de concurrencia: #166 incorpora la barrera `deletedAt` antes de la
+  huérfanos, y pasó la carrera subida/borrado ejercitada. La evidencia cubre esos
+  escenarios; la concurrencia general queda pendiente. #166 incorpora la barrera
+  `deletedAt` antes de la
   consulta y revalida ausencia de marca y TTL vigente en la transacción,
   verificados localmente con unitarias y Floci. #168 está integrada y supera el
   smoke AWS efímero con teardown. Por decisión del equipo del 23-oct-2026,
@@ -83,19 +85,18 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   [la evidencia de #89](../evidence/issue-89-admin-event-photo-lifecycle.md), y
   el estado posterior al merge en
   [la evidencia de #166](../evidence/issue-166-photo-matching-barrier.md).
-- **WebKit no completa la descarga real contra S3, Chromium y Firefox sí.**
+- **Descarga real contra S3: timeout en WebKit y éxito en Chromium y Firefox.**
   Verificado contra el entorno efímero real (issue #88, PR #130): Chromium y
   Firefox descargan el adjunto con nombre y contenido correctos navegando
   directamente a la URL firmada; WebKit agota el tiempo de espera del evento de
-  descarga. Esto confirma, con un resultado medido en CI y no sólo con una
-  comprobación aislada, que la limitación ya conocida de Playwright con WebKit
-  no depende únicamente de interceptar rutas.
+  descarga. El resultado medido en CI confirma que la limitación ya conocida de
+  Playwright con WebKit también aparece con S3 real, más allá de la interceptación
+  de rutas.
 - **Cobertura de líneas global por debajo del 90 % en la medición histórica
   citada.** El gate obligatorio de cobertura se aplica sólo a `src/lambdas`
   y `src/shared/lib` (93,78 % y 100 % respectivamente en esa medición); la
-  cobertura global fue del 81,34 % y no se presenta como si cumpliera un
-  umbral que nunca se declaró para ella.
-- **Una limitación del arnés de pruebas, no de la aplicación.** Cuatro pruebas
+  cobertura global informativa fue del 81,34 %.
+- **Una limitación específica del arnés de pruebas en Windows.** Cuatro pruebas
   de `tests/infra/deployedObservability.test.ts` fallan de forma reproducible en
   Windows por una incompatibilidad de su fixture de CLI con la resolución de
   ejecutables de ese sistema operativo (capítulo 8); la CI real, en Ubuntu, no
@@ -125,9 +126,8 @@ estaban hechas" volvieron a ocupar trabajo activo durante semanas —, pero sin
 ella este documento estaría citando código probado únicamente con mocks como si
 fuera una demostración en AWS, el error exacto que `AGENTS.md` prohíbe desde el
 primer día del proyecto (capítulo 2). La conclusión práctica para un equipo que
-reutilice este enfoque: una auditoría de cierre programada, no sólo checks de
-CI, es la que realmente hace cumplir la regla de "sin evidencia no hay cierre"
-sobre trabajo que ya se consideraba terminado — y que cerrar con un hallazgo
+reutilice este enfoque: una auditoría de cierre programada complementa los checks
+de CI y hace cumplir la regla de "sin evidencia no hay cierre" sobre trabajo que ya se consideraba terminado — y que cerrar con un hallazgo
 documentado y sin corregir es preferible a dejarlo oculto bajo un check en
 verde.
 

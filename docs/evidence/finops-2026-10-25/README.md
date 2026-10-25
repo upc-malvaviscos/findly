@@ -46,8 +46,9 @@ conciliación contable con este modelo en USD.
 Las [capturas y transcripción por mes](team-cost-forecast.md) añaden los costes
 reales comunicados de agosto/septiembre y previsiones de octubre/noviembre.
 La previsión de noviembre suma 2,986 USD (2,99 USD redondeados). Se conservan
-moneda, naturaleza y alcance no confirmado de la fuente; no se fusiona con
-la declaración en EUR ni se presenta como factura conciliada del modelo.
+moneda, naturaleza y alcance de toda la cuenta AWS confirmado por el equipo.
+La atribución a Findly requiere desglose por recursos o etiquetas; la declaración
+en EUR y el modelo paramétrico conservan sus respectivas fuentes.
 
 ## Contraste parcial con AWS Pricing Calculator — 26 de octubre
 

@@ -3,7 +3,8 @@
 La preparación de producción de #98 incorpora el workflow manual compartido de
 ADR-020: identidad SES y certificado de `www.findly.barcelona` en estados
 independientes, rol OIDC limitado y environment production restringido a main.
-Este bootstrap no equivale al despliegue del stack ni a entregabilidad real; los
+Este bootstrap prepara componentes de producción. El despliegue del stack y la
+entregabilidad real se verifican por separado; los
 resultados y pendientes constan en la evidencia de #98. La publicación de
 producción se separó del correo por autorización del 2026-10-05: la SPA y el
 backend pueden publicarse con envío deshabilitado; su activación explícita
@@ -23,8 +24,8 @@ los nueve escenarios de resiliencia/feedback y el run `38955016584` verificó
 recepción, apertura e identificación SPF/DKIM/DMARC en un buzón corporativo
 autorizado. La fase `single-recipient` es evidencia de un buzón. La confirmación manual
 del equipo del 23-oct-2026 completó el criterio multiproveedor y cerró #98;
-no se atribuye esa confirmación al run anterior. No se presenta el envío aceptado por SES como prueba suficiente de
-llegada.
+esa confirmación manual queda diferenciada del run anterior. La aceptación de SES
+registra el envío; la llegada se acredita mediante la recepción observada.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
 Findly — el mecanismo técnico —, complementando el "por qué" de la
@@ -47,12 +48,12 @@ almacenada como secreto.
    `.js` a un `.zip` propio con `Compress-Archive` en Windows o `zip -j` en
    Linux/CI, porque `aws_lambda_function.filename`/`source_code_hash` en
    Terraform exigen un `.zip` real, no el `.js` suelto.
-4. `verify:lambdas` (`scripts/verify-lambda-artifacts.mjs`) no sólo comprueba
-   que cada `.js` y `.zip` existan: copia el `.js` a un directorio temporal y
+4. `verify:lambdas` (`scripts/verify-lambda-artifacts.mjs`) comprueba que cada
+   `.js` y `.zip` existan y además copia el `.js` a un directorio temporal y
    ejecuta `node -e 'require("./index.js")'` sobre él. Es una prueba de humo
    real del bundle — detecta un `require` roto o una dependencia no
-   empaquetada antes de subir el artefacto a AWS, no sólo antes de que exista
-   el fichero.
+   empaquetada antes de subir el artefacto a AWS, además de verificar la
+   existencia del fichero.
 
 El runtime gestionado de Lambda es Node.js 24.x (`nodejs24.x`, actualizado
 junto con el proveedor Terraform de AWS a la serie 6.x durante la fase 3 del
@@ -183,8 +184,8 @@ otro workflow. Producción comprueba además las políticas IAM aplicadas entre
 plan y apply y bloquea huecos o lecturas denegadas. Evalúa propiedad anterior,
 tags, región, PassRole y mapping; SCP y resource/session policies quedan fuera.
 La [evidencia de #181](../evidence/issue-181-permission-preflight.md) separa
-código validado, IAM aplicado y disponibilidad. La integración no demuestra que
-el apply parcial anterior esté reparado ni que la web/backend se hayan publicado.
+código validado, IAM aplicado y disponibilidad. La reparación del apply parcial anterior y la publicación de la web/backend
+quedan pendientes de verificación.
 
 Para la recuperación de organizadores (#175), ADR-025 aprueba una publicación
 manual limitada con el rol existente de producción. Compone la última web
@@ -193,8 +194,8 @@ dependencias bloqueadas y correo de galerías, y registra commits/hashes.
 Lee sólo outputs públicos del estado, contrasta los destinos desplegados y
 publica S3/CloudFront sin Terraform ni ampliación de IAM. Las pruebas locales
 ejercitan la composición con Cognito simulado; la comprobación posterior de
-CDN/formulario no demuestra recepción de correo ni acceso real. No se presenta
-esta vía como reparación de los recursos de fotos/backfill del apply parcial.
+CDN/formulario deja pendientes la recepción de correo y el acceso real. Esta vía
+publica la web y no repara los recursos de fotos/backfill del apply parcial.
 
 La aceptación posterior de #175 combina la ejecución AWS 40234761439,
 iniciada por surinyach con reenvío aceptado por Cognito, y la confirmación manual
@@ -219,7 +220,8 @@ independiente. Valida el inventario y plan, detiene productores, espera los
 timeouts de Lambda y limpia objetos, versiones, multipart y colecciones
 Rekognition de demo antes de aplicar el plan exacto. Comprueba ausencia efectiva
 y estado vacío, manteniendo `allow_bucket_destroy=false`, backend y roles
-operativos. Un `AccessDenied` detiene la comprobación: no acredita ausencia.
+operativos. Un `AccessDenied` detiene la comprobación y deja pendiente verificar la
+retirada efectiva de los recursos.
 El runbook y los resultados AWS están en
 [`permanent-demo.md`](../runbooks/permanent-demo.md) y
 [la evidencia de #15](../evidence/issue-15-permanent-demo.md).
@@ -239,9 +241,9 @@ validación estática de cualquier operación AWS.
 Se dispara en `pull_request_target` (con el contexto del repositorio base, no
 del fork) y activa el auto-merge nativo de GitHub con `mergeMethod: REBASE`
 cuando la autora o autor de la PR es una de cuatro personas del equipo
-listadas explícitamente y la PR no está en borrador. No fusiona nada por sí
-mismo: sólo arma el auto-merge, que GitHub ejecuta cuando todos los checks
-obligatorios del ruleset de `main` están en verde.
+listadas explícitamente y la PR está lista para revisión. Configura el auto-merge
+de GitHub, que ejecuta la fusión cuando todos los checks obligatorios del
+ruleset de `main` están en verde.
 
 ### `dependabot.yml` — actualización semanal del ecosistema npm
 
@@ -290,4 +292,5 @@ specs, issues, implementación, pruebas y evidencias, en lugar de detectar frase
 históricas. Esa validación es estática y no sustituye la lectura de resultados.
 Los comandos sandbox propagan fallos de limpieza y no declaran éxito mientras
 haya eliminaciones pendientes. Las regresiones de estos caminos simulan fallos;
-no se presentan como una nueva aceptación en AWS.
+se conservan como validaciones locales, con el alcance de sus escenarios
+simulados.

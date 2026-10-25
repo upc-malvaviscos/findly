@@ -155,7 +155,7 @@ A4 y no mezcle contexto, software, infraestructura y operación:
 - [`diagramas/contexto-c4.dot`](diagramas/contexto-c4.dot) y
   [`diagramas/contenedores-c4.dot`](diagramas/contenedores-c4.dot) describen
   el sistema con semántica C4. «Contenedor» nombra una unidad de software
-  ejecutable o almacenable; no presupone Docker.
+  ejecutable o almacenable; abarca unidades de ejecución y almacenamiento, con independencia de su empaquetado.
 - [`diagramas/arquitectura.dot`](diagramas/arquitectura.dot) usa Graphviz para
   detallar la ingesta y el matching. Representa el bucket privado único de
   cargas y sus dos notificaciones por sufijo: selfies a SelfieIndexer y fotos
