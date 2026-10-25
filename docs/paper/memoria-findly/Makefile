@@ -4,6 +4,7 @@ VENV := .venv
 PYTHON ?= python3
 PY := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip
+PANDOC ?= pandoc
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -18,7 +19,7 @@ diagrams: venv
 	$(PY) -c "import cairosvg; cairosvg.svg2pdf(url='img/upc-logo.svg', write_to='img/upc-logo.pdf')"
 
 pdf:
-	pandoc memoria-postgrado.md -o memoria.pdf --pdf-engine=xelatex \
+	$(PANDOC) memoria-postgrado.md -o memoria.pdf --fail-if-warnings --pdf-engine=xelatex \
 		--filter pandoc-crossref --include-before-body=portada.tex
 
 docx:

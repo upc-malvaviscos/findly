@@ -595,10 +595,13 @@ que la incluyen. Para resolver ese acceso inverso se guarda un **ítem espejo**
 por coincidencia, en la misma tabla y con las claves invertidas para esa
 consulta:
 
-| Registro de la relación | Clave de partición (`PK`)   | Clave de ordenación (`SK`) | Consulta que permite                      |
-| ----------------------- | --------------------------- | -------------------------- | ----------------------------------------- |
-| Coincidencia de galería | `REG#{registrationId}`      | `MATCH#{photoId}`          | Fotografías de una inscripción            |
-| Ítem espejo             | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}`   | Inscripciones vinculadas a una fotografía |
+| Registro de la relación | Clave de partición (`PK`)   | Clave de ordenación (`SK`) |
+| ----------------------- | --------------------------- | -------------------------- |
+| Coincidencia de galería | `REG#{registrationId}`      | `MATCH#{photoId}`          |
+| Ítem espejo             | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}`   |
+
+La coincidencia de galería permite consultar las fotografías de una inscripción;
+el ítem espejo permite consultar las inscripciones vinculadas a una fotografía.
 
 Ambos ítems contienen la misma relación y sus metadatos de coincidencia, no una
 copia de la imagen ni una nueva referencia facial. Se crean juntos mediante una

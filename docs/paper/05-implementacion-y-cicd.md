@@ -95,6 +95,19 @@ nuevo contra Floci; los tres comparten caché de binarios por sistema operativo 
 análisis de código por defecto a nivel de repositorio, no como un fichero de
 workflow versionado en este repositorio.
 
+### `memoria-pdf.yml` — memoria académica descargable
+
+Las PR que cambian fuentes, portada, imágenes o herramientas de la memoria
+compilan el PDF sin publicar previews. Tras el merge en `main`, el workflow
+compila su revisión exacta en el contenedor fijado y publica `memoria.pdf`
+como asset de una release documental con timestamp Madrid. No requiere AWS
+ni cambia el despliegue de la aplicación. La cola estándar conserva una
+ejecución activa y una pendiente; una ráfaga puede reemplazar la pendiente.
+Las releases publicadas se conservan. El
+[ADR-027](../adr/ADR-027-memoria-pdf-releases.md) y la
+[evidencia de #186](../evidence/issue-186-memoria-pdf-releases.md) distinguen
+implementación, compilación local y primera publicación remota pendiente.
+
 ### `ephemeral-pr-e2e.yml` — el único check que despliega AWS real
 
 Se dispara al abrir, reabrir o actualizar una PR interna no draft
