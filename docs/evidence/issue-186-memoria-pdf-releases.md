@@ -68,9 +68,19 @@ GitHub `queue: max` no es reconocida por actionlint 1.7.12. Se mantuvo el
 validador sin supresiones ni parches y se documentó la sustitución de la
 ejecución pendiente durante ráfagas.
 
+## Aceptación remota de PR
+
+La [PR #187](https://github.com/upc-malvaviscos/findly/pull/187) contiene la
+implementación. El [run PDF 40208336910](https://github.com/upc-malvaviscos/findly/actions/runs/40208336910)
+del commit `4f2307b9f58cbbe8616cc7e71fd76e555bf09291` terminó con éxito:
+`validate` compiló el documento real en Ubuntu 24.04 Linux AMD64;
+`publish` quedó omitido. La API de artefactos del run devolvió `total_count: 0`:
+no se publicaron previews. El workflow AWS efímero
+[40208336895](https://github.com/upc-malvaviscos/findly/actions/runs/40208336895)
+también quedó omitido por ser PR en borrador; no es evidencia AWS.
+
 Pendientes de completar antes de declarar la issue cerrada:
 
-- Check PDF remoto de la PR.
 - Tras el merge autorizado, primera release publicada por `push` a `main`.
 - Comprobar tag/commit, timestamp Madrid, asset descargable y PDF obtenido.
 - Enlazar PR, ejecuciones y release en la issue y actualizar su checklist.
