@@ -163,6 +163,16 @@ inmediato sin esperar a que expire una caché de un año. La invalidación de
 CloudFront usa el `distribution_id` que expone la propia salida de Terraform,
 no una búsqueda por metadato.
 
+ADR-026/#181 añade `permissions:check` al job Terraform y a `verify`. Obtiene
+el inventario del grafo de producción con proveedor simulado y contrasta las
+políticas de despliegue/runtime, incluidas administración y backfill. No añade
+otro workflow. Producción comprueba además las políticas IAM aplicadas entre
+plan y apply y bloquea huecos o lecturas denegadas. Evalúa propiedad anterior,
+tags, región, PassRole y mapping; SCP y resource/session policies quedan fuera.
+La [evidencia de #181](../evidence/issue-181-permission-preflight.md) separa
+código validado, IAM aplicado y disponibilidad. La integración no demuestra que
+el apply parcial anterior esté reparado ni que la web/backend se hayan publicado.
+
 Para la recuperación de organizadores (#175), ADR-025 aprueba una publicación
 manual limitada con el rol existente de producción. Compone la última web
 publicada correctamente y cinco archivos de autenticación de #176, conserva

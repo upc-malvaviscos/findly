@@ -105,6 +105,21 @@ La opción `--apply` configura exclusivamente el rol de despliegue y su límite
 de ejecución; no despliega el stack. El límite de aplicación es obligatorio en
 producción y el desplegador no puede retirarlo o modificarlo.
 
+Antes de solicitar un apply, ejecutar `npm run permissions:check` tras preparar
+los ZIP Lambda. Es un contrato local con proveedor simulado, no IAM aplicado.
+Según ADR-026/#181, `Deployment` añade un preflight entre plan y apply que lee
+las versiones actuales de políticas del desplegador y su boundary runtime.
+Si no dispone de esas lecturas o falta un permiso, el apply queda bloqueado;
+no omitir el step ni conceder IAM desde el workflow. Revisar/aplicar los
+documentos del configurador exige autorización operativa independiente.
+
+El contrato rechaza recursos/entradas/condiciones no soportados y una
+suscripción de alertas con contacto real sin caso revisado. Para recursos
+existentes contrasta propiedad anterior, no sólo tags solicitados. SCP,
+resource/session policies, deriva posterior y aceptación funcional quedan
+fuera del evaluador local. Registrar por separado código, IAM aplicado y
+operación siguiendo la [evidencia de #181](../evidence/issue-181-permission-preflight.md).
+
 Configurar variables públicas en environment production: cuenta/bucket de
 estado, `AWS_DEPLOY_ROLE_ARN`, buckets únicos production, dominio
 `www.findly.barcelona`, certificado ACM emitido y las variables de correo SES.

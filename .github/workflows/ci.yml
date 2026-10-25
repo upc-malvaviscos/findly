@@ -53,6 +53,7 @@ jobs:
       - run: npm run terraform:test:hosting
       - run: npm run terraform:test:email
       - run: npm run terraform:test:findly-stack
+      - run: npm run permissions:check
       - run: npm run lint:terraform
 
   security-and-sync:

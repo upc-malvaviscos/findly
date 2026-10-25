@@ -181,6 +181,11 @@ jobs:
           fi
           terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" show -json "$plan_file" \
             | node scripts/check-deployment-plan.mjs
+      - name: Check production permissions against applied IAM before apply
+        if: ${{ inputs.environment == 'production' }}
+        run: |
+          terraform -chdir=infra/environments/production show -json "$RUNNER_TEMP/findly-deployment.tfplan" \
+            | node scripts/preflight-production-permissions.mjs
       - name: Apply the exact reviewed run plan
         if: ${{ inputs.apply }}
         run: terraform -chdir="infra/environments/$TARGET_ENVIRONMENT" apply "$RUNNER_TEMP/findly-deployment.tfplan"

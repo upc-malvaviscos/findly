@@ -1,5 +1,7 @@
 # 14 - Despliegue y destrucción manual de demo permanente mediante OIDC
 
+<!-- requirement: REQ-DEPLOYMENT-PERMISSIONS -->
+
 ## Objetivo
 
 La preparación de producción continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
@@ -71,6 +73,29 @@ arbitrario en la acción de destrucción.
 Referencia: [workflows manuales y permiso de escritura](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
 
 ## Workflow de despliegue
+
+### Contrato de permisos de producción — #181
+
+[#181](https://github.com/upc-malvaviscos/findly/issues/181) añade el contrato
+de ADR-026 a los workflows existentes. `permissions:check` deriva el inventario
+de Terraform con proveedor simulado y contrasta las operaciones de despliegue
+y políticas runtime con el generador IAM. Los recursos, roles o condiciones
+sin cobertura provocan un fallo local/CI.
+
+Producción incorpora `preflight-production-permissions.mjs` entre plan y apply:
+comprueba configuración y semántica, lee las políticas aplicadas del desplegador
+y la boundary runtime y falla antes del apply si no puede verificar permisos.
+Para recursos existentes usa ownership anterior, no las etiquetas solicitadas.
+Las lecturas IAM nuevas deben aplicarse por una operación independiente;
+el preflight no concede permisos ni aplica el stack por sí mismo.
+
+Se conservan checks y validación local sin provisionar AWS. No se modelan SCP
+ni resource/session policies. La
+[evidencia de #181](../docs/evidence/issue-181-permission-preflight.md) distingue
+código, IAM aplicado y operación real; un mock o un merge no acredita estas dos
+últimas verificaciones.
+
+### Secuencia de operación
 
 1. Validar actor/rama/environment/configuración antes de credenciales.
 2. Construir Lambda y validar gates apropiados.

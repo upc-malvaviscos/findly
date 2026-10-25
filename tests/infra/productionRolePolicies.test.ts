@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { productionDeploymentPolicies } from '../../scripts/lib/production-role-policies.mjs';
 
@@ -104,30 +103,6 @@ describe('production role isolation', () => {
         (action) => action.startsWith('iam:') || action.startsWith('sts:'),
       ),
     ).toBe(false);
-  });
-  it('applies the boundary to every application and scheduler role declared by Terraform', () => {
-    for (const name of [
-      'admin-api',
-      'public-enrollment',
-      'selfie-indexer',
-      'gallery-reader',
-      'delete-registration',
-      'retention-purger',
-      'photo-matching',
-      'gallery-email',
-    ]) {
-      const source = readFileSync(`infra/modules/${name}/main.tf`, 'utf8');
-      const roles = [
-        ...source.matchAll(
-          /resource "aws_iam_role" "[^"]+" \{([^]*?)(?=\nresource |$)/g,
-        ),
-      ];
-      expect(roles.length).toBeGreaterThan(0);
-      for (const role of roles)
-        expect(role[1]).toContain(
-          'permissions_boundary = var.permissions_boundary_arn',
-        );
-    }
   });
   it('does not grant a production destruction role or resource permissions for other environments', () => {
     expect(documents).not.toHaveProperty('destroy');

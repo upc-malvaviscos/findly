@@ -91,6 +91,15 @@ sobre `{su-log-group-arn}:*`), no en el de otra función.
 
 ## Autenticación federada para CI/CD (OIDC)
 
+ADR-026 y #181 contrastan el generador IAM con todas las políticas runtime
+renderizadas por Terraform simulado, incluyendo `BatchWriteItem` administrativo
+y la cola de backfill. La boundary preparada en código se comprueba sobre
+patrones completos de recursos y condiciones, no sólo por presencia de acciones.
+El preflight de producción lee políticas aplicadas y falla si no puede
+verificarlas; no aplica IAM ni prueba los permisos efectivos de una ejecución.
+La [matriz de evidencia](../evidence/issue-181-permission-preflight.md) mantiene
+esas operaciones pendientes de autorización y aceptación independientes.
+
 Ningún workflow de GitHub Actions almacena una clave de acceso de AWS como
 secreto. La autenticación usa OpenID Connect: GitHub emite un token firmado
 para cada ejecución de _job_, y AWS lo intercambia por credenciales
