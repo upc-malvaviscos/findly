@@ -855,7 +855,9 @@
         "docs/paper/memoria-findly/pdf-toolchain.json",
         "scripts/lib/ephemeral-pr-eligibility.mjs",
         "scripts/lib/ephemeral-pr-eligibility.d.mts",
-        "scripts/check-ephemeral-pr-eligibility.mjs"
+        "scripts/check-ephemeral-pr-eligibility.mjs",
+        "scripts/lib/memoria-source.mjs",
+        "scripts/lib/memoria-source.d.mts"
       ],
       "verification": [
         {
@@ -871,7 +873,8 @@
           "environment": "unit",
           "files": [
             "tests/infra/memoriaRelease.test.ts",
-            "tests/infra/ephemeralPrEligibility.test.ts"
+            "tests/infra/ephemeralPrEligibility.test.ts",
+            "tests/infra/memoriaSource.test.ts"
           ]
         },
         {

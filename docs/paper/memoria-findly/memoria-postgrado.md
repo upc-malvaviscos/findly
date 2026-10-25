@@ -454,6 +454,18 @@ están en verde; la fusión en sí la ejecuta automáticamente la propia
 plataforma mediante una integración de fusión automática, nunca una persona
 pulsando un botón manualmente.
 
+Los cambios exclusivamente documentales o de las herramientas de compilación
+de esta memoria se distinguen del código desplegable: conservan las
+comprobaciones estáticas, pero no necesitan crear un entorno AWS. La propia
+memoria se mantiene como Markdown y se compila a PDF con Pandoc, un filtro de
+referencias cruzadas y XeLaTeX, dentro de un contenedor versionado. Tras una
+integración relevante, una comprobación de GitHub confirma el commit integrado
+y los ficheros afectados antes de publicar el PDF como una versión descargable.
+Este paso también cubre las fusiones del bot, cuyos eventos no encadenan por
+sí solos otro workflow de push. Cada versión enlaza su commit y conserva un
+nombre fechado con hora de Madrid; eventos repetidos del mismo commit reutilizan
+la publicación existente. Este artefacto documental no necesita desplegar AWS.
+
 ## Estrategia de despliegue
 
 El despliegue a un entorno persistente —desarrollo compartido,

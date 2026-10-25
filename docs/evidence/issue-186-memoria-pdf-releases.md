@@ -124,3 +124,44 @@ lista de excepciones. #187 usa la omisión operativa explícitamente aprobada
 (`skip-ephemeral-approved`); las futuras PR sólo PDF se clasifican sin etiqueta.
 Quedan pendientes el check remoto de la corrección y la primera publicación
 real en main. No se altera el ruleset ni se omiten los checks estáticos o E2E.
+
+## Callback post-merge sin credenciales adicionales
+
+La PR #187 se integró en `ea536660cd71ced8d1865cba1e072a922f28f40f`, pero el
+auto-merge de `github-actions[bot]` no produjo ningún run `push`: el uso de
+`GITHUB_TOKEN` suprime esos eventos encadenados. Se observó únicamente el
+análisis dinámico de CodeQL para ese commit. Por tanto, aquella integración
+no acreditó la publicación automática. El responsable aprobó añadir un
+callback que verifica el origen integrado, sin nuevas credenciales.
+
+La nueva selección usa metadatos GitHub y código de `main`: comprueba repo,
+estado merged, base main, head/merge SHA, ascendencia del commit y todos los
+archivos de la PR. Sólo un cambio relevante selecciona un commit para build.
+Los checkouts de automatización y fuentes verificadas están separados; no se
+descargan artefactos de PR ni se ejecuta código de una PR sin integrar. Sólo
+la publicación recibe escritura. Se deduplica por SHA entre push, callback,
+rerun y recuperación, comprobando una release existente antes de otro build.
+
+Validación local de este cambio:
+
+- 74 pruebas específicas pasan entre selector, publicación y elegibilidad.
+- Tipos estrictos, ESLint, Markdown, actionlint y trazabilidad pasan.
+- Una consulta sólo de lectura contra los metadatos reales del run CI
+  `40211074182` resolvió `{sha: ea536660cd71ced8d1865cba1e072a922f28f40f,
+pullNumber: 187}`. Esto verifica selección real, no publicación.
+- Se verificó que el CodeQL nativo usa el path
+  `dynamic/github-code-scanning/codeql` y un nombre dinámico `Push on main`;
+  el selector reconoce su path estable.
+- La memoria actualizada compila a 24 páginas A4; se renderizó y revisó el
+  conjunto completo tras añadir la explicación del artefacto documental.
+
+Los tests incluyen carrera entre check y auto-merge, timeout acotado, fork,
+head obsoleto, PR sin integrar, otra rama, commit fuera de main, paginación,
+enumeración incompleta, cambios ajenos, recuperación y deduplicación por SHA.
+No prueban por sí solos que GitHub entregue el callback; esa aceptación y la
+descarga de la primera release continúan pendientes.
+
+El workflow debe existir en main para recibir `workflow_run`. Si los checks
+de su propia incorporación ya terminaron antes del merge, se puede repetir
+un job CI ligero de esa PR integrada para verificar el callback real. La
+recuperación manual restringida a main no sustituye esa prueba automática.

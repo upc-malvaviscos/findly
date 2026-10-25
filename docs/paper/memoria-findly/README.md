@@ -238,6 +238,23 @@ en `main`, compila esa revisión y publica una
 [GitHub Release](https://github.com/upc-malvaviscos/findly/releases) con
 `memoria.pdf`. No hace falta crear un tag manualmente.
 
+Los merges del bot no generan otro workflow `push` por las restricciones de
+`GITHUB_TOKEN`. Por eso se evalúa también la terminación de CI, AWS efímero y
+CodeQL: primero se confirma que la PR ya está integrada en `main` y que cambió
+alguna entrada PDF. La comprobación ligera puede ejecutarse para otros cambios,
+pero éstos no compilan ni publican. La automatización se obtiene de `main`,
+las fuentes del commit integrado se verifican contra `main`, y no se consumen
+código ni artefactos de PR sin integrar.
+
+Si varios eventos corresponden al mismo commit, se conserva una sola release
+y se evita repetir el build cuando su PDF ya está publicado. La selección
+espera hasta dos minutos por PR ante la carrera entre último check y auto-merge.
+Si la fusión se demora más, puede repetirse un job CI ligero de esa PR una
+vez integrada. Para recuperación operativa, en **Actions → Memoria PDF → Run
+workflow**, elige la rama `main` e introduce opcionalmente el SHA completo de
+un commit integrado; si queda vacío, comprueba el HEAD actual de main. La
+recuperación verifica PR, ascendencia y rutas igual que el callback automático.
+
 El tag tiene formato `memoria-2026-10-25_18-45`: hora de 24 horas en
 `Europe/Madrid`, con ajuste automático de horario de verano. La release
 enlaza su commit completo y ejecución, conserva versiones anteriores y no se

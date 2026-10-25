@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import {
   memoriaTag,
   publishMemoria,
+  completedMemoriaRelease,
 } from '../../scripts/lib/memoria-release.mjs';
 
 type Release = {
@@ -39,7 +40,7 @@ function fixture() {
     id: 7,
     tag_name: 'memoria-2026-10-25_18-45',
     target_commitish: sha,
-    body: `<!-- memoria-run:123 source:${sha} -->`,
+    body: `<!-- memoria-source:${sha} -->`,
     draft: true,
     html_url:
       'https://github.com/upc-malvaviscos/findly/releases/tag/memoria-2026-10-25_18-45',
@@ -51,6 +52,9 @@ function fixture() {
       git: { getRef: vi.fn<() => Promise<{ data: unknown }>>(missing) },
       repos: {
         listReleases: vi.fn(),
+        compareCommitsWithBasehead: vi.fn(async () => ({
+          data: { status: 'identical' },
+        })),
         getReleaseByTag: vi.fn<() => Promise<{ data: Release }>>(missing),
         createRelease: vi.fn(async () => ({ data: release })),
         uploadReleaseAsset: vi.fn(async () => ({ data: {} })),
@@ -93,6 +97,28 @@ describe('memoria release timestamp', () => {
 });
 
 describe('memoria release publication', () => {
+  it('detects an existing completed release before another build', async () => {
+    const options = fixture();
+    options.release.draft = false;
+    options.release.assets = [{ name: 'memoria.pdf', state: 'uploaded' }];
+    options.github.paginate.mockResolvedValue([options.release]);
+    expect(
+      await completedMemoriaRelease(options.github, context.repo, sha),
+    ).toBe(options.release.html_url);
+    expect(options.github.rest.repos.createRelease).not.toHaveBeenCalled();
+  });
+  it('deduplicates separate workflow runs for the same source commit', async () => {
+    const options = fixture();
+    options.release.draft = false;
+    options.release.assets = [{ name: 'memoria.pdf', state: 'uploaded' }];
+    options.github.paginate.mockResolvedValue([options.release]);
+    await publishMemoria({
+      ...options,
+      context: { ...context, eventName: 'workflow_run', runId: 456 },
+    });
+    expect(options.github.rest.repos.createRelease).not.toHaveBeenCalled();
+    expect(options.github.rest.repos.uploadReleaseAsset).not.toHaveBeenCalled();
+  });
   it('uploads PDF bytes to a draft before making it visible', async () => {
     const options = fixture();
     expect(await publishMemoria(options)).toBe(options.release.html_url);
@@ -192,7 +218,7 @@ describe('memoria release publication', () => {
         ...options,
         context: { ...context, eventName: 'pull_request' },
       }),
-    ).rejects.toThrow('push to main');
+    ).rejects.toThrow('authorized main event');
     writeFileSync(options.pdfPath, 'not a PDF');
     await expect(publishMemoria(options)).rejects.toThrow('Invalid PDF');
     expect(options.github.paginate).not.toHaveBeenCalled();

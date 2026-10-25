@@ -1,5 +1,32 @@
 import { readFileSync } from 'node:fs';
 import { setTimeout } from 'node:timers/promises';
+import { verifyMainCommit } from './memoria-source.mjs';
+
+const sourceMarker = (sha) => `<!-- memoria-source:${sha} -->`;
+
+export async function completedMemoriaRelease(github, repository, sha) {
+  const releases = await github.paginate(github.rest.repos.listReleases, {
+    ...repository,
+    per_page: 100,
+  });
+  const release = releases.find((item) =>
+    item.body?.includes(sourceMarker(sha)),
+  );
+  if (!release || release.draft) return undefined;
+  if (
+    release.target_commitish !== sha ||
+    !release.assets.some(
+      (asset) => asset.name === 'memoria.pdf' && asset.state === 'uploaded',
+    )
+  )
+    throw new Error('Published release has no completed matching PDF.');
+  const commit = (
+    await github.rest.repos.getCommit({ ...repository, ref: release.tag_name })
+  ).data;
+  if (commit.sha !== sha)
+    throw new Error('Published tag no longer matches the source commit.');
+  return release.html_url;
+}
 
 export function memoriaTag(date) {
   const parts = Object.fromEntries(
@@ -30,17 +57,24 @@ async function optional(request) {
 export async function publishMemoria({
   github,
   context,
+  sourceSha = context.sha,
   pdfPath,
   now = () => new Date(),
   sleep = setTimeout,
 }) {
-  if (context.eventName !== 'push' || context.ref !== 'refs/heads/main')
-    throw new Error('PDF releases require a push to main.');
+  if (
+    !['push', 'workflow_run', 'workflow_dispatch'].includes(
+      context.eventName,
+    ) ||
+    context.ref !== 'refs/heads/main'
+  )
+    throw new Error('PDF releases require an authorized main event.');
+  await verifyMainCommit(github, context.repo, sourceSha);
   const pdf = readFileSync(pdfPath);
   if (pdf.subarray(0, 5).toString() !== '%PDF-')
     throw new Error('Invalid PDF.');
   const repository = context.repo;
-  const marker = `<!-- memoria-run:${context.runId} source:${context.sha} -->`;
+  const marker = sourceMarker(sourceSha);
   const releases = await github.paginate(github.rest.repos.listReleases, {
     ...repository,
     per_page: 100,
@@ -65,10 +99,10 @@ export async function publishMemoria({
           await github.rest.repos.createRelease({
             ...repository,
             tag_name: tag,
-            target_commitish: context.sha,
+            target_commitish: sourceSha,
             name: `Memoria Findly · ${tag.slice('memoria-'.length)} (Europe/Madrid)`,
             body:
-              `${marker}\n\nMemoria académica compilada desde ${context.sha}.\n\n` +
+              `${marker}\n\nMemoria académica compilada desde ${sourceSha}.\n\n` +
               `Ejecución: https://github.com/${repository.owner}/${repository.repo}/actions/runs/${context.runId}\n\n` +
               'Descarga `memoria.pdf` en los assets de esta release. Zona horaria: Europe/Madrid.',
             draft: true,
@@ -85,7 +119,7 @@ export async function publishMemoria({
       await sleep(61_000);
     }
   }
-  if (release.target_commitish !== context.sha)
+  if (release.target_commitish !== sourceSha)
     throw new Error('Release source does not match the workflow commit.');
   if (!release.draft) {
     const commit = (
@@ -94,7 +128,7 @@ export async function publishMemoria({
         ref: release.tag_name,
       })
     ).data;
-    if (commit.sha !== context.sha)
+    if (commit.sha !== sourceSha)
       throw new Error('Published tag no longer matches the source commit.');
     if (
       !release.assets.some(
@@ -133,7 +167,7 @@ export async function publishMemoria({
         ref: release.tag_name,
       })
     ).data;
-    if (commit.sha !== context.sha)
+    if (commit.sha !== sourceSha)
       throw new Error('Release tag belongs to another commit.');
   }
   const published = await github.rest.repos.updateRelease({
