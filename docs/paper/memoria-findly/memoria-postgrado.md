@@ -1095,9 +1095,9 @@ tiempos Lambda son supuestos de cálculo.
 <!-- prettier-ignore -->
 | Escenario supuesto | Rekognition | CloudWatch | Resto de servicios | Total modelado |
 | --- | ---: | ---: | ---: | ---: |
-| 20 asistentes / 100 fotos | $0.2202 | $1.0120 | $0.1037 | **$1.3359** |
-| 100 asistentes / 500 fotos | $1.1010 | $1.0480 | $0.2747 | **$2.4237** |
-| 100 asistentes / 500 fotos / 10 altas tardías | $11.1010 | $1.9600 | $0.3277 | **$13.3887** |
+| 20 asistentes / 100 fotos | 0,2202 | 1,0120 | 0,1037 | **1,3359** |
+| 100 asistentes / 500 fotos | 1,1010 | 1,0480 | 0,2747 | **2,4237** |
+| 100 asistentes / 500 fotos / 10 altas tardías | 11,1010 | 1,9600 | 0,3277 | **13,3887** |
 
 El desglose CSV comprende Rekognition, S3, transferencia, CloudFront, Cognito,
 DynamoDB, Lambda, HTTP API, SQS estándar/FIFO, SES, SNS y Scheduler. SNS se
