@@ -49,8 +49,8 @@ incluía scripts/workflow de publicación de la memoria y una entrada npm,
 clasificados como código desplegable aunque no afectan al producto AWS.
 
 Se reconocen sólo las rutas exactas de tooling PDF declaradas en
-`scripts/lib/ephemeral-pr-eligibility.mjs`. El selector de origen integrado,
-su declaración y pruebas específicas se incluyen entre esas rutas al añadir
+`scripts/lib/ephemeral-pr-eligibility.mjs`. El selector de origen integrado y
+el exportador de datos, sus declaraciones y pruebas se incluyen al añadir
 el callback de publicación post-merge. No se eximen directorios genéricos de
 scripts, pruebas ni workflows. `package.json` requiere comparar ambos
 contenidos: eliminando únicamente `scripts.paper:pdf`, el resto debe ser
