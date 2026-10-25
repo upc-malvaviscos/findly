@@ -183,3 +183,39 @@ la recepción y el login quedan pendientes de la primera ejecución real del
 titular. La asunción del rol de despliegue y la web publicada no prueban estos
 resultados. Se mantiene #175 abierta; no se fuerza un reset innecesario para
 completar una prueba y no se anuncia recepción o acceso como verificados.
+
+## Fallo de la primera ejecución y corrección de caducidad — 2026-10-25
+
+El [job 121144862494 de la ejecución 40183763512](https://github.com/upc-malvaviscos/findly/actions/runs/40183763512/job/121144862494)
+pasó el control del actor y obtuvo el rol OIDC dedicado. El paso de recuperación
+falló con el mensaje genérico de seguridad. La caducidad entregada al proceso
+era una cadena JSON entre comillas. El proveedor de entorno del SDK la convierte
+directamente con `new Date(value)`, produciendo una fecha inválida. La validación
+de sesión temporal rechaza esa fecha antes de consultar STS o Cognito.
+
+Se reprodujo el problema localmente usando credenciales sintéticas, el proveedor
+real del SDK y el mismo formato JSON, sin llamadas AWS. La regresión también
+falló con `Invalid time value` antes de aplicar la normalización. La herramienta
+ahora decodifica ese formato antes de resolver las credenciales; admite además
+el timestamp ISO sin comillas y rechaza ausencia o formato incorrecto. Se
+mantienen el rechazo de sesiones caducadas, la exigencia de token temporal y la
+comprobación de identidad, cuenta, rol y pool. No cambia IAM, infraestructura,
+datos, destinatarios ni reintentos de envío. No requiere un nuevo ADR: conserva
+la decisión de ADR-021 y el contrato de REQ-ADMIN-INVITATIONS.
+
+Validación local de esta corrección con Node 24:
+
+- `npm run harness:check`: correcto.
+- `npm run verify`: correcto, 79 archivos y 901 pruebas; incluye 39 casos de
+  recuperación, proveedor real del SDK con fecha JSON/ISO, rechazo de valores
+  ausentes/malformados y rechazo de caducidad vencida. Lint, actionlint, tipos,
+  cobertura, build, formato/validación/pruebas Terraform, permisos, seguridad y
+  trazabilidad correctos. Proveedores Terraform y llamadas AWS simulados.
+- El primer intento local se detuvo porque las restricciones del entorno
+  impedían arrancar TFLint; se repitió completo con los permisos locales
+  necesarios, sin omitir validadores ni efectuar cambios AWS.
+
+Los checks remotos de la PR siguen pendientes. La issue #175 permanece abierta.
+La ejecución fallida acredita la asunción del rol de recuperación, pero no
+envío aceptado, recepción ni login. No se ha reejecutado la solicitud de otro
+titular ni enviado mensajes desde esta corrección.

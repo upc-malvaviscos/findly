@@ -73,6 +73,10 @@ contactos o credenciales en Git:
   repositorio, actor, mapeo y rol antes de obtener credenciales y antes del envío.
 - El SDK recibe la caducidad de STS mediante `AWS_CREDENTIAL_EXPIRATION`; no se
   aceptan credenciales estáticas ni sesiones sin caducidad identificable.
+  La herramienta normaliza el timestamp ISO cuando el output `aws-expiration`
+  de la acción viene como cadena JSON entre comillas, antes de resolver las
+  credenciales del SDK. Rechaza valores ausentes o malformados; la validación
+  posterior sigue rechazando sesiones caducadas y exige el rol dedicado.
 - Aplicar de forma revisada la configuración Cognito de recuperación por
   `verified_email` y publicar la SPA con el formulario de confirmación de código.
   No habilitar el envío de códigos antes de que ese formulario esté disponible.

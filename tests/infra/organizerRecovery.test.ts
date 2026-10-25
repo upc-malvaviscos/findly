@@ -8,11 +8,12 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { mockClient } from 'aws-sdk-client-mock';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   recoverOrganizer,
   recoveryTarget,
   recoveryRoleDocuments,
+  recoveryCredentialExpiration,
 } from '../../scripts/lib/organizer-recovery.mjs';
 
 const account = '123456789012';
@@ -88,7 +89,67 @@ beforeEach(() => {
   cognito.on(AdminResetUserPasswordCommand).resolves({});
   cognito.on(AdminCreateUserCommand).resolves({});
 });
+afterEach(() => vi.unstubAllEnvs());
 describe('own-account organizer recovery (mocked AWS)', () => {
+  it.each(['plain', 'json'])(
+    'uses the real SDK environment provider with %s action expiration and reaches recovery',
+    async (format) => {
+      const expiration = new Date(Date.now() + 900000).toISOString();
+      vi.stubEnv('AWS_PROFILE', undefined);
+      vi.stubEnv('AWS_ACCESS_KEY_ID', 'synthetic');
+      vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'synthetic');
+      vi.stubEnv('AWS_SESSION_TOKEN', 'synthetic');
+      vi.stubEnv(
+        'AWS_CREDENTIAL_EXPIRATION',
+        format === 'json' ? JSON.stringify(expiration) : expiration,
+      );
+      process.env.AWS_CREDENTIAL_EXPIRATION = recoveryCredentialExpiration(
+        process.env.AWS_CREDENTIAL_EXPIRATION,
+      );
+      const client = new STSClient({ region: 'eu-west-1' });
+      try {
+        const credentials = await client.config.credentials();
+        expect(credentials.expiration?.toISOString()).toBe(expiration);
+        await expect(
+          recoverOrganizer({ ...options(), credentials }),
+        ).resolves.toBe('reset-code');
+        expect(
+          cognito.commandCalls(AdminResetUserPasswordCommand),
+        ).toHaveLength(1);
+      } finally {
+        client.destroy();
+      }
+    },
+  );
+
+  it.each([undefined, '', 'invalid', '"invalid"', 'null', '{}', '123'])(
+    'rejects missing or malformed action expiration before AWS: %s',
+    (value) => {
+      expect(() => recoveryCredentialExpiration(value)).toThrow();
+      expect(sts.calls()).toHaveLength(0);
+      expect(cognito.calls()).toHaveLength(0);
+    },
+  );
+
+  it.each(['plain', 'json'])(
+    'keeps rejecting expired sessions after normalizing %s expiration',
+    async (format) => {
+      const expiration = '2020-01-01T00:00:00.000Z';
+      const value = format === 'json' ? JSON.stringify(expiration) : expiration;
+      await expect(
+        recoverOrganizer({
+          ...options(),
+          credentials: {
+            sessionToken: 'synthetic',
+            expiration: new Date(recoveryCredentialExpiration(value)),
+          },
+        }),
+      ).rejects.toThrow('Use a current temporary AWS session');
+      expect(sts.calls()).toHaveLength(0);
+      expect(cognito.calls()).toHaveLength(0);
+    },
+  );
+
   it('looks up the canonical username by the privately configured email', async () => {
     await recoverOrganizer(options());
     expect(cognito.commandCalls(ListUsersCommand)[0]?.args[0].input).toEqual({

@@ -165,6 +165,12 @@ código al correo verificado. La web confirma el código y la nueva contraseña 
 autenticar ni persistir secretos. No se crea una cuenta inexistente ni se cambia
 el correo o su verificación automáticamente.
 
+La caducidad temporal exportada por la acción se normaliza de cadena JSON a
+timestamp ISO antes de resolver credenciales con el SDK. Un valor ausente,
+malformado o caducado sigue impidiendo cualquier recuperación. La regresión
+usa el proveedor real de credenciales del SDK y servicios AWS simulados;
+no acredita entrega de correo ni login real.
+
 Se conserva REQ-ADMIN-INVITATIONS y su referencia histórica
 [#105](https://github.com/upc-malvaviscos/findly/issues/105). La recuperación se sigue en
 [#175](https://github.com/upc-malvaviscos/findly/issues/175). Su implementación
