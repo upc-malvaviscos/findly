@@ -215,7 +215,10 @@ Validación local de esta corrección con Node 24:
   impedían arrancar TFLint; se repitió completo con los permisos locales
   necesarios, sin omitir validadores ni efectuar cambios AWS.
 
-Los checks remotos de la PR siguen pendientes. La issue #175 permanece abierta.
+Los resultados de los checks remotos se registran en la
+[PR #190](https://github.com/upc-malvaviscos/findly/pull/190) y en el
+[comentario de sincronización de #175](https://github.com/upc-malvaviscos/findly/issues/175#issuecomment-6401914970).
+La issue #175 permanece abierta.
 La ejecución fallida acredita la asunción del rol de recuperación, pero no
 envío aceptado, recepción ni login. No se ha reejecutado la solicitud de otro
 titular ni enviado mensajes desde esta corrección.
