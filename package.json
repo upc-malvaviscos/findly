@@ -8,6 +8,7 @@
     "npm": ">=11"
   },
   "scripts": {
+    "paper:pdf": "make -C docs/paper/memoria-findly pdf \"PANDOC=node ../../../scripts/pandoc-container.mjs\"",
     "admin:invite": "node scripts/invite-admin.mjs",
     "dev": "vite",
     "dev:mocks": "VITE_FINDLY_EXECUTION_MODE=mock npm run dev",

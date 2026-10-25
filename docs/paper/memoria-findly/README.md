@@ -14,6 +14,24 @@ repositorio.
 
 ## 1. Instalar las herramientas (una vez por persona)
 
+### Compilación reproducible con Docker (recomendada)
+
+Con Node.js 24, `make` y Docker activos, desde la raíz del repositorio:
+
+```sh
+npm run paper:pdf
+```
+
+No requiere `npm ci`, Python ni una instalación local de LaTeX. Genera
+`docs/paper/memoria-findly/memoria.pdf` utilizando el Makefile y las imágenes
+versionadas. `pdf-toolchain.json` fija por digest el contenedor oficial con
+Pandoc, pandoc-crossref y XeLaTeX; la plataforma es Linux AMD64, emulada en
+hosts ARM. La primera ejecución descarga la imagen y necesita acceso al
+registro Docker; la conversión se ejecuta sin red. Para actualizar las
+herramientas, cambia el digest mediante PR y revisa nuevamente el PDF completo.
+
+### Herramientas nativas (alternativa)
+
 Necesitas cuatro cosas: Pandoc, un motor LaTeX (XeLaTeX), el filtro
 `pandoc-crossref` y, sólo si vas a tocar diagramas, Python.
 
@@ -87,7 +105,8 @@ YAML, Pandoc no inserta la portada y el documento empieza directamente en el
 índice. El `Makefile` ya lo hace bien; si compilas a mano, no se te olvide.
 
 `memoria.pdf`, `memoria.docx` y `.venv/` **no se versionan** (están en
-`.gitignore`): cada persona los genera en local. Lo que sí se versiona son el
+`.gitignore`): el PDF se puede generar en local o descargar de una release.
+Lo que sí se versiona son el
 `.md` fuente, los scripts de `diagramas/` y las imágenes ya generadas en
 `img/`, para que alguien sin Python/Graphviz instalados pueda compilar igual
 el PDF.
@@ -200,7 +219,7 @@ Desde la raíz del repositorio (no hace falta entorno AWS ni Node para esto):
 ```sh
 npm run lint:markdown   # valida todo el repo, incluida esta carpeta
 npm run sync:check      # trazabilidad spec/issue/evidencia
-make pdf                # confirma que la memoria sigue compilando
+npm run paper:pdf       # confirma el build reproducible, incluida la portada
 ```
 
 Si `lint:markdown` se queja de "Multiple top-level headings" o de un
@@ -210,6 +229,44 @@ desactiva esas dos reglas sólo aquí, porque este `.md` es un documento
 multicapítulo, no una página normal del repositorio.
 
 ## 5. Flujo de trabajo
+
+### PDF descargable en GitHub Releases
+
+El workflow `Memoria PDF` valida la compilación de las PR relevantes sin
+publicar previews ni artefactos descargables. Tras integrar cambios relevantes
+en `main`, compila esa revisión y publica una
+[GitHub Release](https://github.com/upc-malvaviscos/findly/releases) con
+`memoria.pdf`. No hace falta crear un tag manualmente.
+
+El tag tiene formato `memoria-2026-10-25_18-45`: hora de 24 horas en
+`Europe/Madrid`, con ajuste automático de horario de verano. La release
+enlaza su commit completo y ejecución, conserva versiones anteriores y no se
+marca como `latest` de la aplicación. El acceso a la descarga conserva la
+visibilidad y permisos del repositorio.
+
+Disparadores: `memoria-postgrado.md`, `portada.tex`, `img/**`, `Makefile`,
+`pdf-toolchain.json`, los scripts de conversión/publicación, sus pruebas, el
+workflow y `.nvmrc`. Otros Markdown, este README y cambios exclusivos de
+dependencias de la aplicación no disparan una publicación. Si cambias scripts
+de diagramas, regenera y commitea sus imágenes; son las imágenes las que se
+incluyen en el PDF.
+
+La cola permite una publicación activa y una pendiente. Durante una ráfaga,
+el siguiente merge reemplaza al que esperaba; no se pierden releases ya
+publicadas. Si dos publicaciones coinciden en el mismo minuto, espera 61
+segundos y vuelve a comprobar (máximo cinco intentos), sin sobrescribir tags.
+Un fallo de compilación no publica. Un fallo de subida/publicación puede
+dejar un borrador; usa **Re-run jobs** de la misma ejecución para reanudarlo.
+Si ya publicó, ese rerun devuelve su release sin reemplazar el PDF. Un asset
+incompleto o un tag que identifica otro commit causa un fallo y requiere
+inspeccionar el borrador, sin borrados automáticos.
+
+Los checks detectan errores de compilación, referencias no resueltas y avisos
+de conversión, pero no sustituyen la revisión visual del PDF. Los minutos de
+Actions y assets de Releases consumen las cuotas de GitHub; no se necesita
+AWS ni un token externo. No se publica desde PR ni se cambia el ruleset.
+
+Decisión y límites: [ADR-027](../../adr/ADR-027-memoria-pdf-releases.md).
 
 - Rama `docs/...` por cambio, igual que el resto del repositorio (ver
   `AGENTS.md` en la raíz); evita editar varias personas la misma sección a

@@ -841,6 +841,55 @@
         "docs/paper/04-arquitectura-y-decisiones.md",
         "docs/paper/memoria-findly/memoria-postgrado.md"
       ]
+    },
+    {
+      "id": "REQ-MEMORIA-PDF-RELEASE",
+      "description": "Compilación reproducible y publicación automática de la memoria PDF en GitHub Releases, con aceptación remota pendiente.",
+      "issues": [186],
+      "spec": "specs/17-paper-evidence-adr-and-demo-runbook.md",
+      "implementation": [
+        ".github/workflows/memoria-pdf.yml",
+        "scripts/pandoc-container.mjs",
+        "scripts/lib/memoria-release.mjs",
+        "docs/paper/memoria-findly/Makefile",
+        "docs/paper/memoria-findly/pdf-toolchain.json"
+      ],
+      "verification": [
+        {
+          "command": "paper:pdf",
+          "environment": "static",
+          "files": [
+            "docs/paper/memoria-findly/memoria-postgrado.md",
+            "docs/paper/memoria-findly/portada.tex"
+          ]
+        },
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": ["tests/infra/memoriaRelease.test.ts"]
+        },
+        {
+          "command": "lint:workflows",
+          "environment": "static",
+          "files": [".github/workflows/memoria-pdf.yml"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-186-memoria-pdf-releases.md",
+          "environment": "static"
+        },
+        {
+          "file": "docs/evidence/issue-186-memoria-pdf-releases.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-027-memoria-pdf-releases.md",
+        "docs/paper/memoria-findly/README.md",
+        "docs/paper/05-implementacion-y-cicd.md",
+        "README.md"
+      ]
     }
   ]
 }

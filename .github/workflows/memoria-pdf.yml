@@ -1,0 +1,77 @@
+name: Memoria PDF
+
+on:
+  pull_request:
+    paths:
+      - docs/paper/memoria-findly/memoria-postgrado.md
+      - docs/paper/memoria-findly/portada.tex
+      - docs/paper/memoria-findly/img/**
+      - docs/paper/memoria-findly/Makefile
+      - docs/paper/memoria-findly/pdf-toolchain.json
+      - scripts/pandoc-container.mjs
+      - scripts/lib/memoria-release.mjs
+      - scripts/lib/memoria-release.d.mts
+      - tests/infra/memoriaRelease.test.ts
+      - .github/workflows/memoria-pdf.yml
+      - .nvmrc
+  push:
+    branches: [main]
+    paths:
+      - docs/paper/memoria-findly/memoria-postgrado.md
+      - docs/paper/memoria-findly/portada.tex
+      - docs/paper/memoria-findly/img/**
+      - docs/paper/memoria-findly/Makefile
+      - docs/paper/memoria-findly/pdf-toolchain.json
+      - scripts/pandoc-container.mjs
+      - scripts/lib/memoria-release.mjs
+      - scripts/lib/memoria-release.d.mts
+      - tests/infra/memoriaRelease.test.ts
+      - .github/workflows/memoria-pdf.yml
+      - .nvmrc
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: make -C docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    concurrency:
+      group: memoria-pdf-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: make -C docs/paper/memoria-findly pdf 'PANDOC=node ../../../scripts/pandoc-container.mjs'
+      - name: Publish the downloadable PDF
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const moduleURL = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/lib/memoria-release.mjs`);
+            const { publishMemoria } = await import(moduleURL.href);
+            const url = await publishMemoria({
+              github, context,
+              pdfPath: `${process.env.GITHUB_WORKSPACE}/docs/paper/memoria-findly/memoria.pdf`,
+            });
+            await core.summary.addLink('Download memoria.pdf from the release', url).write();

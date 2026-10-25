@@ -72,6 +72,39 @@ Esta issue se cierra con esta entrega.
 
 <!-- requirement: REQ-PAPER-RUNBOOK -->
 
+## Publicación automática de la memoria académica (#186)
+
+<!-- requirement: REQ-MEMORIA-PDF-RELEASE -->
+
+Alcance aprobado en [#186](https://github.com/upc-malvaviscos/findly/issues/186),
+[ADR-027](../docs/adr/ADR-027-memoria-pdf-releases.md) y
+[evidencia](../docs/evidence/issue-186-memoria-pdf-releases.md):
+
+- Compilar `memoria-postgrado.md` con portada e imágenes versionadas mediante
+  Pandoc, pandoc-crossref y XeLaTeX de una imagen fijada por digest.
+- En PR, validar la compilación sin publicar previews; en push relevante a
+  `main`, publicar `memoria.pdf` como asset de GitHub Release.
+- Disparar sólo por entradas de la memoria y configuración/herramientas PDF,
+  sin vincular la publicación a cualquier Markdown del repositorio.
+- Conservar releases publicadas con tags `memoria-YYYY-MM-DD_HH-mm`, zona
+  `Europe/Madrid`, reloj de 24 horas, sin commit en el nombre.
+- Serializar con la cola estándar aprobada: una activa y una pendiente; una
+  nueva ejecución puede reemplazar la pendiente en una ráfaga de merges.
+- No sobrescribir tags/releases; esperar otro minuto ante colisiones y
+  reanudar el borrador de un rerun. Publicar únicamente tras subir el PDF.
+- No versionar PDFs, crear previews descargables, cambiar el ruleset ni
+  desplegar AWS. Limitar `contents: write` al job de publicación.
+
+### Aceptación específica
+
+- [x] Compilación real y revisión visual documentadas; checks locales completos.
+- [ ] Check PDF remoto de PR satisfactorio, sin publicación.
+- [ ] Primera release real posterior al merge: tag/commit/hora/descarga verificados.
+- [ ] Issue sincronizada con PR, ejecuciones, evidencia y pendientes.
+
+No se declara completada la aceptación remota mediante pruebas simuladas de
+GitHub ni mediante la compilación local.
+
 Trazabilidad `REQ-PAPER-RUNBOOK`: [#18](https://github.com/upc-malvaviscos/findly/issues/18) · [evidencia](../docs/evidence/issue-18-paper-runbook.md).
 
 Instantánea vigente: [sincronización del 2026-10-23](../docs/evidence/2026-10-23-code-truth-sync.md).

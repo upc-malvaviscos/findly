@@ -169,6 +169,14 @@ y límites de validación en
 
 La memoria, ADRs, evidencias y backlog publicable viven en [`docs/`](/Users/anyulled/IdeaProjects/findly/docs/README.md) y [`specs/`](/Users/anyulled/IdeaProjects/findly/specs/README.md).
 
+La [memoria académica](docs/paper/memoria-findly/README.md) se compila con
+`npm run paper:pdf` (Node 24, make y Docker). El workflow PDF valida las PR
+relevantes y, tras su integración en `main`, publica el PDF en
+[GitHub Releases](https://github.com/upc-malvaviscos/findly/releases), con
+versiones fechadas en hora de Madrid. Véase
+[ADR-027](docs/adr/ADR-027-memoria-pdf-releases.md); la primera publicación real
+se verifica por separado en [#186](https://github.com/upc-malvaviscos/findly/issues/186).
+
 ## Verificación pendiente y trazabilidad
 
 La [auditoría de cierres #70](docs/evidence/issue-checklist-audit.md) distingue

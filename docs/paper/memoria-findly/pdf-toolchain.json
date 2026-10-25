@@ -1,0 +1,4 @@
+{
+  "image": "pandoc/extra:3.8.3@sha256:8c4eacd628abe8a61bad9e241d4090331681af66893fb45e29ea775f5b6c82ac",
+  "platform": "linux/amd64"
+}
