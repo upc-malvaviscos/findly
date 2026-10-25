@@ -203,6 +203,7 @@ resource "aws_lambda_function" "photo_matcher" {
 }
 
 resource "aws_lambda_event_source_mapping" "photos" {
+  tags                    = local.tags
   event_source_arn        = aws_sqs_queue.photos.arn
   function_name           = aws_lambda_function.photo_matcher.arn
   batch_size              = 5

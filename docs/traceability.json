@@ -2,6 +2,67 @@
   "version": 1,
   "requirements": [
     {
+      "id": "REQ-DEPLOYMENT-PERMISSIONS",
+      "description": "Contrastar inventario Terraform con permisos de despliegue/runtime y bloquear apply de producción ante huecos o IAM no verificable, separando código de aceptación AWS.",
+      "issues": [181],
+      "spec": "specs/14-manual-deployment-with-github-oidc.md",
+      "implementation": [
+        "scripts/lib/terraform-permission-inventory.mjs",
+        "scripts/lib/deployment-permission-contract.mjs",
+        "scripts/lib/iam-policy-evaluation.mjs",
+        "scripts/lib/production-plan-inventory.mjs",
+        "scripts/lib/applied-production-policies.mjs",
+        "scripts/lib/production-permission-preflight.mjs",
+        "scripts/lib/production-role-policies.mjs",
+        "scripts/check-production-permission-contract.mjs",
+        "scripts/preflight-production-permissions.mjs",
+        ".github/workflows/ci.yml",
+        ".github/workflows/deploy.yml"
+      ],
+      "verification": [
+        {
+          "command": "permissions:check",
+          "environment": "static",
+          "files": [
+            "infra/environments/production/tests/permissions-inventory.tftest.hcl",
+            "scripts/check-production-permission-contract.mjs"
+          ]
+        },
+        {
+          "command": "test",
+          "environment": "unit",
+          "files": [
+            "tests/infra/deploymentPermissionContract.test.ts",
+            "tests/infra/appliedProductionPolicies.test.ts",
+            "tests/infra/productionPlanInventory.test.ts"
+          ]
+        },
+        {
+          "command": "lint:workflows",
+          "environment": "static",
+          "files": [".github/workflows/ci.yml", ".github/workflows/deploy.yml"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/issue-181-permission-preflight.md",
+          "environment": "static"
+        },
+        {
+          "file": "docs/evidence/issue-181-permission-preflight.md",
+          "environment": "unit"
+        }
+      ],
+      "documentation": [
+        "docs/adr/ADR-026-terraform-permission-contract.md",
+        "docs/runbooks/gallery-email-ses-acens.md",
+        "docs/testing-strategy.md",
+        "docs/paper/05-implementacion-y-cicd.md",
+        "docs/paper/06-seguridad-privacidad-y-gobierno.md",
+        "README.md"
+      ]
+    },
+    {
       "id": "REQ-RETIRED-TEARDOWN-HANDOFF",
       "description": "Retirar el aviso programado heredado y conservar la limpieza efímera por PR y la destrucción manual de demo.",
       "issues": [16],

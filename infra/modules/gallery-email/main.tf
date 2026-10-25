@@ -138,12 +138,14 @@ resource "aws_lambda_function" "function" {
   tags       = local.tags
 }
 resource "aws_lambda_event_source_mapping" "work" {
+  tags             = local.tags
   event_source_arn = aws_sqs_queue.work.arn
   function_name    = aws_lambda_function.function["worker"].arn
   batch_size       = 1
   scaling_config { maximum_concurrency = 2 }
 }
 resource "aws_lambda_event_source_mapping" "feedback" {
+  tags             = local.tags
   event_source_arn = aws_sqs_queue.feedback.arn
   function_name    = aws_lambda_function.function["feedback"].arn
   batch_size       = 1

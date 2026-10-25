@@ -35,6 +35,11 @@ function environmentRolePolicies(config, bindings, environment) {
     environment === 'production'
       ? [
           ...lifecycleNames,
+          'admin-update_event',
+          'admin-list_photos',
+          'admin-delete_photo',
+          'admin-delete_event',
+          'registration-backfill',
           'gallery-email-request',
           'gallery-email-status',
           'gallery-email-worker',
@@ -58,7 +63,7 @@ function environmentRolePolicies(config, bindings, environment) {
   );
   const roleNames = names.map(
     (name) =>
-      `${prefix}-${name}${['gallery-reader', 'delete-registration', 'retention-purger', 'photo-matcher'].includes(name) ? '-role' : ''}`,
+      `${prefix}-${name}${['gallery-reader', 'delete-registration', 'retention-purger', 'photo-matcher', 'registration-backfill'].includes(name) ? '-role' : ''}`,
   );
   roleNames.push(`${prefix}-retention-purger-scheduler-role`);
   const roleArns = roleNames.map(

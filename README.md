@@ -141,6 +141,13 @@ Los permisos adicionales del rol se versionan en
 [`infra/iam/ephemeral-pr-extensions.json`](infra/iam/ephemeral-pr-extensions.json)
 y sirven a todos los recursos `findly-pr-*`, sin políticas nuevas por PR.
 
+El [contrato Terraform/IAM](docs/adr/ADR-026-terraform-permission-contract.md)
+se comprueba con `npm run permissions:check`, incluido en `verify` y CI, sin
+provisionar AWS. Producción incorpora un preflight antes del apply que lee
+políticas IAM aplicadas y bloquea huecos o lecturas denegadas. La
+[evidencia de #181](docs/evidence/issue-181-permission-preflight.md) distingue
+código validado, IAM aplicado y disponibilidad real.
+
 ### Observabilidad y FinOps
 
 Las Lambdas escriben logs JSON con `correlationId` y una lista cerrada de

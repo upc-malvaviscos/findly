@@ -19,6 +19,71 @@ export function productionDeploymentPolicies(config, bindings = {}) {
   const boundaryArn = `arn:aws:iam::${account}:policy/findly-production-runtime-boundary`;
   const documents = productionRolePolicies(config, bindings);
   const core = documents.deploy.core.Statement;
+  const backfillQueues = ['queue', 'dlq'].map((name) =>
+    arn('sqs', `findly-production-backfill-${name}`),
+  );
+  const backfillFunction = arn(
+    'lambda',
+    'function:findly-production-registration-backfill',
+  );
+  core.push(
+    statement(
+      [
+        'sqs:GetQueueAttributes',
+        'sqs:GetQueueUrl',
+        'sqs:ListQueueTags',
+        'sqs:CreateQueue',
+        'sqs:SetQueueAttributes',
+        'sqs:TagQueue',
+        'sqs:UntagQueue',
+      ],
+      backfillQueues,
+    ),
+    statement(
+      [
+        'cloudwatch:DescribeAlarms',
+        'cloudwatch:ListTagsForResource',
+        'cloudwatch:PutMetricAlarm',
+        'cloudwatch:TagResource',
+        'cloudwatch:UntagResource',
+      ],
+      arn('cloudwatch', 'alarm:findly-production-backfill-dlq-has-messages'),
+    ),
+    statement('lambda:CreateEventSourceMapping', '*', {
+      StringEquals: {
+        'aws:RequestedRegion': region,
+        'aws:RequestTag/Project': 'findly',
+        'aws:RequestTag/Environment': 'production',
+      },
+      ArnEquals: { 'lambda:FunctionArn': backfillFunction },
+    }),
+    statement(
+      'lambda:UpdateEventSourceMapping',
+      arn('lambda', 'event-source-mapping:*'),
+      {
+        ArnEquals: { 'lambda:FunctionArn': backfillFunction },
+      },
+    ),
+    // Read only the deployer's own policies and the reviewed runtime ceiling.
+    // A deployed role missing these reads must be configured separately; the
+    // preflight cannot grant itself permissions or update the boundary.
+    statement(
+      [
+        'iam:GetRole',
+        'iam:ListRolePolicies',
+        'iam:GetRolePolicy',
+        'iam:ListAttachedRolePolicies',
+      ],
+      `arn:aws:iam::${account}:role/findly-production-deploy`,
+    ),
+    statement(
+      ['iam:GetPolicy', 'iam:GetPolicyVersion'],
+      [
+        boundaryArn,
+        `arn:aws:iam::${account}:policy/findly-production-deploy-*`,
+      ],
+    ),
+  );
   const roles = core.find((s) => s.Action?.includes('iam:CreateRole'));
   assert(roles);
   roles.Action = roles.Action.filter((action) => action !== 'iam:CreateRole');
@@ -154,6 +219,10 @@ export function productionDeploymentPolicies(config, bindings = {}) {
         ],
       ),
       statement(
+        'dynamodb:BatchWriteItem',
+        arn('dynamodb', 'table/findly-production'),
+      ),
+      statement(
         ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'],
         `arn:aws:s3:::${uploadsBucket}/events/*`,
       ),
@@ -180,7 +249,11 @@ export function productionDeploymentPolicies(config, bindings = {}) {
           'sqs:DeleteMessage',
           'sqs:GetQueueAttributes',
         ],
-        [...queueArns, arn('sqs', 'findly-production-photos-queue')],
+        [
+          ...queueArns,
+          arn('sqs', 'findly-production-photos-queue'),
+          ...backfillQueues.slice(0, 1),
+        ],
       ),
       statement(
         'ses:SendEmail',

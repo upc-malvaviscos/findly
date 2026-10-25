@@ -61,6 +61,15 @@ El sandbox compartido no se consume automáticamente desde CI.
 
 ## Regresiones de scripts
 
+`npm run permissions:check` consume el grafo JSON de producción con proveedor
+AWS simulado, sin backend ni credenciales. Contrasta permisos de despliegue y
+runtime de todos los recursos del grafo, incluido correo opcional sintético.
+Forma parte de `verify` y CI y necesita los ZIP preparados con
+`build:lambdas`/`package:lambdas`, no una sesión AWS. Las regresiones del
+preflight usan STS/IAM falso y no acreditan permisos efectivos ni operación
+desplegada. Véase ADR-026 y
+[la evidencia de #181](evidence/issue-181-permission-preflight.md).
+
 Las pruebas en `tests/infra` cubren aislamiento de Terraform, trazabilidad
 estructurada y errores de limpieza con procesos/proveedores simulados. No son
 aceptación AWS. `test:aws` comunica éxito únicamente tras completar su limpieza;
