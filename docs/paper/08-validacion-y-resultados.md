@@ -199,8 +199,8 @@ sin repetir lo ya acreditado por PR #71:
   `operationId` (ADR-024) y E2E Playwright real del reintento. Verificado contra
   AWS real en el entorno efímero de PR #149/#150 con limpieza automática; 701
   pruebas unitarias/integración en verde.
-- **Dominio y correo de producción (issue #98, reabierta por evidencia
-  multiproveedor pendiente).** La SPA y la API de producción
+- **Dominio y correo de producción (issue #98, cerrada por confirmación manual
+  multiproveedor).** La SPA y la API de producción
   (`www.findly.barcelona`) están desplegadas y son públicas desde el 2026-10-05
   (identidad SES, DKIM y MAIL FROM verificados; certificado ACM emitido). El
   2026-10-15 AWS confirmó acceso de producción concedido y envío regional
@@ -234,9 +234,9 @@ curso como por `ttl` caducado). Detalle en
 Demuestra, contra Rekognition/DynamoDB/SQS reales, los tres órdenes de
 subida de la issue #87:
 
-- **Selfie antes de foto**: `ENROLLED` en 10,2 s; coincidencia al 100 % de
+- **Selfie antes de foto**: `ENROLLED` verificado; coincidencia al 100 % de
   similitud por el disparo S3 existente (spec 07), sin regresión.
-- **Foto antes de selfie**: foto subida primero; `ENROLLED` 5,8 s después de
+- **Foto antes de selfie**: foto subida primero; `ENROLLED` verificado después de
   la selfie; coincidencia al 100 % **sin volver a subir la fotografía** — la
   produjo el backfill de la issue #87 (capítulo 4).
 - **Subidas simultáneas**: selfie y foto lanzadas en paralelo; 10 s después
@@ -349,7 +349,7 @@ y con pruebas automatizadas (`docs/evidence/issue-13-observability-finops.md`).
 La alarma DLQ y la entrega SNS → SQS están verificadas en AWS real (sección
 anterior, PR #71); el aviso real de AWS Budgets nunca se aplicó ni se
 disparó en ninguna cuenta. La issue se cerró el 2026-10-14 (PR #122) por una
-decisión explícita de la persona responsable: aceptar la entrega SNS → SQS
+decisión explícita del equipo: aceptar la entrega SNS → SQS
 ya acreditada como evidencia suficiente del canal de aviso, en vez de forzar
 gasto real o esperar indefinidamente en una cuenta efímera no persistente
 para que Budgets dispare su propio umbral. Si se necesitara esa evidencia en
@@ -364,45 +364,44 @@ ninguna de las tres piezas se cierra sin sincronizar las otras dos, aplicada
 como tabla. Se omiten las specs sin evidencia dedicada propia (00, 01, 13, 16, 19) porque su verificación vive en la CI general (capítulo 5), no en un
 fichero de `docs/evidence/` individual.
 
-| Spec | Issue | Evidencia                                                                                             | Estado                                                             |
-| ---- | ----- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                            |
-| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`, `issue-49-fanout-benchmark-run.json`                          | Cerrada tras PR #141 (benchmark de fan-out real)                   |
-| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                      |
-| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                            |
-| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso      |
-| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                         |
-| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                     |
-| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                         |
-| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                            |
-| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                               |
-| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)             |
-| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                       |
-| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                            |
-| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)               |
-| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)             |
-| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                            |
-| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Cerrada con esta entrega                                           |
-| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                            |
-| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                               |
-| 20   | #98   | `issue-98-ses-production.md`                                                                          | Reabierta: falta evidencia de dos proveedores; un buzón verificado |
-| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                     |
-| 23   | #89   | `issue-89-admin-event-photo-lifecycle.md`                                                             | Cerrada tras PR #120/#147/#148                                     |
-| 05   | #121  | `issue-121-photo-upload-retry.md`                                                                     | Cerrada tras PR #149-#152                                          |
-| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados; PR #154)                   |
-| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Cerrada tras PR #129/#139                                          |
+| Spec | Issue | Evidencia                                                                                             | Estado                                                                |
+| ---- | ----- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 02   | #3    | `issue-03-domain-contracts.md`                                                                        | Cerrada                                                               |
+| 02   | #49   | `issue-49-dynamodb-vs-rds-analysis.md`, `issue-49-fanout-benchmark-run.json`                          | Cerrada tras PR #141 (benchmark de fan-out real)                      |
+| 03   | #4    | `issue-04-frontend-auth.md`                                                                           | Cerrada (backend real en #22)                                         |
+| 04   | #5    | `issue-05-admin-cognito.md`, `issue-05-09-platform-foundation.md`                                     | Cerrada                                                               |
+| 04   | #105  | `admin-invitations-aws-plan.md`                                                                       | Cerrada 20-oct tras confirmación de recepción y primer acceso         |
+| 05   | #6    | `issue-06-presigned-uploads.md`; verificación de firma/CORS (#45) en `issue-70-verification-gates.md` | Cerrada 28-sep tras PR #71                                            |
+| 06   | #7    | `issue-18-paper-runbook.md` (cita el cierre de #7)                                                    | Cerrada 02-oct tras PR #72/#81                                        |
+| 07   | #8    | `issue-08-photo-matching.md`; verificación de DLQ (#46) en `issue-70-verification-gates.md`           | Cerrada 28-sep tras PR #71                                            |
+| 08   | #9    | `issue-09-private-gallery.md`                                                                         | Cerrada                                                               |
+| 08   | #107  | `issue-107-gallery-refresh.md`                                                                        | Cerrada tras PR #108                                                  |
+| 09   | #10   | `issue-10-consent-erasure.md`, `issue-70-erasure-retention.md`                                        | Cerrada tras PR #84 (cron real) y PR #123 (retry real)                |
+| 10   | #11   | `issue-11-terraform-remote-state.md`                                                                  | Cerrada (PR #62/#83; sub-issue #61 incluida)                          |
+| 11   | #12   | `issue-12-secure-serverless-infra.md`                                                                 | Cerrada                                                               |
+| 12   | #13   | `issue-13-observability-finops.md`                                                                    | Cerrada tras PR #122 (Budgets real fuera de alcance)                  |
+| 14   | #15   | `issue-15-permanent-demo.md`                                                                          | Cerrada; demo probada y desactivada por coste (PR #92)                |
+| 15   | #16   | `issue-16-ephemeral-pr-ci.md`                                                                         | Cerrada                                                               |
+| 17   | #18   | `issue-18-paper-runbook.md`                                                                           | Cerrada con esta entrega                                              |
+| 18   | #22   | `issue-22-web-real-backend.md`, `issue-70-public-enrollment.md`                                       | Cerrada tras PR #93/#94                                               |
+| 20   | #86   | `issue-86-gallery-email.md`                                                                           | Cerrada tras PR #142                                                  |
+| 20   | #98   | `issue-98-ses-production.md`                                                                          | Cerrada: un buzón en arnés; dos proveedores confirmados por el equipo |
+| 22   | #88   | `issue-88-gallery-refresh-download-sharing.md`                                                        | Cerrada tras PR #127/#130/#131                                        |
+| 23   | #89   | `issue-89-admin-event-photo-lifecycle.md`                                                             | Cerrada tras PR #120/#147/#148                                        |
+| 05   | #121  | `issue-121-photo-upload-retry.md`                                                                     | Cerrada tras PR #149-#152                                             |
+| —    | #70   | `issue-70-*.md` (5 ficheros), `issue-checklist-audit.md`                                              | Cerrada (auditoría y gates completados; PR #154)                      |
+| 21   | #87   | `issue-87-matching-convergence.md`                                                                    | Cerrada tras PR #129/#139                                             |
 
 La [matriz de auditoría de #70](../evidence/issue-checklist-audit.md) distingue,
 issue por issue, qué criterios están respaldados por evidencia desplegada y
 cuáles siguen dependiendo de una suite mock o Floci. Con el cierre de `#49`,
 `#86`, `#87` y `#89`, la entrega académica de #18 quedó cerrada, al reflejar el
 recorrido ampliado que la mantenía abierta. La revisión actual conserva los
-cierres respaldados y reabre #98 por el criterio de dos proveedores no
-acreditado. Ninguna de las filas cerradas representa cero riesgo residual. Los
+cierres respaldados y registra el cierre de #98 por confirmación manual
+del equipo sobre el criterio de dos proveedores. Ninguna de las filas cerradas representa cero riesgo residual. Los
 dos hallazgos originales de #49 ya están corregidos; el capítulo 9 describe los
-límites actuales, incluidos tombstones/TTL de foto, doble escritura DynamoDB/SQS
-y cobertura de entregabilidad pendiente. #98 se reabre para completar esa
-evidencia sin redefinir el criterio de dos proveedores.
+límites actuales, incluidos tombstones/TTL de foto, doble escritura DynamoDB/SQS. El cierre de #98 no convierte el recibo de
+un destinatario en una prueba automatizada de dos proveedores.
 
 ## Actualización operativa de correo — 2026-10-15
 
@@ -443,3 +442,7 @@ transaccional en un buzón. El 23-oct-2026 se reabre por falta de evidencia del
 criterio de dos proveedores; esa reapertura no invalida los nueve escenarios
 ni el recibo ya acreditado. La issue #49 permanece cerrada con ADR-022 y el
 benchmark de la PR #141, completado por las correcciones de #143/#144.
+
+El estado vigente de #98 incorpora la confirmación manual posterior del equipo
+del 23-oct-2026: el criterio de dos proveedores está confirmado y la issue
+cerrada. La cronología anterior conserva la reapertura previa a esa decisión.

@@ -2,6 +2,20 @@
 
 <!-- requirement: REQ-MATCHING-BOTH-ORDERS -->
 
+## Corrección de interpretación temporal — 25 de octubre de 2026
+
+La revisión documental [#192](https://github.com/upc-malvaviscos/findly/issues/192)
+contrasta `scripts/deployed-issue-87-acceptance.mjs`: en A, `startedAt` se toma
+antes de `registerSelfie` y `enrolledAfterMs` después de `pollMatch`; en B,
+se toma antes de subir la foto, incluye `delay(5000)` y se calcula antes de
+`pollRegistrationStatus`. El nombre del campo no describe un intervalo
+S3 PUT → ENROLLED. Las cifras narrativas anteriores de 10,2 y 5,8 segundos
+no se utilizan para aceptar ni rechazar el objetivo de tres segundos; tampoco
+coinciden con los valores 4981 y 5621 del JSON actualmente enlazado. Se conserva
+el JSON histórico sin alterarlo y se retira la atribución de latencia de
+inscripción. No se ha ejecutado una nueva prueba AWS. La verificación de estado
+y coincidencias permanece válida dentro de sus escenarios.
+
 ## Resultado de la ejecución AWS efímera (2026-10-14)
 
 Sandbox desplegado con `infra/environments/sandbox` (backend
@@ -10,10 +24,10 @@ Sandbox desplegado con `infra/environments/sandbox` (backend
 `scripts/deployed-issue-87-acceptance.mjs` (nuevo) ejecutó los tres
 recorridos de la issue contra Rekognition/DynamoDB/SQS reales, sin mocks:
 
-- **Selfie antes de foto**: `ENROLLED` a los 10.2 s; match a similitud
+- **Selfie antes de foto**: `ENROLLED` verificado; match a similitud
   100 % por el trigger S3 existente (spec 07), sin regresión.
 - **Foto antes de selfie**: foto subida primero; 5 s después, selfie
-  inscrita; `ENROLLED` a los 5.8 s; match a similitud 100 % **sin volver a
+  inscrita; `ENROLLED` verificado; match a similitud 100 % **sin volver a
   subir la fotografía** — el backfill de esta spec lo produjo.
 - **Subidas simultáneas**: selfie y foto lanzadas en paralelo
   (`Promise.all`); match a similitud 100 %; comprobado 10 s después que

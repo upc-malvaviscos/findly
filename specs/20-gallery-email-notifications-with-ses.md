@@ -4,14 +4,15 @@
 
 <!-- requirement: REQ-PRODUCTION-DOMAIN -->
 
-La configuración externa continúa en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
+La configuración externa se documenta en [#98](https://github.com/upc-malvaviscos/findly/issues/98)
 y ADR-020: `www.findly.barcelona`
 para web/galerías, DNS en Acens, identidad SES compartida y certificado ACM
 separado. El bootstrap manual por OIDC sólo prepara estos recursos. El acceso
 regional SES se confirmó concedido el 2026-10-15 y el correo se habilitó mediante
 el despliegue OIDC 38781070488, después de revisar un plan sin cambios de
-Cognito ni borrados. Recepción, apertura y aceptación de recuperación/feedback
-siguen requiriendo sus pruebas específicas.
+Cognito ni borrados. Recuperación/feedback y recepción cuentan con las
+aceptaciones fechadas descritas al final; la confirmación manual del equipo
+completó el criterio multiproveedor el 23-oct-2026.
 Evidencia: [configuración SES y producción](../docs/evidence/issue-98-ses-production.md).
 La preparación del despliegue añade aislamiento OIDC/estado/buckets y un límite
 de permisos obligatorio para las funciones de producción. SES/DKIM/MAIL FROM,
@@ -188,3 +189,12 @@ registros de spam. Con estos resultados, los requisitos de implementación de la
 issue #86 quedan completados. #98 se cerró históricamente, pero la auditoría
 del 2026-10-23 la reabre: falta recepción con cabeceras y apertura en un
 segundo proveedor. SPF/DKIM/DMARC pass no sustituyen esa evidencia.
+
+## Sincronización de cierre multiproveedor — 25 de octubre de 2026
+
+La auditoría anterior conservó pendiente el criterio de dos proveedores porque
+el run single-recipient solo demuestra uno. La confirmación expresa del equipo
+del 23 de octubre completa ese criterio y #98 está cerrada. Se registra como
+[confirmación manual](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360),
+sin atribuirla al ensayo anterior ni a envíos nuevos. Las notas históricas
+precedentes describen el estado en sus respectivas fechas.

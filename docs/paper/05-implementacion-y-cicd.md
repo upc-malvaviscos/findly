@@ -21,9 +21,9 @@ limitados a seis horas, sesiones STS de una hora y limpieza de fixtures propias.
 Las pruebas locales validan su coordinación. En AWS, el run `38950320818` pasó
 los nueve escenarios de resiliencia/feedback y el run `38955016584` verificó
 recepción, apertura e identificación SPF/DKIM/DMARC en un buzón corporativo
-autorizado. La fase `single-recipient` es evidencia parcial: falta el segundo
-proveedor independiente para completar el criterio de #98, reabierta en esta
-revisión. No se presenta el envío aceptado por SES como prueba suficiente de
+autorizado. La fase `single-recipient` es evidencia de un buzón. La confirmación manual
+del equipo del 23-oct-2026 completó el criterio multiproveedor y cerró #98;
+no se atribuye esa confirmación al run anterior. No se presenta el envío aceptado por SES como prueba suficiente de
 llegada.
 
 Este capítulo describe **cómo** se construye, empaqueta, valida y despliega
@@ -198,7 +198,7 @@ esta vía como reparación de los recursos de fotos/backfill del apply parcial.
 
 La aceptación posterior de #175 combina la ejecución AWS 40234761439,
 iniciada por surinyach con reenvío aceptado por Cognito, y la confirmación manual
-del titular transmitida por el responsable el 25 de octubre de 2026. La
+del titular transmitida por el equipo el 25 de octubre de 2026. La
 [evidencia de recuperación](../evidence/organizer-recovery.md#aceptación-real-de-santi--2026-10-25)
 separa esa aceptación funcional de las pruebas automatizadas y del intento
 anterior fallido; no se realizó una recuperación local mediante raíz.

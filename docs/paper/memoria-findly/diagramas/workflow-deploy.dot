@@ -1,0 +1,20 @@
+digraph workflow_deploy {
+  graph [rankdir=TB, bgcolor="white", pad=0.32, nodesep=0.4, ranksep=0.48,
+         fontname="Helvetica", fontsize=20, labelloc=t,
+         label="Despliegue persistente · invocación manual"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12,
+        margin="0.18,0.12", penwidth=1.3];
+  edge [fontname="Helvetica", fontsize=10, color="#475569", penwidth=1.4, arrowsize=0.75];
+
+  dispatch [label="workflow_dispatch desde main\nElegir sandbox, demo o production", fillcolor="#ede9fe", color="#7c3aed"];
+  authorize [label="Validar actor, entorno y configuración\nOIDC asume el rol del entorno", fillcolor="#f5f3ff", color="#7c3aed"];
+  plan [label="Compilar artefactos y ejecutar Terraform plan\nRevisar cambios y permisos", fillcolor="#f5f3ff", color="#7c3aed"];
+  decision [shape=diamond, style=filled, label="apply = true?", fillcolor="#fffbea", color="#a16207", margin="0.15,0.08"];
+  stop [label="Termina sin aplicar\nplan revisado", fillcolor="#f8fafc", color="#64748b"];
+  apply [label="Apply del plan revisado\nPublicar SPA en S3 e invalidar CloudFront", fillcolor="#f5f3ff", color="#7c3aed"];
+  verify [label="Verificación del entorno persistente\nNo hay teardown automático", fillcolor="#f5f3ff", color="#7c3aed"];
+  dispatch -> authorize -> plan -> decision;
+  decision -> apply [label="sí"];
+  decision -> stop [label="no"];
+  apply -> verify;
+}

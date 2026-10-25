@@ -1,5 +1,16 @@
 # Issue #98: configuración SES y preparación de producción
 
+## Estado vigente — sincronización del 25 de octubre de 2026
+
+La issue #98 está **cerrada** desde la confirmación expresa del equipo del
+23 de octubre de 2026 sobre recepción en buzones autorizados de al menos dos
+proveedores. Fuente: [comentario de cierre](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360),
+consultado mediante GitHub CLI el 25 de octubre. Se conserva como confirmación
+manual, sin atribuirla al run single-recipient ni a un nuevo envío de esta
+revisión. Las secciones siguientes conservan la auditoría anterior y el
+historial de implementación; sus pendientes de ese criterio fueron resueltos
+por esta confirmación posterior. No se publican identidades ni enlaces privados.
+
 <!-- requirement: REQ-PRODUCTION-DOMAIN -->
 
 ## Corrección de alcance vigente — 2026-10-23

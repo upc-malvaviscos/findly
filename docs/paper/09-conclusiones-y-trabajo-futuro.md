@@ -39,7 +39,7 @@ OIDC 38781070488 habilitó el correo, conservando Cognito con SES. La aceptació
 de recuperación, feedback y recepción en producción se completó con éxito
 mediante los runs 38950320818 y 38955016584, demostrando la resiliencia en AWS y
 la entrega autenticada con SPF, DKIM y DMARC (#98: evidencia de un buzón;
-reabierta por multiproveedor pendiente).
+cerrada por confirmación manual multiproveedor posterior).
 
 ## Limitaciones verificadas
 
@@ -56,16 +56,11 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   galerías; el 2026-10-20 se confirmó la recepción de la clave temporal y el
   primer acceso administrativo satisfactorio en producción, cerrando la issue
   #105.
-- **Entregabilidad del correo de galerías verificada con un único buzón, no con
-  dos proveedores independientes.** El cierre de #86 (2026-10-17) dejó
-  explícitamente pendiente en #98 confirmar la recepción con dos proveedores de
-  correo independientes (Google Workspace / Microsoft 365). La evidencia que
-  cerró #98 (2026-10-19) acredita entrega real, bandeja de entrada y
-  autenticación SPF/DKIM/DMARC estricta en un único buzón autorizado
-  (`info@findly.barcelona`) — no se documenta una segunda prueba con un
-  proveedor de correo distinto. No se presenta aquí como si ese segundo
-  proveedor se hubiera verificado: #98 se reabre el 23-oct-2026 para completar
-  el criterio original, sin relajar su alcance.
+- **Entregabilidad con procedencias diferenciadas.** El recibo automatizado
+  acredita un buzón y autenticación SPF/DKIM/DMARC. El equipo confirmó el
+  criterio de dos proveedores el 23-oct-2026 y cerró #98. Se conserva como
+  confirmación manual, sin inventar un segundo run; véase la
+  [evidencia actualizada](../evidence/issue-98-ses-production.md).
 - **Migración de colecciones Rekognition heredadas pendiente.** ADR-015 aísla
   colecciones por entorno; las colecciones creadas antes de esa decisión
   (`findly-event-*`, sin sufijo de entorno) no se migran ni se borran
@@ -80,7 +75,7 @@ comprobado por lectura no se presenta como una carrera reproducida en AWS.
   general de concurrencia: #166 incorpora la barrera `deletedAt` antes de la
   consulta y revalida ausencia de marca y TTL vigente en la transacción,
   verificados localmente con unitarias y Floci. #168 está integrada y supera el
-  smoke AWS efímero con teardown. Por decisión del responsable del 23-oct-2026,
+  smoke AWS efímero con teardown. Por decisión del equipo del 23-oct-2026,
   la aceptación AWS específica de carreras y TTL lógico se aplaza a una próxima
   etapa; #166 permanece abierta con ese criterio sin verificar. La publicación
   permanente es una actuación operativa independiente. Los ensayos de borrado de
@@ -138,7 +133,7 @@ verde.
 
 ## Trabajo futuro
 
-1. Completar la aceptación de correo de #98 con dos proveedores independientes y
+1. Ampliar la evidencia automatizada de correo tras la confirmación manual de #98 y
    recibos/cabeceras verificables. El único buzón corporativo acreditado no
    satisface por sí solo ese criterio.
 2. Retomar en una próxima etapa la aceptación AWS específica de #166. La
