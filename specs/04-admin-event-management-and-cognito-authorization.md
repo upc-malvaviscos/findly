@@ -203,7 +203,11 @@ y la [evidencia de recuperación](../docs/evidence/organizer-recovery.md).
 El 2026-10-25, PR #177 y publicación 40144592272 verifican la SPA servida por
 CDN y el formulario. El rol/configuración y los prerrequisitos de las cuatro
 cuentas están comprobados; el autoservicio queda habilitado sin aprobación
-externa por solicitud. Santi (surinyach) conserva primer acceso pendiente y
-debe ejecutar su propia acción para recibir la invitación. La recepción,
-asunción del rol de recuperación y login real no se declaran probados;
-La issue #175 permanece abierta. No se solicita un reset de anyulled para esa aceptación.
+externa por solicitud. La nueva ejecución
+[40234761439](https://github.com/upc-malvaviscos/findly/actions/runs/40234761439),
+iniciada por Santi (surinyach) sobre la corrección de PR #190, verificó OIDC y
+la aceptación de una nueva invitación por Cognito. El responsable transmitió
+después la confirmación del titular: «Santi me dice que le funcionó». La
+aceptación funcional es manual; no se presenta como observación automatizada
+del buzón o login. Se cumple así la aceptación pendiente de #175. No se
+solicitó un reset de anyulled ni se ejecutó recuperación desde la sesión raíz.

@@ -196,6 +196,13 @@ ejercitan la composición con Cognito simulado; la comprobación posterior de
 CDN/formulario no demuestra recepción de correo ni acceso real. No se presenta
 esta vía como reparación de los recursos de fotos/backfill del apply parcial.
 
+La aceptación posterior de #175 combina la ejecución AWS 40234761439,
+iniciada por surinyach con reenvío aceptado por Cognito, y la confirmación manual
+del titular transmitida por el responsable el 25 de octubre de 2026. La
+[evidencia de recuperación](../evidence/organizer-recovery.md#aceptación-real-de-santi--2026-10-25)
+separa esa aceptación funcional de las pruebas automatizadas y del intento
+anterior fallido; no se realizó una recuperación local mediante raíz.
+
 La demo añade una lista de cuatro actores y comprueba tanto el actor original
 como el de reejecución antes de obtener credenciales, incluso al repetir sólo
 el job de despliegue. Su environment permite únicamente `main`. El rol

@@ -222,3 +222,29 @@ La issue #175 permanece abierta.
 La ejecución fallida acredita la asunción del rol de recuperación, pero no
 envío aceptado, recepción ni login. No se ha reejecutado la solicitud de otro
 titular ni enviado mensajes desde esta corrección.
+
+## Aceptación real de Santi — 2026-10-25
+
+La [ejecución nueva 40234761439](https://github.com/upc-malvaviscos/findly/actions/runs/40234761439)
+terminó SUCCESS en su primer intento, iniciada y ejecutada por `surinyach` sobre
+`9c27600a16a55fea62da4bdfc6aa48ce5bea3d9a`, con la corrección de PR #190.
+El job validó el actor, asumió el rol OIDC dedicado y completó la recuperación.
+El log de Cognito confirma la aceptación de una nueva invitación con contraseña
+temporal al correo ya registrado, sin publicar el contacto ni las credenciales.
+
+El responsable comunicó después: «Santi me dice que le funcionó». Se registra
+como confirmación manual del titular, retransmitida por el responsable, de la
+recuperación funcional del acceso. No es una nueva prueba automatizada ni una
+inspección directa del buzón o del login por el agente. La aceptación conjunta
+de la ejecución AWS y la confirmación manual satisface el criterio pendiente de
+la issue #175; no acredita una recuperación de las otras tres cuentas.
+
+Los cinco intentos fallidos de 40183763512 reutilizaron el commit anterior a la
+corrección. La recuperación correcta no requirió un workflow adicional ni una
+operación local sobre Cognito. El responsable había autorizado una excepción
+puntual para root, pero el login local no consiguió una sesión válida y no se
+solicitó ningún envío por esa vía. Esa excepción no modifica el procedimiento
+general ni los controles de autoservicio de ADR-021.
+
+Sin cambios de código, IAM, infraestructura o datos en esta sincronización;
+se actualizan la spec 04, el runbook y esta evidencia de REQ-ADMIN-INVITATIONS.

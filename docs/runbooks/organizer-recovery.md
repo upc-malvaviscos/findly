@@ -3,15 +3,17 @@
 La acción manual es [Recuperar mi acceso a Findly](https://github.com/upc-malvaviscos/findly/actions/workflows/recover-organizer.yml).
 El 2026-10-25 quedó habilitada tras configurar el environment, verificar las
 cuentas y publicar/comprobar el formulario mediante el workflow limitado.
-No requiere aprobación de otra persona en cada ejecución. La recepción y el
-login real siguen pendientes de aceptación por los titulares; el estado de la
-acción no acredita por sí solo esos resultados.
+No requiere aprobación de otra persona en cada ejecución. La recuperación de
+Santi quedó aceptada el mismo día: la ejecución 40234761439 solicitó el reenvío
+correctamente y el responsable transmitió la confirmación del titular de que
+le funcionó. El estado de la acción por sí solo no acredita recepción ni login;
+la aceptación combina esa evidencia AWS y la confirmación manual.
 
-Santi utiliza su cuenta GitHub `surinyach`. Su estado comprobado es
-FORCE_CHANGE_PASSWORD: la acción solicitará el reenvío de una invitación con
-contraseña temporal y su usuario Cognito. Tras comprobar la recepción, entra con esos datos en el login y
-elige una contraseña definitiva. No necesita que anyulled ejecute nada por él;
-la acción de anyulled sólo podría recuperar la cuenta de anyulled.
+Santi utiliza su cuenta GitHub `surinyach`. Su estado anterior a la recuperación
+era FORCE_CHANGE_PASSWORD; ejecutó su propia acción y Cognito aceptó una nueva
+invitación con contraseña temporal. No necesitó que anyulled ejecutase nada
+por él; la acción de anyulled sólo puede recuperar la cuenta de anyulled.
+Véase la [aceptación final](../evidence/organizer-recovery.md#aceptación-real-de-santi--2026-10-25).
 
 ## Uso por el organizador
 
