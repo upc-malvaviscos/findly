@@ -87,3 +87,40 @@ Pendientes de completar antes de declarar la issue cerrada:
 
 La aprobación del plan no autoriza a integrar directamente en `main`. No se
 cierra la issue ni se declara una publicación real a partir del build local.
+
+## Corrección de elegibilidad AWS aprobada
+
+Al marcar #187 como lista para revisión, el diff completo incluía el workflow
+PDF, sus scripts/pruebas y `package.json`; la regla anterior clasificó esos
+ficheros como desplegables y lanzó AWS incluso tras un commit sólo documental.
+Una PR de Markdown puro ya se omitía correctamente. La corrección aprobada
+reconoce las rutas exactas de tooling PDF y compara el manifiesto respecto al
+merge-base, ignorando únicamente la entrada npm `paper:pdf`.
+
+Regresión reproducida antes del fix: cuatro fallos en
+`npm exec -- vitest run --project infra tests/infra/ephemeralPrEligibility.test.ts`
+(tooling PDF, entrada npm y dos historias Git sintéticas). Tras corregir la
+regla y el lector de revisiones, pasan las 34 pruebas de ese fichero y los tipos
+estrictos. El runner real, sin etiqueta de omisión, devuelve
+`deploy_required=false` para el alcance original de 16 ficheros de #187.
+
+Los negativos conservan AWS para cambios mixtos, aplicación, Terraform,
+workflows de despliegue, lockfile, otros scripts, el propio control de
+elegibilidad, dependencias, engines, build/lifecycle y otros campos del
+manifiesto. Los contenidos ausentes o inválidos no se eximen. Dos fixtures Git
+ejecutan el runner completo sin override: prueban tanto una base estable como
+`origin/main` avanzado con dependencias diferentes, usando el ancestro correcto.
+
+El responsable aprobó retener la PR durante la corrección y cancelar sólo el
+run pendiente sin jobs. El run
+[40208727680](https://github.com/upc-malvaviscos/findly/actions/runs/40208727680)
+se canceló después de verificar `status: pending`, `jobs: []`. El run activo
+[40208663357](https://github.com/upc-malvaviscos/findly/actions/runs/40208663357)
+se dejó terminar: su conclusión y el paso `Destroy the PR environment` fueron
+`success`. Esto prueba su limpieza, no una nueva aceptación funcional del fix.
+
+Como esta corrección modifica el propio gate, esos ficheros no se añaden a la
+lista de excepciones. #187 usa la omisión operativa explícitamente aprobada
+(`skip-ephemeral-approved`); las futuras PR sólo PDF se clasifican sin etiqueta.
+Quedan pendientes el check remoto de la corrección y la primera publicación
+real en main. No se altera el ruleset ni se omiten los checks estáticos o E2E.

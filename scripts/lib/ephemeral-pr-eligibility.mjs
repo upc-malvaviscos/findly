@@ -1,3 +1,13 @@
+import { isDeepStrictEqual } from 'node:util';
+
+const paperTooling = new Set([
+  '.github/workflows/memoria-pdf.yml',
+  'scripts/pandoc-container.mjs',
+  'scripts/lib/memoria-release.mjs',
+  'scripts/lib/memoria-release.d.mts',
+  'tests/infra/memoriaRelease.test.ts',
+]);
+
 /**
  * Utility functions to evaluate whether pull request changes require deploying
  * the ephemeral AWS environment.
@@ -19,6 +29,10 @@ export function isDocumentationFile(filePath) {
   if (normalized.length === 0) {
     return false;
   }
+
+  // These tools produce only the academic PDF, not application/AWS artifacts.
+  // Keep this list exact: other scripts, workflows and tests remain relevant.
+  if (paperTooling.has(normalized)) return true;
 
   // Documentation and specification directory trees
   if (normalized.startsWith('docs/') || normalized.startsWith('specs/')) {
@@ -49,12 +63,43 @@ export function isDocumentationFile(filePath) {
  * @param {string[]} changedFiles
  * @returns {boolean} true if deployment is required, false if docs-only.
  */
-export function requiresEphemeralDeployment(changedFiles) {
+export function requiresEphemeralDeployment(changedFiles, packageChange) {
   if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
     return false;
   }
 
-  return changedFiles.some((file) => !isDocumentationFile(file));
+  return changedFiles.some((file) => {
+    if (file === 'package.json')
+      return !isPaperOnlyPackageChange(packageChange);
+    return !isDocumentationFile(file);
+  });
+}
+
+function isPaperOnlyPackageChange(change) {
+  const isObject = (value) =>
+    value !== null && typeof value === 'object' && !Array.isArray(value);
+  const withoutPaperScript = (source) => {
+    const manifest = JSON.parse(source);
+    if (!isObject(manifest)) throw new Error('Invalid manifest');
+    if (manifest.scripts !== undefined && !isObject(manifest.scripts))
+      throw new Error('Invalid scripts');
+    const scripts = { ...manifest.scripts };
+    if (Object.values(scripts).some((value) => typeof value !== 'string'))
+      throw new Error('Invalid script command');
+    delete scripts['paper:pdf'];
+    delete manifest.scripts;
+    if (Object.keys(scripts).length > 0) manifest.scripts = scripts;
+    return manifest;
+  };
+  try {
+    return isDeepStrictEqual(
+      withoutPaperScript(change?.basePackageJson),
+      withoutPaperScript(change?.headPackageJson),
+    );
+  } catch {
+    // Missing/unreadable/malformed input must never hide a dependency change.
+    return false;
+  }
 }
 
 /** Explicit operator-reviewed opt-out; ordinary code changes still deploy. */

@@ -37,8 +37,37 @@ operativo y `package-lock.json`.
 
 El ruleset `Main` exige también el check de estado
 `provision-test-destroy`, además de las puertas existentes de frontend,
-Terraform, seguridad y E2E. Por tanto, una PR no se integra si no queda
-evidencia del teardown de su entorno efímero.
+Terraform, seguridad y E2E. Para un cambio que requiere AWS, la PR no se
+integra sin completar su validación y teardown. Para documentación y
+herramientas PDF explícitas, el job termina con éxito tras la evaluación,
+sin asumir OIDC, aprovisionar ni destruir recursos.
+
+### Elegibilidad de herramientas PDF — #186
+
+Corrección aprobada por el responsable el 2026-10-25: el diff de la PR completa
+incluía scripts/workflow de publicación de la memoria y una entrada npm,
+clasificados como código desplegable aunque no afectan al producto AWS.
+
+Se reconocen sólo las cinco rutas de tooling PDF declaradas en
+`scripts/lib/ephemeral-pr-eligibility.mjs`. No se eximen directorios genéricos
+de scripts, pruebas ni workflows. `package.json` requiere comparar ambos
+contenidos: eliminando únicamente `scripts.paper:pdf`, el resto debe ser
+semánticamente idéntico. Se usa el mismo merge-base que el diff de archivos,
+incluso si `origin/main` ha avanzado. Un error de lectura/parseo conserva AWS.
+Los cambios mixtos, las dependencias, el lockfile, la aplicación, Terraform,
+otros workflows y el propio control de elegibilidad conservan su clasificación.
+
+La PR #187 también modifica ese control: su excepción concreta se basa en la
+aprobación explícita del responsable y el mecanismo ya existente de
+`skip-ephemeral-approved` para autores confiables. No es una autoexención
+general del control. Las comprobaciones de código, tipos, build, seguridad,
+E2E, actionlint y compilación PDF permanecen activas. Una futura PR limitada
+a texto/tooling PDF se omite automáticamente sin esa etiqueta.
+
+La [evidencia de #186](../evidence/issue-186-memoria-pdf-releases.md) distingue
+regresiones con Git sintético, clasificación automática y excepción operativa
+de esta PR. Cancelar una ejecución pendiente sin jobs no sustituye el teardown
+de una ejecución que ya aprovisionó recursos; ésta se deja completar su limpieza.
 
 ## Alternativa rechazada
 

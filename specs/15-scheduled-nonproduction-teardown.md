@@ -46,6 +46,22 @@ La verificación estática y sus límites se registran en la
   o ficheros markdown/metadatos) omiten el despliegue del entorno efímero en AWS,
   completando el job `provision-test-destroy` con éxito en pocos segundos sin
   incurrir en costes ni bloquear los checks obligatorios de GitHub.
+- La excepción documental incluye únicamente las rutas explícitas de la
+  herramienta PDF de [#186](https://github.com/upc-malvaviscos/findly/issues/186):
+  workflow `memoria-pdf.yml`, adaptador Pandoc, módulo de publicación y su
+  declaración TypeScript, y pruebas específicas de publicación. Otros
+  workflows, scripts y pruebas siguen requiriendo AWS.
+- `package.json` se considera documental sólo cuando su contenido difiere
+  exclusivamente en `scripts.paper:pdf` (o formato/orden sin cambio semántico).
+  Se compara con el ancestro común del diff de PR. Un cambio de dependencias,
+  engines, scripts de build/lifecycle u otro campo conserva la validación AWS;
+  contenido ausente, ilegible o inválido falla de forma cerrada. Un cambio
+  mixto de aplicación, infraestructura o lockfile también requiere AWS.
+- Los cambios del propio control de elegibilidad no se autoeximen. Su omisión
+  excepcional requiere la aprobación operativa explícita ya prevista, sin
+  cambiar el ruleset, OIDC, los límites de coste o el teardown. Véanse
+  [ADR-008](../docs/adr/ADR-008-pr-scoped-ephemeral-ci.md) y la
+  [evidencia de #186](../docs/evidence/issue-186-memoria-pdf-releases.md).
 
 ## Límites de coste y seguridad
 
