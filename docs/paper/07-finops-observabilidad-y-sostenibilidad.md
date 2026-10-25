@@ -114,3 +114,10 @@ El equipo declara el 26 de octubre 1,41 EUR de Rekognition y 0,30 EUR de S3,
 sin aportar todavía factura ni periodo. El contraste parcial de Rekognition
 en AWS Pricing Calculator muestra una discrepancia documentada en el modelo;
 no se presenta como conciliación completa.
+
+Las [capturas adicionales](../evidence/finops-2026-10-25/team-cost-forecast.md)
+recogen 0,379 USD reales comunicados en agosto y 0,130 USD en septiembre,
+con 0,542 USD previstos parcialmente para octubre y 2,986 USD para noviembre.
+Rekognition representa el 90,46 % de la previsión de noviembre. El alcance
+de cuenta/proyecto y los cargos históricos de EC2/RDS/VPC requieren aclaración;
+no se atribuyen a la arquitectura actual ni se mezclan con los importes en EUR.

@@ -41,6 +41,14 @@ El 26 de octubre el equipo comunica 1,41 EUR de Rekognition y 0,30 EUR de S3
 No se recibió factura ni periodo: se conserva como declaración, no como
 conciliación contable con este modelo en USD.
 
+## Serie de costes y previsiones aportada por el equipo
+
+Las [capturas y transcripción por mes](team-cost-forecast.md) añaden los costes
+reales comunicados de agosto/septiembre y previsiones de octubre/noviembre.
+La previsión de noviembre suma 2,986 USD (2,99 USD redondeados). Se conservan
+moneda, naturaleza y alcance no confirmado de la fuente; no se fusiona con
+la declaración en EUR ni se presenta como factura conciliada del modelo.
+
 ## Contraste parcial con AWS Pricing Calculator — 26 de octubre
 
 [Estimación guardada de Rekognition](https://calculator.aws/#/estimate?id=052dd6f3544a78368ff9a2097138042393c4437e),

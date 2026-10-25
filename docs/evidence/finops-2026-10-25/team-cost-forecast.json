@@ -1,0 +1,53 @@
+{
+  "received_on": "2026-10-26",
+  "currency": "USD",
+  "source": "Two user-provided screenshots of a cost summary, not a Cost Explorer export or invoice",
+  "account_project_scope": "unconfirmed",
+  "prior_periods": "June and July 2026: no charges registered, per screenshot",
+  "periods": [
+    {
+      "period": "2026-08",
+      "kind": "real_reported",
+      "services_usd": {
+        "EC2 - Other": "0.197",
+        "Amazon EC2 - Compute": "0.093",
+        "Amazon RDS": "0.059",
+        "Amazon VPC": "0.030"
+      },
+      "sum_shown_services_usd": "0.379"
+    },
+    {
+      "period": "2026-09",
+      "kind": "real_reported",
+      "services_usd": {
+        "Amazon Rekognition": "0.115",
+        "Amazon S3": "0.012",
+        "Amazon RDS": "0.002",
+        "Amazon DynamoDB": "0.001"
+      },
+      "sum_shown_services_usd": "0.130"
+    },
+    {
+      "period": "2026-10",
+      "kind": "forecast_partial",
+      "services_usd": {
+        "Amazon Rekognition": "0.493",
+        "Amazon S3": "0.035",
+        "Amazon DynamoDB": "0.014"
+      },
+      "sum_shown_services_usd": "0.542"
+    },
+    {
+      "period": "2026-11",
+      "kind": "forecast",
+      "services_usd": {
+        "Amazon Rekognition": "2.701",
+        "Amazon S3": "0.198",
+        "Amazon DynamoDB": "0.057",
+        "Amazon API Gateway": "0.030"
+      },
+      "sum_shown_services_usd": "2.986"
+    }
+  ],
+  "limits": "Forecast method, capture date, filters, region, tax and credits are not visible. Do not merge with earlier EUR statement or use as proof of Findly resource inventory."
+}
