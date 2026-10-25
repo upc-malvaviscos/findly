@@ -58,6 +58,7 @@ export async function publishMemoria({
   github,
   context,
   sourceSha = context.sha,
+  automationSha,
   pdfPath,
   now = () => new Date(),
   sleep = setTimeout,
@@ -70,6 +71,8 @@ export async function publishMemoria({
   )
     throw new Error('PDF releases require an authorized main event.');
   await verifyMainCommit(github, context.repo, sourceSha);
+  if (automationSha && !/^[a-f0-9]{40}$/.test(automationSha))
+    throw new Error('Invalid automation commit.');
   const pdf = readFileSync(pdfPath);
   if (pdf.subarray(0, 5).toString() !== '%PDF-')
     throw new Error('Invalid PDF.');
@@ -103,6 +106,9 @@ export async function publishMemoria({
             name: `Memoria Findly · ${tag.slice('memoria-'.length)} (Europe/Madrid)`,
             body:
               `${marker}\n\nMemoria académica compilada desde ${sourceSha}.\n\n` +
+              (automationSha
+                ? `Automatización y toolchain: ${automationSha}.\n\n`
+                : '') +
               `Ejecución: https://github.com/${repository.owner}/${repository.repo}/actions/runs/${context.runId}\n\n` +
               'Descarga `memoria.pdf` en los assets de esta release. Zona horaria: Europe/Madrid.',
             draft: true,

@@ -86,8 +86,10 @@ Alcance aprobado en [#186](https://github.com/upc-malvaviscos/findly/issues/186)
   a `main`, publicar `memoria.pdf` como asset de GitHub Release. Conservar push
   y cubrir auto-merges con callbacks de checks, ya que el token del bot suprime push.
 - Resolver el origen con código de `main`, PR integrada, SHA exacto, ascendencia
-  en main y archivos relevantes completos. No ejecutar código de PR sin integrar
-  ni descargar sus artefactos. Deduplicar por commit antes de volver a compilar.
+  en main y archivos relevantes completos. Hacer checkout sólo de main y usar
+  su Makefile/toolchain; exportar sólo datos del commit seleccionado, rechazando
+  symlinks, sin ejecutar scripts históricos ni descargar artefactos de PR.
+  Deduplicar por commit antes de volver a compilar y registrar ambos SHAs.
 - Ofrecer recuperación manual limitada a una PR integrada en main; no confundir
   esa ejecución manual con evidencia de la ruta automática.
 - Disparar sólo por entradas de la memoria y configuración/herramientas PDF,

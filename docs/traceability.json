@@ -857,7 +857,9 @@
         "scripts/lib/ephemeral-pr-eligibility.d.mts",
         "scripts/check-ephemeral-pr-eligibility.mjs",
         "scripts/lib/memoria-source.mjs",
-        "scripts/lib/memoria-source.d.mts"
+        "scripts/lib/memoria-source.d.mts",
+        "scripts/lib/memoria-export.mjs",
+        "scripts/lib/memoria-export.d.mts"
       ],
       "verification": [
         {
@@ -874,7 +876,8 @@
           "files": [
             "tests/infra/memoriaRelease.test.ts",
             "tests/infra/ephemeralPrEligibility.test.ts",
-            "tests/infra/memoriaSource.test.ts"
+            "tests/infra/memoriaSource.test.ts",
+            "tests/infra/memoriaExport.test.ts"
           ]
         },
         {

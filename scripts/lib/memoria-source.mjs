@@ -10,6 +10,9 @@ const files = new Set([
   'scripts/lib/memoria-release.d.mts',
   'scripts/lib/memoria-source.mjs',
   'scripts/lib/memoria-source.d.mts',
+  'scripts/lib/memoria-export.mjs',
+  'scripts/lib/memoria-export.d.mts',
+  'tests/infra/memoriaExport.test.ts',
   'tests/infra/memoriaRelease.test.ts',
   'tests/infra/memoriaSource.test.ts',
   '.github/workflows/memoria-pdf.yml',
@@ -32,7 +35,7 @@ export async function verifyMainCommit(github, repository, sha) {
 }
 
 // All inputs are GitHub metadata, not PR code/artifacts. The caller checks out
-// this module from main; the document checkout happens only after this resolves.
+// this module from main; the academic data export happens only after this resolves.
 export async function resolveMemoriaSource({
   github,
   context,

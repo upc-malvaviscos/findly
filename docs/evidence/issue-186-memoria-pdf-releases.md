@@ -137,7 +137,8 @@ callback que verifica el origen integrado, sin nuevas credenciales.
 La nueva selección usa metadatos GitHub y código de `main`: comprueba repo,
 estado merged, base main, head/merge SHA, ascendencia del commit y todos los
 archivos de la PR. Sólo un cambio relevante selecciona un commit para build.
-Los checkouts de automatización y fuentes verificadas están separados; no se
+El checkout es exclusivamente de main. Las fuentes verificadas se exportan
+como datos, sin checkout ni ejecución de Makefiles/scripts históricos; no se
 descargan artefactos de PR ni se ejecuta código de una PR sin integrar. Sólo
 la publicación recibe escritura. Se deduplica por SHA entre push, callback,
 rerun y recuperación, comprobando una release existente antes de otro build.
@@ -165,3 +166,23 @@ El workflow debe existir en main para recibir `workflow_run`. Si los checks
 de su propia incorporación ya terminaron antes del merge, se puede repetir
 un job CI ligero de esa PR integrada para verificar el callback real. La
 recuperación manual restringida a main no sustituye esa prueba automática.
+
+### Frontera de ejecución tras el análisis de CodeQL
+
+La primera revisión de #188 produjo el finding crítico
+`actions/untrusted-checkout/critical` en el checkout de `needs.source.outputs.sha`
+seguido de ejecución potencial de su Makefile. No se suprimió ni desactivó el
+gate. Se retiró por completo ese checkout: sólo se obtiene main, con su
+Makefile, adaptador y toolchain. Un exportador lee blobs de Markdown, portada
+e imágenes del ancestro verificado; rechaza symlinks/submódulos y nunca copia
+el Makefile ni scripts de esa revisión. El PDF se construye con código actual
+de main, en un contenedor que sólo monta esos datos y no recibe credenciales.
+La release registra los commits de datos y de automatización por separado.
+
+Las cuatro regresiones adicionales del exportador prueban sólo datos,
+ausencia de ejecución/copia de Makefile histórico, rechazo de un commit fuera
+de main, symlink sin seguimiento y preservación de un destino preexistente.
+Las 78 pruebas específicas pasan. Un ensayo local exportó 11 blobs reales de
+`ea536660cd71ced8d1865cba1e072a922f28f40f`; la compilación con Makefile/adaptador
+confiables y directorio de datos separado terminó con código cero y produjo
+un PDF A4 de 24 páginas. La nueva aceptación CodeQL remota continúa pendiente.
