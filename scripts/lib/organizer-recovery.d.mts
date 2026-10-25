@@ -1,5 +1,8 @@
 import type { InvitationOptions } from './admin-invitations.mjs';
 export declare const recoveryActors: string[];
+export declare function recoveryCredentialExpiration(
+  value: string | undefined,
+): string;
 export declare function recoveryTarget(env: NodeJS.ProcessEnv): {
   email: string;
   account: string;

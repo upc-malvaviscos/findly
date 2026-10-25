@@ -1,6 +1,10 @@
 import { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider';
 import { STSClient } from '@aws-sdk/client-sts';
-import { recoveryTarget, recoverOrganizer } from './lib/organizer-recovery.mjs';
+import {
+  recoveryTarget,
+  recoverOrganizer,
+  recoveryCredentialExpiration,
+} from './lib/organizer-recovery.mjs';
 
 let sts;
 let cognito;
@@ -13,6 +17,9 @@ try {
       'Recovery actor and private account mapping validated; no AWS request made.',
     );
   } else {
+    process.env.AWS_CREDENTIAL_EXPIRATION = recoveryCredentialExpiration(
+      process.env.AWS_CREDENTIAL_EXPIRATION,
+    );
     sts = new STSClient({ region: 'eu-west-1' });
     const credentials = await sts.config.credentials();
     cognito = new CognitoIdentityProviderClient({

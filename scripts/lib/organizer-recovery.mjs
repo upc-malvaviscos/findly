@@ -21,6 +21,26 @@ function validEmail(value) {
   );
 }
 
+export function recoveryCredentialExpiration(value) {
+  // configure-aws-credentials v6 exports aws-expiration as a JSON string;
+  // the SDK environment provider expects the unquoted ISO timestamp.
+  let timestamp = value;
+  if (typeof value === 'string' && value.startsWith('"')) {
+    try {
+      timestamp = JSON.parse(value);
+    } catch {
+      throw new Error('Invalid temporary AWS session expiration.');
+    }
+  }
+  if (
+    typeof timestamp !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(timestamp) ||
+    !Number.isFinite(new Date(timestamp).getTime())
+  )
+    throw new Error('Invalid temporary AWS session expiration.');
+  return timestamp;
+}
+
 export function recoveryTarget(env) {
   if (
     env.FINDLY_RECOVERY_ENABLED !== 'true' ||
