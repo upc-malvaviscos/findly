@@ -98,9 +98,9 @@ Alcance aprobado en [#186](https://github.com/upc-malvaviscos/findly/issues/186)
 ### Aceptación específica
 
 - [x] Compilación real y revisión visual documentadas; checks locales completos.
-- [ ] Check PDF remoto de PR satisfactorio, sin publicación.
+- [x] Check PDF remoto de PR satisfactorio, sin publicación.
 - [ ] Primera release real posterior al merge: tag/commit/hora/descarga verificados.
-- [ ] Issue sincronizada con PR, ejecuciones, evidencia y pendientes.
+- [x] Issue sincronizada con PR, ejecuciones, evidencia y pendientes.
 
 No se declara completada la aceptación remota mediante pruebas simuladas de
 GitHub ni mediante la compilación local.
