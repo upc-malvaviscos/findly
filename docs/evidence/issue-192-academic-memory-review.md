@@ -116,9 +116,21 @@ Se incorporan [capturas, transcripción y límites](finops-2026-10-25/team-cost-
 en USD: agosto/septiembre son costes reales comunicados; octubre/noviembre,
 previsiones. Noviembre suma 2,986 USD, con un 90,46 % en Rekognition. Se corrige
 la lectura de septiembre (persiste un cargo residual de RDS) y se conserva
-pendiente el alcance de cuenta/proyecto. Las cifras no se fusionan con la
+pendiente la atribución individual de los cargos a Findly. Las cifras no se fusionan con la
 declaración anterior en EUR ni con el modelo de escenarios.
 
 Validación de esta ampliación: Markdown sin incidencias (146 ficheros),
 trazabilidad de 22 requisitos y PDF recompilado de 38 páginas, renderizado
 y revisado. Sumas y porcentajes contrastados independientemente por un subagente.
+
+## Revisión de estilo afirmativo
+
+Se reformulan las contraposiciones retóricas de la memoria y los capítulos
+02–09 mediante afirmaciones directas sobre propósito, funcionamiento y alcance.
+Las métricas pendientes, las limitaciones de autorización y los ensayos fallidos
+conservan su significado y sus fuentes. El equipo confirma además que las
+capturas de costes corresponden a toda la cuenta AWS; la atribución individual
+al proyecto requiere desglose por recursos o etiquetas.
+
+Validación de estilo: Markdown (146 ficheros), trazabilidad (22 requisitos),
+compilación del PDF y revisión visual de sus 38 páginas completadas.

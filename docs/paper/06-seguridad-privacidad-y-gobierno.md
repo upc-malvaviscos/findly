@@ -94,7 +94,8 @@ sobre `{su-log-group-arn}:*`), no en el de otra función.
 ADR-026 y #181 contrastan el generador IAM con todas las políticas runtime
 renderizadas por Terraform simulado, incluyendo `BatchWriteItem` administrativo
 y la cola de backfill. La boundary preparada en código se comprueba sobre
-patrones completos de recursos y condiciones, no sólo por presencia de acciones.
+patrones completos de recursos y condiciones, además de comprobar la presencia
+de las acciones.
 El preflight de producción lee políticas aplicadas y falla si no puede
 verificarlas; no aplica IAM ni prueba los permisos efectivos de una ejecución.
 La [matriz de evidencia](../evidence/issue-181-permission-preflight.md) mantiene
@@ -141,10 +142,10 @@ permisos adjunta. **Ningún root de Terraform lo instancia hoy** — ni
 `findly-stack`, ni `infra/ephemeral`. Los roles realmente usados en
 producción (los dos puntos anteriores) se crean y revisan manualmente fuera
 de Terraform, según los runbooks de configuración externa, precisamente para
-que cada ampliación de permiso pase por una aprobación explícita de la
-persona responsable (capítulo 2) en vez de por un `apply` automático. Este
-capítulo describe el mecanismo real; el módulo huérfano no se presenta como
-la fuente de verdad.
+que cada ampliación de permiso pase por una aprobación explícita del
+equipo (capítulo 2). Este
+capítulo describe el mecanismo real; la integración del módulo huérfano queda fuera del flujo actual; los roles
+manuales constituyen la fuente de verdad.
 
 ## Derecho al olvido y eliminación de biometría
 
@@ -171,19 +172,19 @@ Todo recurso Terraform lleva `Project`, `Environment`, `ManagedBy`,
 efímero de PR y en `sandbox` de desarrollo) — la etiqueta `DataClass` permite
 auditar qué recursos tratan datos sensibles sin inspeccionar su contenido.
 
-## Limitaciones de privacidad conocidas, no ocultadas
+## Limitaciones de privacidad registradas
 
-- **El TTL de DynamoDB no es un borrado inmediato**: AWS lo documenta como un
-  proceso en segundo plano, típicamente dentro de un plazo de días, no un
-  borrado síncrono al expirar. La garantía de borrado demostrable de Findly
-  depende de `deleteRegistration` (a petición) y de `retentionPurger` (por
-  caducidad), no del TTL en sí — el TTL es un mecanismo de limpieza
-  adicional, no la prueba de cumplimiento (análisis de la issue #49).
-- **El consentimiento no tiene versión ni historial de revocación**: se
-  guarda como un booleano y una marca de tiempo (`consentTimestamp`) en el
-  propio registro, sin un registro _append-only_ de eventos de consentimiento
-  ni una forma de revocarlo sin borrar toda la inscripción. Sin patrón
-  definido todavía (issue #49, capítulo 9).
+- **El TTL de DynamoDB realiza la expiración de forma asíncrona**: AWS lo
+  documenta como un proceso en segundo plano, típicamente dentro de un plazo de
+  días. La garantía de borrado demostrable de Findly depende de
+  `deleteRegistration` (a petición) y de `retentionPurger` (por caducidad); el
+  TTL aporta limpieza adicional. Los procesos de borrado indicados aportan
+  evidencia de retirada de datos en los escenarios probados (análisis de #49).
+- **El consentimiento se persiste como booleano y marca de tiempo**
+  (`consentTimestamp`). El modelo vigente carece de versionado, historial
+  _append-only_ de eventos y un mecanismo de revocación independiente del
+  borrado completo de la inscripción. El patrón de revocación queda pendiente
+  (issue #49, capítulo 9).
 - **La migración de colecciones Rekognition heredadas sigue pendiente**: las
   creadas antes de ADR-015 (`findly-event-{eventId}`, sin sufijo de entorno)
   no se borran ni se migran automáticamente al desplegar el cambio.
@@ -199,9 +200,9 @@ enlace al login por separado. La decisión del 2026-10-15 conserva el envío
 SES ya existente en producción con identidad y remitente revisados, sin ampliar
 IAM; los entornos sintéticos mantienen el remitente predeterminado.
 El challenge y el token permanecen en memoria; cancelación y caducidad invalidan
-respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige
-limpieza, por lo que no acredita recepción de correo real. El despliegue de esta
-ampliación y su aceptación se registran por separado en la evidencia de #105.
+respuestas tardías. La aceptación sintética AWS suprime invitaciones y exige limpieza; la recepción
+de correo real quedó pendiente en esa prueba. El despliegue de esta ampliación y
+su aceptación se registran por separado en la evidencia de #105.
 El 2026-10-20 se confirmó la recepción de la clave temporal por los usuarios
 autorizados y su primer acceso satisfactorio al sistema en producción, completando
 todos los criterios de la issue #105.
@@ -213,5 +214,5 @@ filtración del enlace, exposición e indexación temporal de terceros y acceso
 administrativo global. No hay prueba de vida, ocultación automática de terceros
 ni propiedad individual de eventos. Las colecciones de Rekognition almacenan
 vectores aunque DynamoDB solo conserve FaceId. La demo usa adultos y material
-autorizado; esos controles operativos no se presentan como garantías técnicas.
+autorizado; estos controles operativos delimitan las condiciones de la demo.
 Véase [el análisis de amenazas](memoria-findly/memoria-postgrado.md#amenazas-controles-y-riesgo-residual).

@@ -2,12 +2,13 @@
 
 Revisión documental del 23-oct-2026 contra `main` en `535262b`, tras #168. Las cifras de
 cobertura, recuentos y duraciones que se citan a continuación pertenecen a los
-runs identificados; no son una nueva ejecución de carga ni aceptación AWS
-realizada durante esta sincronización.
+runs identificados. Esta sincronización revisa y organiza esos resultados
+históricos.
 
 Cada afirmación de esta sección enlaza a la evidencia reproducible que la
-respalda. Una suite verde sólo acredita los recorridos que ejecuta:
-`aws-sdk-client-mock`, HTTP interceptado o Floci nunca acreditan AWS real
+respalda. Una suite verde acredita los recorridos que ejecuta en su entorno:
+`aws-sdk-client-mock`, HTTP interceptado y Floci validan esos entornos simulados;
+la aceptación de AWS real requiere evidencia desplegada
 (`docs/evidence/issue-checklist-audit.md`).
 
 ## Pruebas unitarias y de contrato
@@ -29,11 +30,12 @@ ejecutable `aws` sin extensión con cabecera `#!`, un patrón POSIX que la
 resolución nativa de procesos de Windows no reconoce como ejecutable en
 `PATH` (exige `PATHEXT`: `.exe`, `.cmd`, `.bat`…). El proceso hijo localiza en
 su lugar el `aws` real instalado en el sistema y falla por falta de región,
-no por el fallo controlado que la prueba espera. Es una limitación del arnés
+mientras la prueba esperaba el fallo controlado. Es una limitación del arnés
 de pruebas específica de Windows, verificada de forma aislada reproduciendo el
-mismo patrón de PATH fuera de Vitest; no es una regresión de `main` y no
-afecta a la CI real, que se ejecuta en Ubuntu. No se ha corregido en esta
-entrega: exige decidir una variante de fixture por plataforma o hacer
+mismo patrón de PATH fuera de Vitest. El alcance de esta limitación se
+restringe a Windows; la CI real, ejecutada en Ubuntu, no resulta afectada. La
+corrección queda pendiente porque requiere decidir una variante de fixture por
+plataforma o hacer
 `scripts/deployed-observability.mjs` consciente de shell, un cambio a un
 script que también corre contra AWS real y queda fuera del alcance de esta
 memoria.
@@ -42,12 +44,12 @@ Cobertura de líneas de las 290 pruebas restantes (`src/lambdas`,
 `src/lambdas/lib`, `src/shared/lib`, `src/web`, excluyendo el proyecto
 `infra`):
 
-| Ámbito              | Líneas  | Umbral del gate (`vitest.config.ts`)           |
-| ------------------- | ------- | ---------------------------------------------- |
-| `src/lambdas`       | 93,78 % | >= 90 %                                        |
-| `src/lambdas/lib`   | 100 %   | >= 90 %                                        |
-| `src/shared/lib`    | 100 %   | >= 90 %                                        |
-| Global del proyecto | 81,34 % | Sin umbral global; no se presenta como >= 90 % |
+| Ámbito              | Líneas  | Umbral del gate (`vitest.config.ts`)                                              |
+| ------------------- | ------- | --------------------------------------------------------------------------------- |
+| `src/lambdas`       | 93,78 % | >= 90 %                                                                           |
+| `src/lambdas/lib`   | 100 %   | >= 90 %                                                                           |
+| `src/shared/lib`    | 100 %   | >= 90 %                                                                           |
+| Global del proyecto | 81,34 % | Cobertura global informativa; el umbral >= 90 % se aplica a los módulos indicados |
 
 ## Pruebas E2E
 
@@ -124,10 +126,10 @@ Demuestra, contra servicios AWS reales y no simulados:
   JSON con `correlationId`; comprobación automática de ausencia de campos
   sensibles en los mensajes capturados.
 
-**Lo que este run no acredita**, textualmente, según su propio cierre: el
-aviso real de AWS Budgets, un correo de alerta confirmado, el disparo del
-`EventBridge Scheduler` real (la purga se invocó manualmente, no por cron), ni
-una SPA de demostración publicada. El detalle de permisos IAM aprobados para
+**Pendiente tras este run**, según su propio cierre: el aviso real de AWS Budgets,
+un correo de alerta confirmado, la ejecución cron del `EventBridge Scheduler`
+(la purga se invocó manualmente en este run) y la publicación de una SPA de
+demostración. El detalle de permisos IAM aprobados para
 el rol de CI efímero, incluidas las tres ampliaciones puntuales necesarias
 para completar este run, está en `docs/runbooks/issue-70-aws-review.md`.
 
@@ -169,9 +171,9 @@ sin repetir lo ya acreditado por PR #71:
   `registrationId`. PR #130 verificó, con un navegador real contra S3 real (no
   Node, no un doble interceptado), la descarga autorizada: Chromium y Firefox
   descargaron el archivo con el nombre y contenido correctos; WebKit agotó el
-  tiempo de espera del evento de descarga contra S3 real, acotando — no sólo
-  como hipótesis, sino como resultado medido en CI — la limitación ya conocida
-  de Playwright con WebKit más allá de la interceptación de rutas.
+  tiempo de espera del evento de descarga contra S3 real. El resultado medido en
+  CI acota la limitación ya conocida de Playwright con WebKit más allá de la
+  interceptación de rutas.
 - **Galería: coincidencias tras refresco (issue #107, cerrada).** Una inspección
   de producción encontró un fallo inicial de indexación recuperado por reentrega
   SQS, y una regresión real en el frontend: el refresco actualizaba los datos
@@ -241,8 +243,8 @@ subida de la issue #87:
   produjo el backfill de la issue #87 (capítulo 4).
 - **Subidas simultáneas**: selfie y foto lanzadas en paralelo; 10 s después
   de la primera coincidencia, sigue existiendo **exactamente una** —
-  convergencia sin intervención administrativa y sin duplicar, bajo una
-  carrera real entre los dos disparadores, no solo en el diseño.
+  convergencia sin intervención administrativa ni duplicados, en una carrera
+  reproducida entre los dos disparadores.
 
 Un hallazgo real no anticipado en la spec: en los dos últimos escenarios, el
 disparo S3 normal falló su primer intento (`ResourceNotFoundException` en
@@ -250,14 +252,13 @@ disparo S3 normal falló su primer intento (`ResourceNotFoundException` en
 —solo `selfieIndexer` la crea, de forma perezosa, en la primera selfie—; quedó
 para reintento de SQS mientras el backfill, que corre después de `ENROLLED`, sí
 la encontró creada y matcheó con éxito. Confirma en ese escenario que la
-condición idempotente `attribute_not_exists(PK)` evita matches duplicados. No
-demuestra por sí sola todas las garantías de entrega del backfill ni de borrado
-concurrente.
+condición idempotente `attribute_not_exists(PK)` evita matches duplicados.
+Las garantías de entrega del backfill y de borrado concurrente requieren los
+ensayos específicos de sus criterios de aceptación.
 
-**Lo que este run no acredita por sí solo**: "sin rostro / bajo umbral / otro
-evento", paginación con varias páginas reales y borrado _durante_ el
-matching (no solo después) — cubiertos por la segunda ronda (PR #139, nota
-anterior). El benchmark de coste/capacidad que ADR-022 exige para cerrar la
+**Este run inicial dejó pendientes** los casos "sin rostro / bajo umbral / otro
+evento", la paginación con varias páginas reales y el borrado _durante_ el
+matching. La segunda ronda (PR #139, nota anterior) cubrió esos criterios. El benchmark de coste/capacidad que ADR-022 exige para cerrar la
 issue #49 es un entregable independiente (sección siguiente).
 
 ## Cierre de issue #49: decisión DynamoDB y benchmark de fan-out
@@ -347,14 +348,14 @@ El módulo `monitoring` (topic SNS, presupuesto al 80 % de gasto real,
 alarma de la DLQ) está verificado con un `terraform plan` sin conexión a AWS
 y con pruebas automatizadas (`docs/evidence/issue-13-observability-finops.md`).
 La alarma DLQ y la entrega SNS → SQS están verificadas en AWS real (sección
-anterior, PR #71); el aviso real de AWS Budgets nunca se aplicó ni se
-disparó en ninguna cuenta. La issue se cerró el 2026-10-14 (PR #122) por una
+anterior, PR #71). La aplicación y el disparo real de AWS Budgets quedan
+pendientes; no se han ejecutado en ninguna cuenta. La issue se cerró el 2026-10-14 (PR #122) por una
 decisión explícita del equipo: aceptar la entrega SNS → SQS
-ya acreditada como evidencia suficiente del canal de aviso, en vez de forzar
-gasto real o esperar indefinidamente en una cuenta efímera no persistente
-para que Budgets dispare su propio umbral. Si se necesitara esa evidencia en
-el futuro, requeriría una cuenta persistente y una nueva issue — no se
-presenta como demostrada.
+ya acreditada como evidencia suficiente del canal de aviso. Con esa decisión, el
+equipo evitó incurrir en gasto real o esperar indefinidamente en una cuenta
+efímera no persistente
+para que Budgets dispare su propio umbral. La aceptación específica de Budgets
+queda pendiente; requeriría una cuenta persistente y una nueva issue.
 
 ## Matriz de trazabilidad spec ↔ issue ↔ evidencia
 

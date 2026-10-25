@@ -30,14 +30,15 @@ fija los umbrales cuantitativos y su fuente de telemetría:
 | Control de presupuesto (FinOps) | AWS Budgets              | 100 % dentro de $0 (capa gratuita/sandbox) o $5 (demo) |
 | Borrado GDPR                    | Lambda Audit Logs        | 100 % de los datos purgados tras caducidad o solicitud |
 
-Son objetivos, no seis resultados acreditados. Los ensayos AWS sí verifican
+Estos umbrales definen los objetivos de evaluación. Los ensayos AWS verifican
 matching, galería y borrado en escenarios concretos; la aceptación histórica de
 \#87 verificó `ENROLLED`, pero su cronómetro no aísla S3 PUT → `ENROLLED`;
-no permite confirmar ni refutar el objetivo < 3 s. No hay
-una campaña de carga que acredite p95 < 500 ms ni una tasa agregada de
-inscripción superior al 98 %, una medición de precisión estadística o una
-factura completa. El umbral de similitud del 95 % no equivale a una precisión
-del 95 %. El capítulo 8 distingue cada resultado y su alcance.
+deja pendiente la confirmación del objetivo < 3 s. También quedan pendientes
+una campaña de carga para acreditar p95 < 500 ms, una tasa agregada de
+inscripción superior al 98 %, una medición de precisión estadística y una
+factura completa. El umbral de similitud del 95 % mide similitud; la precisión
+del sistema requiere una medición estadística independiente. El capítulo 8
+distingue cada resultado y su alcance.
 
 ## Análisis de FaceLocator (matching facial)
 

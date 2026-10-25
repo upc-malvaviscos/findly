@@ -15,8 +15,9 @@ Las Lambdas escriben en CloudWatch Logs una línea JSON por evento, con un
 invocación de Lambda o del mensaje de SQS. El registro admite una lista cerrada
 de metadatos (`eventId`, `photoId`, `statusCode`, `durationMs`, el nombre de la
 clase de error y contadores): no existe un campo para nombres, correos, tokens de
-galería, `faceId`, `registrationId` ni mensajes de error, lo que reduce el riesgo de registrarlos; no acredita por sí solo la ausencia
-de datos sensibles en cualquier salida. Las respuestas de error devuelven ese mismo
+galería, `faceId`, `registrationId` ni mensajes de error, lo que reduce el riesgo
+de registrarlos. La ausencia de datos sensibles en cualquier otra salida requiere
+revisión adicional. Las respuestas de error devuelven ese mismo
 identificador como `requestId`, lo que permite localizar en los logs el fallo que
 reporta un usuario. Cada Lambda declara su grupo de logs con retención de 14
 días, para que el almacenamiento no crezca sin límite.
@@ -70,7 +71,7 @@ volumen. El modelo debe incluir también datos almacenados y horas de
 existencia de alarmas según las
 [tarifas de CloudWatch](https://aws.amazon.com/cloudwatch/pricing/): pueden
 generar consumo sin tráfico de usuarios, sujeto a la capa gratuita aplicable.
-Esta entrega no acredita una factura real ni un coste nulo en reposo.
+La factura real y el coste en reposo quedan pendientes de medición.
 
 ### Principios FinOps aplicados, por spec de origen
 
@@ -89,9 +90,8 @@ uno en el código:
 
 ### Sostenibilidad
 
-Findly no mide su huella de carbono — no hay una métrica ni una herramienta
-de este proyecto que lo haga, y este capítulo no afirma un ahorro
-cuantificado. La arquitectura serverless tiene, cualitativamente, una
+El proyecto carece de una métrica o herramienta para medir la huella de carbono
+de Findly; por tanto, no se dispone de una cifra de ahorro cuantificado. La arquitectura serverless tiene, cualitativamente, una
 propiedad alineada con el pilar de sostenibilidad del Well-Architected
 Framework: al facturar y ejecutar por petición, no reserva capacidad de
 cómputo inactiva a la espera de tráfico — a diferencia de una instancia EC2 o
@@ -113,11 +113,14 @@ efectivos y gasto real siguen pendientes de conciliación.
 El equipo declara el 26 de octubre 1,41 EUR de Rekognition y 0,30 EUR de S3,
 sin aportar todavía factura ni periodo. El contraste parcial de Rekognition
 en AWS Pricing Calculator muestra una discrepancia documentada en el modelo;
-no se presenta como conciliación completa.
+la conciliación completa queda pendiente.
 
 Las [capturas adicionales](../evidence/finops-2026-10-25/team-cost-forecast.md)
 recogen 0,379 USD reales comunicados en agosto y 0,130 USD en septiembre,
 con 0,542 USD previstos parcialmente para octubre y 2,986 USD para noviembre.
-Rekognition representa el 90,46 % de la previsión de noviembre. El alcance
-de cuenta/proyecto y los cargos históricos de EC2/RDS/VPC requieren aclaración;
-no se atribuyen a la arquitectura actual ni se mezclan con los importes en EUR.
+Rekognition representa el 90,46 % de la previsión de noviembre. Las capturas de
+costes y previsiones abarcan toda la cuenta AWS. El alcance de cuenta está
+confirmado; la atribución individual a Findly sigue pendiente. Los
+cargos históricos de EC2/RDS/VPC corresponden a la cuenta completa; su
+atribución individual a Findly requiere conciliación por recursos o etiquetas. Los importes en EUR se mantienen
+separados de estas cifras en USD.

@@ -2,7 +2,7 @@
   "received_on": "2026-10-26",
   "currency": "USD",
   "source": "Two user-provided screenshots of a cost summary, not a Cost Explorer export or invoice",
-  "account_project_scope": "unconfirmed",
+  "account_project_scope": "entire AWS account, confirmed by team on 2026-10-26; attribution to Findly requires resource/tag breakdown",
   "prior_periods": "June and July 2026: no charges registered, per screenshot",
   "periods": [
     {

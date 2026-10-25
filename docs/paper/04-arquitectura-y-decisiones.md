@@ -84,9 +84,9 @@ flowchart LR
 
 Findly combina 14 servicios de AWS con herramientas de terceros para CI/CD y
 calidad. La siguiente tabla explica, para cada uno, **cómo habla con el
-siguiente componente de la cadena** — el mecanismo exacto, no sólo el nombre
-del servicio —, porque la pregunta relevante en una arquitectura serverless no
-es qué servicios existen, sino cómo se disparan y autorizan entre sí sin un
+siguiente componente de la cadena** — el mecanismo exacto de comunicación y
+autorización —, porque la pregunta relevante en una arquitectura serverless es
+cómo se disparan y autorizan entre sí sin un
 proceso propio que los orqueste.
 
 | Servicio / herramienta       | Rol en Findly                              | Cómo se comunica con el siguiente componente                                                                                                                                                                      |
@@ -98,7 +98,7 @@ proceso propio que los orqueste.
 | AWS Lambda (handlers HTTP)   | Lógica de negocio sin servidor             | Llama a DynamoDB y S3 con el SDK v3 usando las credenciales temporales de su rol de ejecución (sin claves).                                                                                                       |
 | Amazon S3 (cargas)           | Selfies y fotos, privado                   | Emite un **evento nativo de notificación** al escribir un objeto — sin que ninguna Lambda haga polling —, enrutado por sufijo de clave a una cola SQS (`.photo.jpg`) o directamente a una Lambda (`.selfie.jpg`). |
 | Amazon SQS + DLQ             | Amortigua picos de fotos, aísla fallos     | `photoMatcher` la consume por lotes (`batch_size = 5`); tras 3 intentos fallidos el mensaje pasa automáticamente a la DLQ, sin código propio de reintento.                                                        |
-| Amazon Rekognition           | Indexación y búsqueda facial               | Llamadas SDK síncronas (`IndexFaces`/`SearchFaces`/`DeleteFaces`) dentro de la propia invocación Lambda; no es un servicio en segundo plano.                                                                      |
+| Amazon Rekognition           | Indexación y búsqueda facial               | Llamadas SDK síncronas (`IndexFaces`/`SearchFaces`/`DeleteFaces`) dentro de la propia invocación Lambda.                                                                                                          |
 | Amazon DynamoDB              | Estado transaccional de toda la aplicación | SDK v3 (`@aws-sdk/lib-dynamodb`); ninguna Lambda mantiene una conexión abierta entre invocaciones.                                                                                                                |
 | Amazon EventBridge Scheduler | Dispara la purga por retención             | Invoca `retentionPurger` con `lambda:InvokeFunction` según una expresión cron, sin cola intermedia.                                                                                                               |
 | Amazon CloudWatch Logs       | Observabilidad                             | Cada Lambda escribe JSON estructurado a su propio grupo de logs (retención 14 días); un filtro de métrica cuenta errores sin re-procesar el texto.                                                                |
@@ -133,12 +133,11 @@ proceso propio que los orqueste.
   numeración de ADRs más arriba sobre el fichero histórico homónimo).
 
 La continuación de la issue #70 añadió tres decisiones que también son de
-alto nivel porque cambian el modelo de fallo del sistema, no sólo un detalle
-de implementación: **ADR-013** (el borrado se reconcilia con un localizador
-sin TTL en vez de asumir que el registro siempre existe), **ADR-014** (una
-selfie no puede sobrescribirse una vez subida) y **ADR-015** (las colecciones
-de Rekognition se aíslan por entorno y evento, no una única colección
-global). Ninguna transacción atómica cubre DynamoDB, S3 y Rekognition a la
+alto nivel porque cambian el modelo de fallo del sistema y la implementación:
+**ADR-013** (el borrado se reconcilia con un localizador sin TTL, incluso cuando
+el registro deja de estar disponible), **ADR-014** (la selfie queda protegida
+contra sobrescritura tras la subida) y **ADR-015** (las colecciones de
+Rekognition se aíslan por entorno y evento). Ninguna transacción atómica cubre DynamoDB, S3 y Rekognition a la
 vez; el capítulo 6 detalla cómo se reconcilian los fallos parciales.
 
 ## LLD — Diseño de bajo nivel
@@ -252,7 +251,7 @@ el capítulo 8 y en `docs/runbooks/issue-70-aws-review.md`.
 ### Flujos de secuencia
 
 Los siguientes diagramas muestran el orden exacto de llamadas entre componentes
-para cada recorrido de negocio, no sólo qué servicios intervienen. La mayoría
+para cada recorrido de negocio y los servicios que intervienen. La mayoría
 están verificados contra AWS real en el run de aceptación de PR #71 (capítulo
 8); el backfill de matching (issue #87) tiene su propio run de aceptación AWS
 real, independiente y posterior (2026-10-14, capítulo 8). La purga programada ya
