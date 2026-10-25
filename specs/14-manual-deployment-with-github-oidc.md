@@ -38,7 +38,8 @@ Ampliación aprobada el 2026-10-03 de la issue #15 existente. Los workflows
 deploy.yml y destroy-demo.yml implementan publicación y destrucción manual.
 La demo publicada superó el smoke real y su borrado/ausencia/recuperación están
 comprobados. Runs y limitaciones de cada prueba constan en la evidencia.
-teardown-nonproduction.yml es un handoff con cron sin destrucción real.
+El handoff programado heredado se retira según la spec 15 y ADR-008;
+la limpieza automática permanece limitada al entorno efímero de cada PR.
 
 Demo permanece hasta destrucción manual. La permanencia es de infraestructura,
 no de datos: conservar caducidad/consentimiento/purga por evento.

@@ -2,6 +2,39 @@
   "version": 1,
   "requirements": [
     {
+      "id": "REQ-RETIRED-TEARDOWN-HANDOFF",
+      "description": "Retirar el aviso programado heredado y conservar la limpieza efímera por PR y la destrucción manual de demo.",
+      "issues": [16],
+      "spec": "specs/15-scheduled-nonproduction-teardown.md",
+      "implementation": [".github/workflows/ephemeral-pr-e2e.yml"],
+      "verification": [
+        {
+          "command": "lint:workflows",
+          "environment": "static",
+          "files": [
+            ".github/workflows/ephemeral-pr-e2e.yml",
+            ".github/workflows/destroy-demo.yml"
+          ]
+        },
+        {
+          "command": "sync:check",
+          "environment": "static",
+          "files": ["scripts/check-documentation-sync.mjs"]
+        }
+      ],
+      "evidence": [
+        {
+          "file": "docs/evidence/retire-nonproduction-teardown.md",
+          "environment": "static"
+        }
+      ],
+      "documentation": [
+        "specs/14-manual-deployment-with-github-oidc.md",
+        "docs/adr/ADR-008-pr-scoped-ephemeral-ci.md",
+        "docs/paper/05-implementacion-y-cicd.md"
+      ]
+    },
+    {
       "id": "REQ-DATABASE-DECISION-INVENTORY",
       "description": "Inventario de issues, comparación documental de persistencia y decisión de motor/contratos de acceso (ADR-022); benchmark real de fan-out/borrado concurrente ejecutado y documentado; #49 cerrada.",
       "issues": [49],
