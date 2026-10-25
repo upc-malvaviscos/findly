@@ -28,7 +28,8 @@ Congelar el alcance del MVP, establecer la arquitectura de registro de decisione
 - Bases de datos relacionales (RDS), instancias EC2 o VPCs con costes fijos mensuales.
 - Campañas de correo, SMS y envíos ajenos a galerías del evento. La spec 20
   autoriza envío manual de galerías a participantes elegibles, con consentimiento.
-- Procesamiento de datos de menores sin consentimiento documentado del tutor.
+- Procesamiento de datos de menores, incluso con autorización de un tutor,
+  conforme a la exclusión del MVP establecida en `AGENTS.md`.
 
 ## Registros de Decisiones de Arquitectura (ADRs)
 
@@ -46,7 +47,7 @@ Se exige registrar los siguientes ADRs en `docs/adr/`:
 | Métrica                        | Fuente                   | Umbral Objetivo                                                   | Responsable         |
 | ------------------------------ | ------------------------ | ----------------------------------------------------------------- | ------------------- |
 | Inscripción completa           | CloudWatch / DynamoDB    | > 98% de solicitudes completadas con éxito                        | Frontend / Backend  |
-| Precisión de coincidencia      | Rekognition / DynamoDB   | Umbral de similitud >= 95.0%                                      | Backend Matching    |
+| Umbral de similitud            | Rekognition / DynamoDB   | Umbral de similitud >= 95.0%                                      | Backend Matching    |
 | Tiempo de procesamiento selfie | CloudWatch Metrics       | < 3 segundos desde S3 PUT hasta ENROLLED                          | Backend Cloud       |
 | Tiempo de respuesta de galería | CloudFront / API Gateway | p95 < 500 ms                                                      | Frontend / Platform |
 | Control de presupuesto FinOps  | AWS Budgets              | 100% dentro del límite de $0 en capa gratuita / sandbox ($5 demo) | Plataforma FinOps   |
@@ -73,3 +74,10 @@ Se exige registrar los siguientes ADRs en `docs/adr/`:
 - [x] La lista de inclusiones y exclusiones coincide con `README.md` y `docs/paper/`.
 - [x] Todos los ADRs listados existen en la carpeta `docs/adr/`.
 - [x] Cada métrica tiene definida su fuente de telemetría y responsable.
+
+## Acreditación experimental pendiente
+
+La [campaña propuesta](../docs/evidence/aws-performance-campaign-plan.md) y la
+[issue #193](https://github.com/upc-malvaviscos/findly/issues/193) concretan la
+medición AWS de p95, éxito agregado y latencia de selfie. Preparar el protocolo
+no acredita los umbrales ni autoriza su ejecución.

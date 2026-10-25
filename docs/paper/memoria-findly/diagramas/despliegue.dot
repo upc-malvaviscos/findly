@@ -1,0 +1,30 @@
+digraph despliegue {
+  graph [rankdir=TB, bgcolor="white", pad=0.3, nodesep=0.45, ranksep=0.65,
+         fontname="Helvetica", fontsize=19, labelloc=t,
+         label="Despliegue · región de aplicación y presencia global"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11,
+        margin="0.16,0.11", color="#2563eb", fillcolor="#eff6ff", penwidth=1.3];
+  edge [fontname="Helvetica", fontsize=9, color="#475569", penwidth=1.3, arrowsize=0.75];
+
+  user [label="Navegador\nAsistente u organizador", fillcolor="#dbeafe"];
+  cf [label="CloudFront\nservicio global", fillcolor="#e0f2fe", color="#0284c7"];
+  subgraph cluster_eu {
+    label="Cuenta AWS · eu-west-1"; color="#15803d"; style="rounded"; penwidth=1.6;
+    web [label="S3 web privado\nacceso mediante OAC"];
+    api [label="API Gateway + Lambda"];
+    store [label="DynamoDB\non-demand"];
+    bucket [label="Bucket privado único\nselfies y fotos"];
+    workers [label="SelfieIndexer · SQS · PhotoMatcher\nBackfill · RetentionPurger"];
+    face [label="Rekognition\ncolecciones por evento y entorno"];
+    api -> store;
+    bucket -> workers [label="notificaciones por sufijo"];
+    workers -> store;
+    workers -> face;
+  }
+  acm [label="ACM us-east-1\nsolo dominio propio de CloudFront", fillcolor="#f1f5f9", color="#64748b"];
+  user -> cf [label="HTTPS contenido web"];
+  cf -> web [label="OAC"];
+  user -> api [label="HTTPS API"];
+  user -> bucket [label="PUT firmado a S3"];
+  acm -> cf [label="certificado TLS\n(si dominio personalizado)", style=dashed];
+}

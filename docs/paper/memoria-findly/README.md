@@ -147,43 +147,49 @@ de donde partiste.
    la numera sola ("Ilustración 3") y mantiene el número correcto aunque
    insertes otra imagen antes.
 
-### Un diagrama nuevo (arquitectura AWS, con iconos oficiales)
+### Diagramas de arquitectura y flujo
 
-Usamos la librería Python [`diagrams`](https://diagrams.mingrammer.com/) para
-cualquier diagrama que necesite iconos de servicios AWS —no Mermaid, no
-capturas de consola—, siguiendo el mismo patrón que
-[`diagramas/arquitectura.py`](diagramas/arquitectura.py):
+La carpeta separa los niveles para que cada figura sea legible en una página
+A4 y no mezcle contexto, software, infraestructura y operación:
 
-1. Crea `diagramas/mi-diagrama.py`, por ejemplo:
+- [`diagramas/contexto-c4.dot`](diagramas/contexto-c4.dot) y
+  [`diagramas/contenedores-c4.dot`](diagramas/contenedores-c4.dot) describen
+  el sistema con semántica C4. «Contenedor» nombra una unidad de software
+  ejecutable o almacenable; no presupone Docker.
+- [`diagramas/arquitectura.dot`](diagramas/arquitectura.dot) usa Graphviz para
+  detallar la ingesta y el matching. Representa el bucket privado único de
+  cargas y sus dos notificaciones por sufijo: selfies a SelfieIndexer y fotos
+  a SQS, DLQ y PhotoMatcher. Las URL prefirmadas permiten el PUT del navegador
+  a S3; la API las emite, no transporta los ficheros.
+- [`diagramas/despliegue.dot`](diagramas/despliegue.dot) distingue la región
+  de aplicación `eu-west-1`, CloudFront global y ACM `us-east-1` sólo si se
+  configura un dominio propio.
+- [`diagramas/secuencia-matching.py`](diagramas/secuencia-matching.py)
+  ilustra ambas órdenes de llegada. El backfill se encola tras `ENROLLED` y
+  reconcilia fotos previas; DynamoDB y Rekognition son sistemas separados y
+  no forman una transacción atómica.
+- [`diagramas/workflow-pr.dot`](diagramas/workflow-pr.dot),
+  [`diagramas/workflow-deploy.dot`](diagramas/workflow-deploy.dot) y
+  [`diagramas/workflow-pdf.dot`](diagramas/workflow-pdf.dot) separan las
+  pruebas y destrucción del entorno efímero de PR, el despliegue persistente
+  manual y la publicación de PDF tras integración/callback. La cola estándar
+  puede reemplazar una ejecución pendiente; no promete una release por cada
+  merge.
+- [`diagramas/flujo.dot`](diagramas/flujo.dot) resume el recorrido de las
+  personas usuarias.
 
-   ```python
-   from diagrams import Diagram
-   from diagrams.aws.compute import Lambda
-   from diagrams.aws.database import Dynamodb
-
-   with Diagram("Mi diagrama", filename="img/mi-diagrama", outformat="png", show=False):
-       Lambda("Mi función") >> Dynamodb("Mi tabla")
-   ```
-
-   El catálogo completo de iconos disponibles está en la
-   [referencia de `diagrams`](https://diagrams.mingrammer.com/docs/nodes/aws).
-
-2. Añade su ejecución al target `diagrams` del `Makefile` (una línea más,
-   junto a `arquitectura.py`).
-3. Genera la imagen (`make diagrams`) e insértala en el `.md` como cualquier
-   otra figura (sección anterior).
-
-### Un diagrama de flujo sencillo (sin iconos AWS)
-
-Para un flujo de proceso o una secuencia simple, sin iconos de servicios,
-Graphviz directo es más rápido que `diagrams` — mira
-[`diagramas/flujo.dot`](diagramas/flujo.dot) como ejemplo. Se compila con:
+`make diagrams` regenera todas las imágenes PNG versionadas en `img/`.
+Graphviz procesa las vistas `.dot`; Python 3.10+ y Pillow, fijado en
+`requirements.txt`, generan las vistas de secuencia y portada. Para elegir un
+intérprete compatible:
 
 ```sh
-dot -Tpng diagramas/mi-flujo.dot -o img/mi-flujo.png
+make diagrams PYTHON=python3.12
 ```
 
-(añádelo también al `Makefile` si quieres que se regenere con `make diagrams`).
+Incluye la fuente del diagrama y su PNG regenerado. Antes de insertar una
+figura nueva, revisa el tamaño del texto y los cruces de flechas en el PNG y
+en la página PDF a tamaño A4.
 
 ### Una tabla
 
@@ -214,7 +220,7 @@ tener detrás un documento verificable.
 
 ## 4. Antes de hacer commit
 
-Desde la raíz del repositorio (no hace falta entorno AWS ni Node para esto):
+Desde la raíz del repositorio (requiere Node.js 24, sin entorno AWS):
 
 ```sh
 npm run lint:markdown   # valida todo el repo, incluida esta carpeta

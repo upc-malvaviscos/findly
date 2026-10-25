@@ -1,0 +1,51 @@
+digraph contenedores {
+  graph [rankdir=TB, bgcolor="white", pad=0.3, nodesep=0.42, ranksep=0.6,
+         fontname="Helvetica", fontsize=19, labelloc=t,
+         label="C4 · contenedores de software de Findly"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11,
+        margin="0.16,0.11", color="#2563eb", fillcolor="#eff6ff", penwidth=1.3];
+  edge [fontname="Helvetica", fontsize=9, color="#475569", penwidth=1.3, arrowsize=0.75];
+
+  assistant [label="Asistente", fillcolor="#dbeafe"];
+  organizer [label="Organizador", fillcolor="#dbeafe"];
+  identity [label="Identidad de organizador\nAmazon Cognito", fillcolor="#f1f5f9", color="#64748b"];
+  { rank=same; assistant; organizer; identity; }
+
+  subgraph cluster_findly {
+    label="Sistema Findly · responsabilidades de software";
+    color="#15803d"; style="rounded"; penwidth=1.7;
+    web [label="Aplicación web\nReact + TypeScript + Vite\nInscripción, administración, carga y galería", fillcolor="#dcfce7", color="#15803d"];
+    api [label="API HTTP\nLambda + API Gateway\nGalería con token; admin con JWT"];
+    objects [label="Almacén de objetos\nAmazon S3 privado\nSelfies y fotos de evento"];
+    photo_queue [label="Cola de ingesta de fotos\nAmazon SQS + DLQ"];
+    enrollment [label="Inscripción y reconciliación\nSelfieIndexer + RegistrationBackfill\n(dos Lambdas; persiste ENROLLED)"];
+    matcher [label="Procesamiento de fotografías\nPhotoMatcher"];
+    store [label="Persistencia de aplicación\nAmazon DynamoDB\nEventos, inscripciones y coincidencias"];
+    retention [label="Retención y borrado\nRetentionPurger + rutas de borrado"];
+    { rank=same; web; api; }
+    { rank=same; objects; photo_queue; }
+    { rank=same; enrollment; matcher; store; }
+    { rank=same; retention; }
+  }
+
+  face [label="Búsqueda facial\nAmazon Rekognition", fillcolor="#f1f5f9", color="#64748b"];
+  { rank=same; face; }
+
+  assistant -> web [label="HTTPS"];
+  organizer -> web [label="HTTPS"];
+  organizer -> identity [label="Inicio de sesión"];
+  identity -> organizer [label="Emite token"];
+  organizer -> api [label="JWT en HTTPS"];
+  web -> api [label="JSON/HTTPS; URL prefirmada"];
+  web -> objects [label="PUT directo con URL"];
+  objects -> enrollment [label="Evento selfie .selfie.jpg"];
+  objects -> photo_queue [label="Evento foto .photo.jpg"];
+  photo_queue -> matcher;
+  api -> store [label="Lectura / escritura"];
+  matcher -> store [label="Coincidencias"];
+  enrollment -> face [label="IndexFaces / SearchFaces"];
+  matcher -> face [label="IndexFaces + SearchFaces\nS3Object"];
+  retention -> store [label="Consulta / borrado"];
+  retention -> objects [label="Borra objetos"];
+  retention -> face [label="Borra rostros / colección"];
+}

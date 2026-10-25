@@ -24,7 +24,7 @@ fija los umbrales cuantitativos y su fuente de telemetría:
 | Métrica                         | Fuente                   | Umbral objetivo                                        |
 | ------------------------------- | ------------------------ | ------------------------------------------------------ |
 | Inscripción completa            | CloudWatch / DynamoDB    | > 98 % de solicitudes completadas                      |
-| Precisión de coincidencia       | Rekognition / DynamoDB   | Similitud >= 95,0 %                                    |
+| Umbral de similitud             | Rekognition / DynamoDB   | Similitud >= 95,0 %                                    |
 | Procesamiento de selfie         | CloudWatch Metrics       | < 3 s desde `S3 PUT` hasta `ENROLLED`                  |
 | Respuesta de galería            | CloudFront / API Gateway | p95 < 500 ms                                           |
 | Control de presupuesto (FinOps) | AWS Budgets              | 100 % dentro de $0 (capa gratuita/sandbox) o $5 (demo) |
@@ -32,7 +32,8 @@ fija los umbrales cuantitativos y su fuente de telemetría:
 
 Son objetivos, no seis resultados acreditados. Los ensayos AWS sí verifican
 matching, galería y borrado en escenarios concretos; la aceptación histórica de
-\#87 midió 5,8–10,2 s hasta `ENROLLED`, sin demostrar el objetivo < 3 s. No hay
+\#87 verificó `ENROLLED`, pero su cronómetro no aísla S3 PUT → `ENROLLED`;
+no permite confirmar ni refutar el objetivo < 3 s. No hay
 una campaña de carga que acredite p95 < 500 ms ni una tasa agregada de
 inscripción superior al 98 %, una medición de precisión estadística o una
 factura completa. El umbral de similitud del 95 % no equivale a una precisión

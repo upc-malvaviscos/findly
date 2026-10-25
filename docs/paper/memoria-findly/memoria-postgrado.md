@@ -45,16 +45,51 @@ Imágenes: ![Pie](img/archivo.png){#fig:id}
 Regenerar diagramas: make diagrams (requiere graphviz y el venv de requirements.txt)
 -->
 
-# Estado de referencia de esta memoria
+# Resumen {.unnumbered}
 
-Revisión documental: 23 de octubre de 2026, posterior a la integración de la
-corrección de borrado y matching en `main` (`535262b`). El código de esa entrega
-superó las pruebas del entorno AWS efímero y su destrucción. Ese resultado
-acredita el recorrido funcional ejecutado; las carreras deterministas de la
-barrera y del TTL lógico conservan pruebas locales y aceptación AWS específica
-pendiente. La ejecución efímera tampoco acredita un despliegue permanente de
-esta revisión. Los resultados siguientes mantienen sus escenarios y fechas,
-sin extrapolarlos a métricas de carga ni a todas las carreras concurrentes.
+Findly aborda la localización y entrega de fotografías de eventos mediante
+coincidencias faciales, previa inscripción y consentimiento explícito de
+personas adultas. El equipo desarrolla un prototipo cloud con una interfaz
+React y servicios gestionados de AWS: Lambda para la lógica, DynamoDB para
+los datos, S3 para imágenes, Rekognition para la búsqueda facial y SQS para
+desacoplar el procesamiento. Terraform describe la infraestructura y GitHub
+Actions automatiza su verificación en entornos efímeros.
+
+La contribución del proyecto es integrar estos servicios en un recorrido
+trazable de inscripción, matching, galería privada y borrado. El diseño resuelve
+el acceso inverso fotografía–participante mediante ítems espejo y limita las
+escrituras tardías mediante una barrera de borrado. La evaluación combina
+pruebas locales, integración emulada y escenarios ejecutados en AWS, cuyo
+alcance se diferencia explícitamente. Los ensayos históricos de borrado
+registraron 2,020 s y 3,082 s para fotografías con 100 y 1.000 coincidencias.
+Estos resultados no acreditan percentiles de carga ni precisión estadística
+del reconocimiento. Persisten objetivos de rendimiento y pruebas concurrentes
+pendientes. El sistema está desplegado con dominio registrado, según
+confirmación del equipo, y se presentará mediante una demostración durante
+la defensa. La memoria aporta decisiones, evidencias y límites de operación
+reproducibles, sin atribuir al prototipo garantías de servicio no medidas.
+
+**Palabras clave:** computación en la nube, serverless, reconocimiento facial,
+privacidad, infraestructura como código, evaluación experimental.
+
+# Estado de referencia de esta memoria {.unnumbered}
+
+Revisión documental: 25 de octubre de 2026. El equipo confirma que la aplicación
+está desplegada y funcional en [www.findly.barcelona](https://www.findly.barcelona),
+con dominio registrado, y que realizará una demo durante la defensa. Esta
+confirmación describe disponibilidad funcional; no sustituye una campaña de
+rendimiento ni identifica por sí sola la revisión exacta de cada Lambda
+desplegada. Una comprobación HTTPS de la página pública realizada el
+25 de octubre devolvió HTTP 200; solo acredita la entrega del documento web.
+La defensa todavía no se presenta como una prueba realizada.
+
+La memoria conserva las fechas y entornos de cada evidencia. La corrección de
+borrado y matching integrada en `main` mediante #168 superó el recorrido AWS
+efímero y su destrucción; las carreras deterministas y el TTL lógico conservan
+aceptación AWS específica pendiente. El despliegue funcional confirmado no
+extiende automáticamente esa aceptación a todos los casos concurrentes.
+La matriz de requisitos y la sección experimental distinguen resultados
+medidos, confirmaciones del equipo y validaciones todavía pendientes.
 
 # Introducción
 
@@ -76,19 +111,52 @@ Findly nace para resolver ese problema concreto con una propuesta de valor
 sencilla: si un asistente acepta explícitamente que su rostro se use para
 este fin y aporta una fotografía de referencia (una selfie), el sistema
 puede indexar ese rostro, compararlo automáticamente contra las fotos que el
-organizador del evento vaya subiendo, y entregar a esa persona —y sólo a
-ella— un enlace privado y temporal con las imágenes en las que aparece. El
+organizador del evento vaya subiendo, y ofrecerle un enlace privado y temporal con las imágenes coincidentes.
+El acceso depende de la posesión del enlace; no acredita la identidad de quien
+lo utiliza ni impide que lo comparta. El
 consentimiento no es un trámite legal añadido a posteriori: es la condición
-que habilita todo el flujo. Sin selfie y sin aceptación explícita del
-tratamiento biométrico, no hay indexación ni búsqueda posible.
+que habilita todo el flujo. Una inscripción sin selfie y consentimiento no habilita la búsqueda de su
+galería. Las fotografías grupales pueden contener terceros: su indexación
+temporal y su exposición se analizan en la sección de amenazas.
 
 La segunda motivación del proyecto, inseparable de la primera, es demostrar
 que este tipo de servicio puede construirse en la nube pública con una
 arquitectura que no obligue a pagar por capacidad reservada ni a operar
 infraestructura propia. Un evento es, por definición, una carga de trabajo
-puntual y de corta duración: tiene sentido que el coste de la plataforma seaa
+puntual y de corta duración: tiene sentido que el coste de la plataforma sea
 proporcional al uso real que hace de ella, no una factura fija mensual
 independientemente de si hay un evento activo o no.
+
+## Estado del arte y alternativas
+
+La entrega personalizada de fotografías de eventos ya existe como categoría de
+producto. La revisión siguiente, realizada el 25 de octubre de 2026, compara
+capacidades declaradas por sus proveedores; no es una prueba independiente
+de precisión, seguridad ni coste total.
+
+<!-- prettier-ignore -->
+| Alternativa | Aportación | Diferencia relevante para Findly |
+| --- | --- | --- |
+| Álbum compartido y selección manual | Recopilar y distribuir fotos mediante un enlace común. | Evita la identificación biométrica, pero traslada la búsqueda al asistente y puede exponer el álbum completo. |
+| Waldo Photos [26] | Galerías de eventos y distribución de coincidencias mediante reconocimiento facial. | Servicio comercial completo; Findly estudia la construcción y verificación de su propio recorrido cloud. |
+| SpotMyPhotos [27] | Inscripción voluntaria con selfie y entrega personal, inmediata o tras revisión. | Permite comparar el flujo de participación y entrega, sin asumir equivalencia de implementación. |
+| Photier [28] | Localización de fotos de eventos a partir de una selfie. | Confirma una necesidad de mercado existente; sus planes no son una medida del coste AWS de Findly. |
+
+En infraestructura, Rekognition ofrece indexación y búsqueda en colecciones
+[1–2]. Azure AI Face es una alternativa gestionada con identificación facial
+sujeta a condiciones de acceso [29]. Google Cloud Vision ofrece detección de
+rostros, que no debe confundirse con identificación de personas [30].
+Autogestionar un modelo exigiría seleccionar y evaluar el modelo, ejecutar la
+inferencia y mantener su índice, además de implementar el mismo ciclo de
+consentimiento y borrado. Sin un experimento comparable no se afirma que una
+alternativa sea más barata ni más precisa.
+
+La aportación académica de Findly no es inventar el reconocimiento facial ni
+demostrar superioridad comercial. Es diseñar y verificar una integración
+serverless reproducible, estudiar sus fallos parciales y relacionar la
+privacidad y el coste con decisiones concretas. Kubernetes no se incorpora
+porque el alcance no requiere operar contenedores persistentes; esta elección
+debe evaluarse por su adecuación al problema y a los objetivos docentes.
 
 ## Alcance del MVP
 
@@ -98,11 +166,10 @@ borrado de los propios datos:
 
 - Un asistente accede a la página pública de un evento, acepta el
   consentimiento biométrico y de términos, y sube una selfie mediante una
-  URL de carga firmada de un solo uso.
+  URL de carga firmada con escritura condicional.
 - Una función Lambda indexa el rostro en Amazon Rekognition y expone el
   estado de la inscripción mientras el navegador lo consulta por sondeo.
-- Un organizador, autenticado contra un sistema de identidad propio del
-  evento, crea el evento y carga las fotografías a medida que las va
+- Un organizador, autenticado mediante Cognito en el entorno, crea el evento y carga las fotografías a medida que las va
   teniendo disponibles.
 - El sistema compara cada fotografía nueva contra los rostros inscritos y
   construye, para cada asistente, una galería privada de coincidencias.
@@ -129,15 +196,15 @@ inicial:
 - Vigilancia o reconocimiento facial en vídeo en tiempo real: Findly sólo
   procesa imágenes fijas subidas voluntariamente, nunca una transmisión de
   cámara continua.
-- Tratamiento de menores de edad sin consentimiento explícito documentado de
-  su tutor legal.
+- Tratamiento de menores de edad, incluso con autorización de un tutor: queda
+  fuera del alcance de este MVP.
 - Alta disponibilidad multirregión o cualquier garantía de continuidad de
   servicio propia de un sistema de producción crítico.
 - Bases de datos relacionales gestionadas (RDS), instancias de cómputo
   reservado (EC2), redes privadas virtuales dedicadas (VPC), pasarelas NAT o
-  clústeres de orquestación de contenedores (EKS): cualquier componente cuyo
-  modelo de facturación incluya un coste fijo por hora, con independencia del
-  uso real.
+  clústeres de orquestación de contenedores (EKS), por las restricciones de
+  alcance y operación del MVP. Se evita aprovisionar capacidad dedicada; no
+  se atribuye una misma tarifa a todos los servicios de esa lista.
 - Comunicaciones masivas por correo electrónico o SMS como mecanismo de
   marketing o notificación no solicitada.
 
@@ -175,27 +242,29 @@ métricas de éxito con un umbral cuantitativo y una fuente de telemetría
 identificada para cada una, de modo que ninguna de ellas quede como una
 aspiración sin forma de comprobarse:
 
-| Métrica                         | Fuente                   | Umbral objetivo                                          |
-| ------------------------------- | ------------------------ | -------------------------------------------------------- |
-| Inscripción completa            | CloudWatch / DynamoDB    | > 98 % de solicitudes completadas                        |
-| Precisión de coincidencia       | Rekognition / DynamoDB   | Similitud >= 95,0 %                                      |
-| Procesamiento de selfie         | CloudWatch Metrics       | < 3 s desde la carga en S3 hasta el estado "inscrito"    |
-| Respuesta de galería            | CloudFront / API Gateway | p95 < 500 ms                                             |
-| Control de presupuesto (FinOps) | AWS Budgets              | 100 % dentro de 0 $ (capa gratuita/sandbox) o 5 $ (demo) |
-| Borrado conforme a RGPD         | Registros de auditoría   | 100 % de los datos purgados tras caducidad o solicitud   |
+<!-- prettier-ignore -->
+| Métrica | Fuente | Umbral objetivo |
+| --- | --- | --- |
+| Inscripción completa | CloudWatch / DynamoDB | > 98 % de solicitudes completadas |
+| Umbral de similitud | Rekognition / DynamoDB | Similitud >= 95,0 % |
+| Procesamiento de selfie | CloudWatch Metrics | < 3 s desde la carga en S3 hasta el estado "inscrito" |
+| Respuesta de galería | CloudFront / API Gateway | p95 < 500 ms |
+| Control de presupuesto (FinOps) | AWS Budgets | 100 % dentro de 0 $ (capa gratuita/sandbox) o 5 $ (demo) |
+| Borrado conforme a RGPD | Registros de auditoría | 100 % de los datos purgados tras caducidad o solicitud |
 
 : Matriz de métricas de éxito del MVP {#tbl:metricas}
 
 Estos umbrales son objetivos. El umbral de similitud del 95 % no es una
-precisión estadística del 95 %. La aceptación AWS de #87 midió históricamente
-5,8–10,2 s hasta `ENROLLED`, por encima del objetivo < 3 s; no hay una campaña
+precisión estadística del 95 %. La aceptación AWS de #87 verifica
+`ENROLLED`, pero su cronómetro no aísla el intervalo S3 PUT → `ENROLLED`.
+Por ello no acredita ni refuta el objetivo < 3 s. Tampoco hay una campaña
 de carga que acredite p95 < 500 ms o > 98 % de éxito agregado. El borrado y el
 matching están demostrados en escenarios específicos, sin extrapolarlos al 100 %
 de todos los casos ni a una factura completa dentro del presupuesto.
 
 Más allá de estos umbrales cuantitativos, el proyecto adopta explícitamente los
-seis pilares del AWS Well-Architected Framework como marco de diseño, no como
-guía para decisiones concretas de arquitectura. Esta correspondencia no
+seis pilares del AWS Well-Architected Framework como guía para las decisiones
+de arquitectura [14–16]. Esta correspondencia no
 constituye una certificación ni una revisión formal completa de AWS
 Well-Architected; los resultados y límites de verificación se distinguen de los
 objetivos de diseño.
@@ -217,11 +286,11 @@ objetivos de diseño.
   autentica mediante un protocolo de identidad federada sin ninguna clave de
   acceso de larga duración almacenada como secreto.
 - **Fiabilidad.** La ingesta de fotografías se desacopla mediante una cola de
-  mensajería con una cola de mensajes fallidos, de modo que un pico de carga o
-  un fallo transitorio no provocan pérdida de mensajes; el procesamiento de cada
+  mensajería con una cola de mensajes fallidos, de modo que los picos de carga y
+  los fallos transitorios puedan gestionarse con reintentos y redrive; el procesamiento de cada
   rostro es idempotente ante reintentos.
 - **Eficiencia del rendimiento.** El modelo de datos usa una única tabla con un
-  diseño de tabla única y un índice secundario global que permite resolver
+  diseño de tabla única y dos índices secundarios globales; uno permite resolver
   mediante un índice la pregunta "¿qué registro corresponde a este rostro?", sin
   recurrir nunca a un recorrido completo de la tabla.
 - **Optimización de costes.** No se aprovisionan servidores, RDS ni NAT. El
@@ -237,112 +306,142 @@ objetivos de diseño.
   continua, de modo que no queda infraestructura ociosa entre una comprobación y
   la siguiente.
 
+## Matriz central de requisitos y resultados
+
+La matriz resume el estado al 25 de octubre de 2026. «AWS» identifica ensayos
+históricos en servicios reales; «local» no acredita ese entorno. Una
+confirmación del equipo se distingue de un artefacto de medición. Las fuentes
+enlazadas conservan los escenarios, ejecuciones y límites de cada resultado.
+
+<!-- prettier-ignore -->
+| Requisito y spec | Resultado y entorno | Estado / evidencia |
+| --- | --- | --- |
+| Inscripción y consentimiento (03, 06, 09) | Recorrido consentido hasta `ENROLLED` ejercitado en AWS. | Funcional verificado: [#87](../../evidence/issue-87-matching-convergence.md). No mide éxito agregado. |
+| Administración y carga (04, 05, 23) | Cognito, firma de cargas y ciclo de fotos/eventos comprobados. | Escenarios AWS: [#89](../../evidence/issue-89-admin-event-photo-lifecycle.md). Catálogo administrativo compartido. |
+| Matching en ambos órdenes (07, 21) | Selfie antes y después de fotos; paginación de 26 fotos. | AWS: [#87](../../evidence/issue-87-matching-convergence.md). Doble escritura DynamoDB/SQS sigue limitada. |
+| Galería y descarga (08, 22) | Acceso privado, actualización, estados de token y descarga. | [#88](../../evidence/issue-88-gallery-refresh-download-sharing.md). Límite de descarga en WebKit; no acredita p95. |
+| Borrado y retención (09, 23) | Eliminación y purga verificadas en casos concretos de AWS. | [#70](../../evidence/issue-70-erasure-retention.md), [#89](../../evidence/issue-89-admin-event-photo-lifecycle.md). No prueba universal. |
+| Barrera de foto y TTL lógico (21, 23) | Corrección integrada; carreras deterministas en local, smoke funcional AWS. | [#166](../../evidence/issue-166-photo-matching-barrier.md): aceptación AWS específica pendiente. |
+| Correo manual (20) | Nueve escenarios AWS, recibo de un buzón y confirmación manual multiproveedor. | [#98](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360) cerrada; fuentes de evidencia diferentes. |
+| CI y entorno efímero (13–16) | Aprovisionamiento, pruebas y limpieza en ejecuciones identificadas. | [#166](../../evidence/issue-166-photo-matching-barrier.md): smoke y 147 recursos destruidos. No acredita despliegue idéntico en producción. |
+| Memoria y publicación (17) | PDF compilado y release automática verificada. | [#186](../../evidence/issue-186-memoria-pdf-releases.md); revisión documental actual en [#192](https://github.com/upc-malvaviscos/findly/issues/192). |
+| Inscripción > 98 % y galería p95 < 500 ms (00) | No hay muestra agregada acreditada en las fuentes revisadas. | Pendiente; método definido en evaluación experimental. |
+| Selfie < 3 s y similitud $\geq$ 95 % (00) | Sin intervalo de selfie válido; similitud configurada en 95 %. | Tiempo objetivo no demostrado; similitud no equivale a precisión estadística. |
+| Presupuesto de demo $\leq$ 5 USD (00, 12) | Modelo estimado y canal SNS probado; sin factura completa atribuida. | Estimación separada de gasto real. Budgets no actúa como límite duro. |
+
+: Requisitos, evidencia y límites de aceptación {#tbl:trazabilidad}
+
 ## Gestión interna del proyecto
 
-### Equipo y roles
+### Equipo y contribuciones verificables
 
-El proyecto lo ha desarrollado un equipo de cuatro personas: Anyul Rivas,
-Renato Luzuriaga, Martí Fabregat Pous y Santiago Oliver Surinyach. El equipo
-optó por un modelo de trabajo colaborativo sin roles fijos diferenciados por
-disciplina (por ejemplo, "responsable de infraestructura" o "responsable de
-frontend"): cada persona tomaba issues del backlog compartido de principio a
-fin, incluyendo su implementación, sus pruebas y la documentación asociada,
-en lugar de depender de un reparto estático de funciones. Esta forma de
-trabajar se apoya en la disciplina de proceso descrita a continuación —una
-spec y una issue claras por tarea— más que en una jerarquía de roles.
+Anyul Rivas, Renato Luzuriaga, Martí Fabregat Pous y Santiago Oliver Surinyach
+trabajaron sobre un backlog compartido. La siguiente tabla identifica ejemplos
+de entregables trazables a sus cuentas de GitHub; no atribuye el desarrollo
+completo de un módulo a una sola persona ni utiliza el número de commits como
+medida de esfuerzo.
+
+<!-- prettier-ignore -->
+| Integrante | Contribuciones documentadas | Evidencia representativa |
+| --- | --- | --- |
+| Anyul Rivas | Controles de despliegue y correo, barrera de borrado y automatización de la memoria. | [#102](https://github.com/upc-malvaviscos/findly/pull/102), [#168](https://github.com/upc-malvaviscos/findly/pull/168), [#187](https://github.com/upc-malvaviscos/findly/pull/187). |
+| Renato Luzuriaga | Inscripción pública, matching en ambos órdenes, benchmark de fan-out y reintento de cargas. Diagnóstico de errores del ensayo SES. | [#60](https://github.com/upc-malvaviscos/findly/pull/60), [#129](https://github.com/upc-malvaviscos/findly/pull/129), [#141](https://github.com/upc-malvaviscos/findly/pull/141), [#149](https://github.com/upc-malvaviscos/findly/pull/149), [diagnóstico](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6222459968). |
+| Martí Fabregat Pous | Observabilidad y FinOps, administración de eventos/fotos, pruebas de descarga y sincronización de resultados académicos. | [#64](https://github.com/upc-malvaviscos/findly/pull/64), [#120](https://github.com/upc-malvaviscos/findly/pull/120), [#130](https://github.com/upc-malvaviscos/findly/pull/130), [#159](https://github.com/upc-malvaviscos/findly/pull/159). |
+| Santiago Oliver Surinyach | Cobertura de integración del indexador con S3/DynamoDB emulados y Rekognition simulado; preparación del bloque funcional y demo de la defensa. | [#72](https://github.com/upc-malvaviscos/findly/pull/72), [preparación de defensa](../../evidence/2026-10-23-code-truth-sync.md). |
+
+La asignación actual de issues complementa la autoría de PR: Anyul tiene
+asignadas, entre otras, #1/#2/#4/#5/#9/#14/#16/#17 y #86; Renato, #11/#22/#46/#47/#49/#61/#87/#88; Martí, #3/#6/#8/#10/#12/#13/#15/#18
+y #89/#105/#107; Santiago, #7/#45/#121. Asignación no implica autoría
+exclusiva de la implementación ni prueba por sí sola que el trabajo esté cerrado.
+
+Como aproximación a la actividad de desarrollo solicitada por el equipo, el
+[recuento reproducible](../../evidence/team-activity-2026-10-26.json) sobre
+`075f76c` contabiliza commits sin merges y excluye 22 commits del bot:
+
+<!-- prettier-ignore -->
+| Integrante | Commits con autor registrado | Issues asignadas |
+| --- | --- | --- |
+| Anyul Rivas | 263 | 14 |
+| Renato Luzuriaga | 39 | 8 |
+| Martí Fabregat Pous | 58 | 11 |
+| Santiago Oliver Surinyach | 0 | 3 |
+
+Este indicador no permite convertir commits a horas ni repartir el esfuerzo
+real en porcentajes. La PR #72 fue abierta por Santiago, pero los commits que
+contiene están atribuidos a Anyul: un cero en esta columna no significa ausencia
+de contribución. También quedan fuera revisiones, pruebas manuales, coordinación
+y preparación de la defensa. No se dispone de un registro de horas individuales.
+
+### Cronograma observado y desviaciones
+
+El primer commit conservado es `397abdf`, del 26 de junio de 2026
+(`Initial commit`); ese es el inicio observable del repositorio. El backlog
+y el desarrollo sistemático se documentan desde el 3 de septiembre.
+El cronograma se reconstruye a partir de hitos fechados, no de horas-persona.
+La secuencia prevista por las specs fue fundación, producto, plataforma y
+validación; las auditorías y los fallos observados introdujeron iteraciones.
+
+<!-- prettier-ignore -->
+| Periodo | Hito y evidencia | Desviación o aprendizaje |
+| --- | --- | --- |
+| 26 junio 2026 | Primer commit `397abdf`. | Inicio observable del repositorio; no acredita dedicación continua desde esa fecha. |
+| 3–19 septiembre 2026 | Backlog inicial, backend real, modos locales y bootstrap ([#1–#18](https://github.com/upc-malvaviscos/findly/issues/18), [#61](https://github.com/upc-malvaviscos/findly/issues/61)). | Separar emulación de validación desplegada; resolver límites del laboratorio académico. |
+| 28 septiembre–2 octubre | Auditoría de cierres y aceptación AWS ([#70](../../evidence/issue-checklist-audit.md)). | Reabrir criterios sin evidencia y dedicar trabajo adicional a aceptación real. |
+| 4–15 octubre | Demo, dominio y publicación del circuito de correo ([#98](../../evidence/issue-98-ses-production.md)). | Resolver permisos y contratos de ensayo; conservar la autenticación de Cognito. |
+| 16–23 octubre | Benchmark de borrado, correcciones y barrera temporal ([#89](../../evidence/issue-89-admin-event-photo-lifecycle.md), [#166](../../evidence/issue-166-photo-matching-barrier.md)). | El timeout y las carreras obligaron a revisar el protocolo; parte de la aceptación concurrente quedó aplazada. |
+| 25 octubre | Publicación automática PDF y recuperación administrativa ([#186](../../evidence/issue-186-memoria-pdf-releases.md), [#175](../../evidence/organizer-recovery.md)). | Verificar la entrega documental y el acceso necesario para la demo. |
+| Defensa, fecha no consignada | Demo de la aplicación desplegada, anunciada por el equipo. | Actividad prevista; no se contabiliza como aceptación ya ejecutada. |
+
+No se dispone de una línea base fechada de dedicación ni de un registro de
+horas por persona. Por ello no se calcula una desviación de esfuerzo o plazo
+porcentual: hacerlo a partir de commits produciría una precisión ficticia.
+La desviación comprobable es de trabajo: hubo que repetir aceptación,
+corregir contratos y sincronizar documentación después de cierres prematuros.
 
 ### Metodología de trabajo
 
-Cada tarea del proyecto se trabaja siguiendo cuatro fases obligatorias, en
-este orden:
+Cada tarea sigue el ciclo investigación, plan, implementación y sincronización.
+Las especificaciones fijan criterios de aceptación; las issues enlazan el
+cambio y su validación; los ADR conservan las decisiones. El código y la
+documentación se integran mediante pull requests, con controles automáticos de
+calidad y revisión. La evidencia identifica qué se probó y en qué entorno.
 
-1. **Investigación.** Antes de escribir una sola línea, se identifica qué
-   especificación técnica gobierna el cambio, se leen sus criterios de
-   aceptación y se contrastan explícitamente el flujo afectado, la
-   privacidad y retención de datos, el coste y la observabilidad. No se
-   inventan requisitos cuando una especificación o una decisión de
-   arquitectura ya ya los define.
-2. **Plan.** Se redacta y se comparte un plan concreto —objetivo, ficheros y
-   recursos que cambiarán, orden de implementación, estrategia de prueba,
-   evidencia que se generará y riesgos— antes de tocar código. Cualquier
-   cambio que afecte a la arquitectura, a los datos, a los permisos, al
-   coste o al comportamiento visible para el usuario espera confirmación
-   explícita antes de implementarse.
-3. **Implementación.** El código de aplicación se escribe en TypeScript
-   estricto, sin el tipo `any` ni supresiones del analizador estático; la
-   infraestructura se describe en Terraform reproducible, con cada recurso
-   etiquetado por proyecto, entorno, responsable de gestión, centro de coste
-   y clase de dato; y las pruebas se actualizan junto con la funcionalidad,
-   nunca después.
-4. **Sincronización.** Al terminar, se actualiza toda la documentación
-   afectada —especificaciones, decisiones de arquitectura, evidencia
-   reproducible— para que describa exactamente lo implementado y validado,
-   nunca el diseño previo ni trabajo futuro presentado como si ya estuviera
-   hecho, y se deja constancia en la propia tarea de qué se ha verificado y
-   qué queda pendiente. Una tarea no se da por cerrada cuando el código
-   "está listo", sino cuando todos sus criterios de aceptación tienen
-   evidencia comprobable.
+La principal desviación metodológica fue cerrar inicialmente tareas con pruebas
+locales que no demostraban su funcionamiento desplegado. La auditoría de
+[#70](../../evidence/issue-checklist-audit.md) revisó los criterios, reabrió
+tareas y exigió aceptación AWS. El aprendizaje fue separar la verificación de
+implementación de la aceptación de producto, y revisar el cierre incluso
+cuando la integración continua está en verde. Esta práctica permite conservar
+pendientes verificables sin presentar una mejora futura como trabajo entregado.
 
-Todo el trabajo se integra mediante ramas descriptivas (de funcionalidad, de
-corrección, de documentación o de mantenimiento) y revisión por pull
-request; nunca hay cambios directos sobre la rama principal. Los mensajes de
-commit siguen una convención estructurada y verificada automáticamente antes
-de que el commit llegue siquiera a crearse.
-
-El hallazgo metodológico más relevante del proyecto surgió a mitad de su
-desarrollo: una batería de comprobaciones automáticas en verde no es, por sí
-misma, prueba suficiente de que una funcionalidad está realmente terminada.
-Una suite de pruebas que sustituye los servicios de AWS por simulaciones en
-memoria o por un entorno local emulado puede pasar sin que la funcionalidad
-equivalente funcione nunca contra los servicios reales. El equipo introdujo
-por ello una auditoría de cierre explícita e independiente, que revisó las
-tareas que ya se consideraban terminadas contra sus propios criterios de
-aceptación y la evidencia desplegada realmente disponible. Esa auditoría
-reabrió varias tareas que tenían toda su integración continua en verde pero
-carecían de una ejecución verificada contra AWS real, y forzó su
-corrección con pruebas desplegadas de extremo a extremo. La lección práctica
-que el equipo extrae de esa experiencia es que una auditoría de cierre
-periódica, distinta de la propia implementación autoevaluándose, es lo que
-realmente hace cumplir la regla de "sin evidencia no hay cierre" sobre
-trabajo que ya se daba por terminado.
-
-### Herramientas de gestión de proyecto
-
-El backlog del proyecto se gestiona íntegramente como incidencias (issues)
-de un repositorio de GitHub, con tres piezas que se mantienen sincronizadas
-entre sí en todo momento: las especificaciones técnicas, que fijan los
-criterios de aceptación y las restricciones de cada capacidad; las propias
-issues, que documentan el alcance, la pull request asociada, las
-validaciones realizadas y lo que queda pendiente; y un catálogo de evidencia
-reproducible —capturas, registros de ejecución y resultados de pruebas— que
-respalda cada afirmación. Ninguna de las tres piezas se cierra sin que las
-otras dos queden actualizadas, y las decisiones de arquitectura relevantes
-se registran aparte, como registros de decisión independientes, numerados y
-fechados, de modo que una decisión tomada en un momento del proyecto pueda
-consultarse más adelante sin tener que reconstruir el razonamiento desde
-cero.
-
-# Cuentas AWS, repositorios y GitOps
+# Cuentas AWS, repositorios e infraestructura versionada
 
 ## Gestión de AWS
 
 ### Cuentas, organización y permisos
 
-Findly opera en una única cuenta de AWS y una única región, `eu-west-1`,
-una restricción deliberada que evita la complejidad operativa y el coste
-añadido de una arquitectura multirregión que el alcance del proyecto no
-necesita. El primer intento de desplegar la infraestructura persistente se
-realizó sobre un entorno de laboratorio académico de AWS, que resultó
-insuficiente: deniega la creación de buckets de Amazon S3 en `eu-west-1` y
-bloquea por política de cuenta la configuración de bloqueo de objetos
-(«object lock»), necesaria para el estado remoto de Terraform. El equipo
-migró a una cuenta de AWS dedicada, en la que esa misma infraestructura de
-arranque se desplegó y se verificó con éxito.
+Findly aloja sus cargas de aplicación y datos en una cuenta de AWS y una región,
+`eu-west-1`. CloudFront es un servicio global y su certificado ACM se gestiona
+en `us-east-1`; esto no constituye una réplica multirregión de los datos de
+negocio. La configuración del dominio y esta excepción operativa se documentan
+en [ADR-020](../../adr/ADR-020-production-domain-bootstrap.md).
+
+El laboratorio académico impidió completar el bootstrap previsto; el equipo
+continuó con una cuenta dedicada. Deben distinguirse dos mecanismos: **S3
+Object Lock** protege versiones de objetos frente a eliminación o modificación
+durante una retención, mientras que **el bloqueo de estado de Terraform**
+coordina ejecuciones concurrentes mediante `use_lockfile=true` y un objeto
+`.tflock`. Object Lock no es un requisito del backend utilizado. El bootstrap
+de Findly usa versionado, cifrado, bloqueo de acceso público y protección de
+borrado; el lockfile aporta exclusión entre operaciones Terraform. La decisión
+está recogida en [ADR-009](../../adr/ADR-009-terraform-remote-state-and-environment-isolation.md)
+y en la documentación del backend S3 [13].
 
 Dentro de esa cuenta, los tres entornos del proyecto —desarrollo compartido,
 demostración y producción— están aislados entre sí mediante prefijos y
-claves de estado de Terraform independientes, de modo que una operación
-sobre un entorno no pueda afectar por error a otro.
+claves de estado de Terraform independientes, para reducir errores de selección. Los prefijos no son una frontera de
+seguridad por sí solos: el aislamiento depende también de los roles IAM y de
+la configuración del backend.
 
 ### Gestión de usuarios
 
@@ -373,9 +472,8 @@ propio rol de ejecución, sin permisos compartidos con ninguna otra función;
 y en que la integración continua nunca almacena una clave de acceso de AWS
 como secreto, sino que intercambia un token de identidad firmado por la
 propia plataforma de integración continua por credenciales temporales en
-el momento de cada ejecución. Las fotografías y selfies sólo se leen o se
-escriben mediante URLs firmadas de vida muy corta, nunca mediante un acceso
-directo y permanente al bucket.
+el momento de cada ejecución. El navegador accede a fotografías y selfies mediante URLs firmadas breves;
+las funciones de procesamiento acceden con sus roles IAM.
 
 ## Gestión de GitHub
 
@@ -411,13 +509,13 @@ La integración entre GitHub Actions y AWS se basa íntegramente en
 autenticación federada mediante OpenID Connect: cada ejecución de un flujo
 de trabajo recibe de GitHub un token de identidad firmado y específico de
 esa ejecución, que AWS intercambia por credenciales temporales a través de
-una relación de confianza que compara el emisor exacto de ese token, no
-simplemente "que la petición venga de GitHub". Existen roles de IAM
+una relación de confianza que valida el proveedor, la audiencia y el
+claim `sub` correspondiente al repositorio y al contexto autorizado [12]. Existen roles de IAM
 distintos para cada propósito: uno para el entorno efímero de pull request,
 con permisos acotados por un prefijo de nombre de recurso y una etiqueta que
 marca los recursos como temporales; y uno por entorno de despliegue manual
 (desarrollo compartido, demostración y producción), cada uno con su propia
-relación de confianza restringida a ese entorno concreto de GitHub.
+relación de confianza restringida a ese entorno concreto de GitHub [12].
 
 ### Gestión de secretos y variables
 
@@ -446,13 +544,12 @@ requests internas del propio repositorio, es el único que llega a desplegar
 infraestructura real en AWS: aprovisiona un entorno completo y aislado
 identificado por el número de esa pull request concreta, ejecuta contra él
 un recorrido de aceptación de extremo a extremo con un navegador real, y
-destruye el entorno al finalizar —tanto si las pruebas han pasado como si
-no—, de modo que ninguna ejecución deja infraestructura olvidada
-facturando entre una comprobación y la siguiente. Una pull request sólo se
+ejecuta su destrucción al finalizar, también cuando fallan las pruebas. La
+limpieza se verifica por separado: un error de teardown requiere intervención
+y no se interpreta como ausencia de recursos facturables. Una pull request sólo se
 fusiona a la rama principal cuando todas las comprobaciones obligatorias
-están en verde; la fusión en sí la ejecuta automáticamente la propia
-plataforma mediante una integración de fusión automática, nunca una persona
-pulsando un botón manualmente.
+están en verde; el repositorio dispone además de un flujo de auto-merge sujeto a esos
+controles. La fusión no despliega automáticamente la aplicación persistente.
 
 Los cambios exclusivamente documentales o de las herramientas de compilación
 de esta memoria se distinguen del código desplegable: conservan las
@@ -466,6 +563,25 @@ sí solos otro workflow de push. Cada versión enlaza su commit y conserva un
 nombre fechado con hora de Madrid; eventos repetidos del mismo commit reutilizan
 la publicación existente. Este artefacto documental no necesita desplegar AWS.
 
+### Revisión de PR y entornos efímeros
+
+![Controles de pull request y ciclo del entorno AWS efímero](img/workflow-pr.png){#fig:workflow-pr}
+
+La @fig:workflow-pr distingue los controles locales/emulados de la aceptación
+AWS. La elegibilidad decide si una PR requiere infraestructura; los cambios
+exclusivos de documentación conservan validación sin desplegar AWS. El
+teardown tiene su propio resultado: un fallo exige comprobar recursos y coste.
+
+### Compilación y publicación de la memoria
+
+![Validación y publicación de la memoria PDF](img/workflow-pdf.png){#fig:workflow-pdf}
+
+La @fig:workflow-pdf resume el proceso de ADR-027. La PR compila para validar;
+la release usa únicamente cambios integrados y automatización de `main`.
+La deduplicación por SHA evita publicar dos veces el mismo origen, mientras
+que la cola estándar puede sustituir una ejecución pendiente durante una
+ráfaga. Por ello no se promete una release por cada merge intermedio.
+
 ## Estrategia de despliegue
 
 El despliegue a un entorno persistente —desarrollo compartido,
@@ -477,8 +593,8 @@ guardián automático lee ese plan en formato estructurado y rechaza la
 ejecución si detecta cualquier borrado o sustitución de un recurso ya
 existente, o cualquier recurso cuyo modelo de facturación incluya un coste
 fijo por hora —la misma lista prohibida que se aplica también al entorno
-efímero de pull request—, para que un despliegue manual nunca pueda destruir
-por accidente lo que ya existe en un entorno real. Cuando el plan se aplica
+efímero de pull request—, para bloquear esos cambios detectados antes de aplicar. Este control no
+sustituye la revisión del plan ni protege frente a operaciones externas al flujo. Cuando el plan se aplica
 y la aplicación web se publica, los activos con huella de contenido en su
 propio nombre de archivo se sirven con una política de caché de un año,
 mientras que el punto de entrada de la aplicación se sirve sin caché, para
@@ -486,6 +602,12 @@ que una nueva versión publicada se vea de inmediato sin tener que esperar a
 que expire una caché larga; la invalidación de la distribución de
 CloudFront se dispara usando el identificador que la propia infraestructura
 como código expone como salida, no una búsqueda posterior por metadato.
+
+![Despliegue persistente manual mediante plan y aplicación autorizada](img/workflow-deploy.png){#fig:workflow-deploy}
+
+La @fig:workflow-deploy separa la revisión del plan de su aplicación y de la
+publicación web. Un plan correcto no acredita un despliegue ni el recorrido
+funcional; tampoco la publicación de un PDF despliega la aplicación.
 
 # Implementación de la solución
 
@@ -508,7 +630,22 @@ solicitarlo.
 
 ## Arquitectura de la solución
 
-![Arquitectura base de inscripción, matching y galería](img/arquitectura.png){#fig:arquitectura}
+Se utilizan dos niveles del modelo C4 de Simon Brown [25]: contexto, para
+delimitar actores y sistemas externos, y contenedores, para describir unidades
+de ejecución y almacenamiento con sus responsabilidades. «Contenedor» en C4
+no significa necesariamente Docker; una SPA, una función o una base de datos
+pueden ocupar ese nivel. La vista de infraestructura posterior concreta los
+servicios AWS y sus disparadores.
+
+![Contexto de Findly: participantes, organizadores y servicios externos](img/contexto-c4.png){#fig:contexto-c4}
+
+La @fig:contexto-c4 delimita la responsabilidad de Findly y las dependencias
+externas. La @fig:contenedores-c4 descompone el sistema en sus unidades
+lógicas, sin confundir esa vista con una réplica de iconos de infraestructura.
+
+![Contenedores C4 de Findly y responsabilidades principales](img/contenedores-c4.png){#fig:contenedores-c4}
+
+![Arquitectura de ingesta, matching y retención](img/arquitectura.png){#fig:arquitectura}
 
 La aplicación web de Findly es una aplicación de una sola página construida
 con React, Vite y TypeScript, servida de forma estática desde un bucket de
@@ -538,8 +675,28 @@ observabilidad y el control de coste se superponen a toda la arquitectura
 sin intervenir en el camino crítico de ninguna petición: cada componente
 escribe sus propios registros estructurados, un servicio de alarmas vigila
 condiciones concretas —por ejemplo, que la cola de mensajes fallidos reciba
-al menos un mensaje— y un servicio de presupuestos vigila el gasto real de
-la cuenta, ambos notificando a un único canal de alertas cuando corresponde.
+al menos un mensaje— y la configuración de presupuestos prevé vigilar el gasto real de
+la cuenta a través del mismo canal; su recurso sigue pendiente de aplicación.
+
+### Distribución de infraestructura
+
+![Infraestructura de aplicación, distribución global y estado de despliegue](img/despliegue.png){#fig:despliegue}
+
+La @fig:despliegue separa las cargas y datos de `eu-west-1` de la distribución
+global y del certificado requerido por CloudFront. Los entornos comparten
+patrones de IaC, pero usan nombres, roles y estados propios; no se afirma que
+todos permanezcan desplegados simultáneamente.
+
+### Secuencia de inscripción y matching
+
+![Secuencia de inscripción y coincidencias con fotografías nuevas o previas](img/secuencia-matching.png){#fig:secuencia-matching}
+
+La @fig:secuencia-matching muestra el PUT directo del navegador a S3 y los
+dos disparadores del núcleo de matching. El backfill cubre fotos anteriores
+a la inscripción; el consumidor de SQS cubre fotos nuevas. La escritura
+condicional evita duplicar matches, pero no evita repetir llamadas de análisis.
+La persistencia de `ENROLLED` y el encolado del backfill siguen siendo dos
+operaciones separadas: su ventana de fallo se analiza en las conclusiones.
 
 ## Frontend y distribución
 
@@ -550,8 +707,9 @@ primera respuesta por usuario: toda la lógica de negocio ya vive detrás de
 la API, y la interfaz es, en esencia, un cliente de esa API. Esto permite
 distribuir la aplicación entera como ficheros estáticos inmutables desde un
 bucket privado, servido exclusivamente a través de una distribución de
-CloudFront que firma cada petición hacia el origen: el bucket nunca admite
-una petición que no provenga de esa distribución concreta. Las rutas
+CloudFront que firma cada petición hacia el origen: el acceso de distribución del contenido se concede a esa distribución
+mediante OAC [11], además de los permisos administrativos y de publicación
+que requieren los operadores autorizados. Las rutas
 propias de la aplicación —que no existen como ficheros reales en el
 bucket— se resuelven redirigiendo las respuestas de error de "no encontrado"
 hacia el punto de entrada de la aplicación, que es quien realmente
@@ -564,9 +722,10 @@ contra un servicio de identidad gestionado, con una política de contraseñas
 exigente y sin ningún secreto de cliente embebido en el propio navegador. El
 token de sesión que ese servicio emite se adjunta a cada petición a las
 rutas administrativas de la API, y su validez se comprueba mediante un
-autorizador nativo de la propia pasarela de API, no dentro del código de
-cada función: una ruta mal configurada falla de forma cerrada en la puerta
-de entrada, antes de que ninguna lógica de negocio llegue a ejecutarse. El
+autorizador nativo de API Gateway asociado a las rutas administrativas. En
+esas rutas, un JWT inválido se rechaza antes de invocar la función [10]. Una
+ruta sin autorizador no queda protegida por ese mecanismo: los contratos de
+infraestructura deben verificar su asociación explícita. El
 alta de nuevas personas organizadoras es exclusivamente por invitación de
 alguien ya autorizado, nunca por autorregistro público.
 
@@ -579,10 +738,10 @@ inscripción y consentimiento, sondeo de estado, informes de error desde el
 propio cliente, consulta de la galería privada, solicitud de borrado, y un
 conjunto de rutas administrativas protegidas para la gestión de eventos y
 la carga masiva de fotografías. Cada función tiene una única entrada y una
-única salida bien definidas: toda respuesta de error, sin excepción, sigue
+única salida bien definidas: las respuestas de error construidas por los handlers siguen
 el mismo formato con un código, un mensaje y un identificador de petición,
-de modo que ningún error llegue a exponer información interna del sistema
-ni detalles de implementación al navegador.
+para limitar la información expuesta al navegador. Las respuestas generadas
+por servicios como API Gateway o S3 tienen contratos propios.
 
 ## Datos, imágenes y reconocimiento facial
 
@@ -607,10 +766,11 @@ que la incluyen. Para resolver ese acceso inverso se guarda un **ítem espejo**
 por coincidencia, en la misma tabla y con las claves invertidas para esa
 consulta:
 
-| Registro de la relación | Clave de partición (`PK`)   | Clave de ordenación (`SK`) |
-| ----------------------- | --------------------------- | -------------------------- |
-| Coincidencia de galería | `REG#{registrationId}`      | `MATCH#{photoId}`          |
-| Ítem espejo             | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}`   |
+<!-- prettier-ignore -->
+| Registro de la relación | Clave de partición (`PK`) | Clave de ordenación (`SK`) |
+| --- | --- | --- |
+| Coincidencia de galería | `REG#{registrationId}` | `MATCH#{photoId}` |
+| Ítem espejo | `PHOTO#{eventId}#{photoId}` | `MATCH#{registrationId}` |
 
 La coincidencia de galería permite consultar las fotografías de una inscripción;
 el ítem espejo permite consultar las inscripciones vinculadas a una fotografía.
@@ -641,10 +801,10 @@ Rekognition.
 Las imágenes —selfies y fotografías de evento— se organizan en el bucket
 privado de cargas con una estructura de claves que distingue ambos tipos de
 objeto mediante su sufijo, de modo que un mismo prefijo de evento pueda
-alimentar dos flujos de notificación distintos sin ambigüedad. Todo acceso
-de lectura o escritura a ese bucket se concede exclusivamente mediante URLs
-firmadas de vida corta, nunca mediante una política de acceso público ni
-una credencial compartida. Las selfies añaden una restricción adicional que
+alimentar dos flujos de notificación distintos sin ambigüedad. El acceso del navegador
+a ese bucket se concede mediante URLs firmadas de vida corta; los workers
+usan sus roles IAM. El bucket no dispone de una política de acceso público
+ni requiere compartir credenciales. Las selfies añaden una restricción adicional que
 ninguna otra carga tiene: la propia escritura en S3 se condiciona a que el
 objeto no exista todavía, de modo que un intento de sobrescribir una selfie
 ya subida es rechazado por el propio servicio de almacenamiento, sin
@@ -664,9 +824,13 @@ temporalmente cada rostro detectado en la fotografía, buscando
 coincidencias para cada uno de ellos por separado, y borrando después ese
 índice temporal, a costa de varias llamadas al servicio por cada fotografía
 en lugar de una sola. Las colecciones de rostros se aíslan por entorno y por
-evento, de modo que un fallo de configuración en el entorno de desarrollo
-nunca pueda consultar o borrar rostros del entorno de demostración o de
-producción.
+evento, para reducir el riesgo de consultar o borrar rostros de otro entorno.
+Ese aislamiento depende también de la configuración y los permisos IAM.
+
+El catálogo administrativo es compartido por los organizadores autorizados del
+entorno; la entidad de evento no contiene un propietario que restrinja su acceso
+a un único organizador. Esta aplicación académica confía en ese grupo y no
+se presenta como una plataforma multicliente con aislamiento entre cuentas.
 
 ## Retención y ciclo de vida de los datos
 
@@ -720,6 +884,71 @@ menor: una suite de pruebas enteramente simulada en verde no se considera,
 en este proyecto, prueba de que el mismo recorrido funciona contra los
 servicios de AWS reales.
 
+## Rendimiento y evaluación experimental
+
+La aceptación funcional responde a si un recorrido produce el resultado
+esperado; los objetivos de rendimiento requieren además una población de
+observaciones, una carga y una ventana temporal definidas. El repositorio
+contiene ensayos útiles, pero no una campaña que acredite los dos SLO
+agregados de la spec 00.
+
+<!-- prettier-ignore -->
+| Indicador | Evidencia disponible | Conclusión permitida |
+| --- | --- | --- |
+| Selfie hasta `ENROLLED` | El ensayo [#87](../../evidence/issue-87-matching-convergence.md) confirma el estado, pero no mide el intervalo requerido. | Objetivo < 3 s no acreditado ni refutado por esos cronómetros. |
+| Borrado con 100 / 1.000 matches | HTTP 204 en 2,020 / 3,082 s y comprobación de limpieza en [#89](../../evidence/issue-89-admin-event-photo-lifecycle.md). | Valida esos casos de fan-out; no mide latencia de galería. |
+| Galería p95 < 500 ms | Sin muestra de latencias y ventana publicadas. | Acreditación pendiente. Ni HTTP 200 ni duración del workflow equivalen al p95. |
+| Inscripción completa > 98 % | Sin cohorte de intentos y resultados finales publicada. | Acreditación pendiente. Tests correctos / tests ejecutados no es tasa de inscripción. |
+| Calidad del reconocimiento | Umbral de similitud $\geq$ 95 %, con coincidencias verificadas en escenarios concretos. | No se han medido precisión, exhaustividad ni tasas de error sobre un conjunto etiquetado. |
+
+: Resultados experimentales y alcance de las conclusiones {#tbl:rendimiento}
+
+La revisión del cronómetro de #87 corrigió una interpretación anterior: el
+campo `enrolledAfterMs` del escenario A se registra después de obtener el
+match, y el del escenario B incluye la carga inicial de la foto y una espera
+deliberada de cinco segundos, deteniéndose antes del sondeo de `ENROLLED`.
+Los intervalos no son comparables ni representan S3 PUT → `ENROLLED`.
+La evidencia funcional se conserva; se retira la conclusión de rendimiento
+que no se puede deducir de ella.
+
+### Protocolo de acreditación de p95 y éxito agregado
+
+La siguiente especificación permite producir la evidencia que falta. No es
+el resultado de una ejecución ni autoriza por sí misma carga sobre producción.
+
+1. **Fijar el experimento.** Registrar revisión desplegada, entorno, región,
+   memoria Lambda, ubicación del cliente, tamaños de galería, concurrencia,
+   tasa de llegada, duración y número de repeticiones. Separar arranques fríos
+   y carga sostenida sin eliminar de los resultados los primeros por comodidad.
+2. **Medir galería.** Cronometrar `GET /gallery` con token válido desde el
+   cliente hasta completar la respuesta HTTP; medir por separado la descarga
+   S3 y el render del navegador. Conservar duraciones de solicitudes correctas,
+   errores y timeouts con etiquetas de escenario no sensibles. Para `n`
+   respuestas correctas ordenadas, usar rango más próximo:
+   `p95 = x[ceil(0,95 × n)]`, con índices desde uno. Publicar `n`, p50, p95,
+   p99, errores, timeouts y ventana; no ocultar fallos bajo un buen percentil.
+3. **Medir inscripción.** Formar una cohorte de solicitudes válidas con
+   consentimiento y selfie autorizada. Declarar antes del ensayo el plazo de
+   observación; numerador = inscripciones que llegan a `ENROLLED` dentro de
+   ese plazo, denominador = todos los intentos válidos de la cohorte,
+   incluidos fallos y timeouts. Los reintentos de una misma inscripción no
+   deben inflar el numerador. Presentar `100 × completadas / intentadas`,
+   denominador e intervalo de confianza binomial, no solo el porcentaje.
+4. **Conservar evidencia.** Publicar datos depurados, método de cálculo,
+   resumen por escenario y comprobación de limpieza. No guardar selfies,
+   FaceId, emails, tokens ni URLs firmadas. Los agregados de Lambda por sí
+   solos no reconstruyen una cohorte completa de inscripciones.
+5. **Interpretar.** Comparar cada escenario con su objetivo y repetirlo para
+   describir variabilidad. Una demo de defensa prueba funcionalidad bajo sus
+   condiciones; no acredita disponibilidad general ni capacidad a escala.
+
+La [campaña AWS propuesta](../../evidence/aws-performance-campaign-plan.md),
+seguida en [#193](https://github.com/upc-malvaviscos/findly/issues/193), concreta
+volúmenes, presupuesto, parada, limpieza y aprobación previa. No se ha ejecutado.
+La acreditación se incorporará cuando existan las observaciones y el recibo
+del ensayo autorizado. Esta revisión mantiene ambos indicadores pendientes
+en la matriz central, en lugar de asignarles un valor no medido.
+
 ## Observabilidad
 
 Cada función de cómputo escribe sus registros como una única línea en
@@ -729,8 +958,8 @@ el mensaje de cola que la originó. Esos registros admiten únicamente una
 lista cerrada de campos técnicos —identificador de evento, identificador de
 fotografía, código de estado, duración, tipo de error— y deliberadamente no
 existe ningún campo para nombres, correos electrónicos, tokens de galería ni
-identificadores biométricos, de modo que ese tipo de dato sensible no pueda
-llegar nunca a los registros por un descuido futuro. Cada función conserva
+identificadores biométricos, para reducir el riesgo de filtración. Esta protección cubre el logger
+estructurado utilizado; debe revisarse también cualquier nueva vía de registro. Cada función conserva
 sus registros durante un periodo acotado, de forma que el almacenamiento de
 observabilidad no crezca sin límite. Los errores que ocurren en el propio
 navegador durante la subida de la selfie —que va directamente del
@@ -748,14 +977,38 @@ solicitud de inscripción que no incluya exactamente ese valor explícito.
 Findly aplica minimización de datos por diseño en lo que respecta a la
 selfie: se almacena la imagen original, en un bucket privado y sujeta a la
 misma política de retención que el resto de datos del evento, y el
-identificador de rostro que devuelve Rekognition —un identificador opaco,
-no una representación matemática del rostro ni una copia adicional de la
-imagen—. En ningún caso se almacena un vector de características faciales en
-la base de datos, ni existe copia de la selfie fuera del bucket privado. El
+identificador de rostro que devuelve Rekognition —un identificador opaco—. DynamoDB no almacena el vector facial, pero
+Rekognition sí conserva una representación biométrica en su colección [1].
+El análisis de privacidad incluye ambos almacenes; que la aplicación guarde
+solo un identificador no elimina el tratamiento biométrico del proveedor. El
 correo electrónico es obligatorio en las inscripciones nuevas, exclusivamente
 para permitir el envío manual de la galería por parte del organizador
 cuando así se decida; el envío automático de correos no forma parte del
 alcance aprobado del proyecto.
+
+## Amenazas, controles y riesgo residual
+
+La seguridad se evalúa sobre activos y recorridos: imágenes y vectores
+biométricos, capacidad de galería, identidad administrativa y datos de contacto.
+Las siguientes amenazas describen límites del MVP y controles observables;
+no constituyen una certificación de cumplimiento normativo.
+
+<!-- prettier-ignore -->
+| Amenaza | Control existente | Riesgo residual y tratamiento en la demo |
+| --- | --- | --- |
+| Inscribirse con una selfie ajena | Consentimiento obligatorio, selfie inmutable y colección acotada al evento. | El consentimiento declarado no demuestra identidad ni presencia. No hay prueba de vida. Usar personas adultas del equipo y material autorizado; no afirmar resistencia a suplantación. |
+| Filtrar o reenviar el enlace de galería | Token aleatorio, hash almacenado, caducidad y revocación al borrar la inscripción; imágenes con URL breve. | Quien posee el enlace puede usarlo. No publicarlo en capturas ni proyección; una descarga ya realizada no puede revocarse. |
+| Mostrar terceros en fotografías grupales | La galería exige una coincidencia del inscrito y el acceso a S3 está restringido. | Se entrega la foto completa, sin ocultar otros rostros; su aparición no acredita consentimiento. Revisar previamente todas las personas y fotos de la demo y excluir menores. |
+| Indexar temporalmente rostros no inscritos | Los rostros de la foto se eliminan tras la búsqueda; las colecciones se separan por evento y entorno. | La indexación temporal también es tratamiento biométrico; la ausencia de un match no significa ausencia de procesamiento. Usar solo material autorizado y verificar limpieza. |
+| Acceso administrativo fuera del evento esperado | Cognito JWT protege las rutas administrativas. | El catálogo es global en el entorno y no existe propiedad individual de eventos en el modelo actual. Los organizadores son administradores de confianza; no se ofrece aislamiento entre clientes. |
+| Fallo parcial al borrar o envío ya en curso | Barreras de borrado, reintentos y purga; el worker de correo revalida elegibilidad. | No hay transacción única entre DynamoDB, S3, Rekognition y SES. Se conservan los límites concurrentes documentados y se comprueba la limpieza. |
+
+El uso de enlaces portadores es una decisión de usabilidad, no una autenticación
+de la persona. AWS describe las URLs prefirmadas como capacidades portadoras
+que deben protegerse [3]. La mitigación operativa de la demo no se presenta
+como una funcionalidad automática implementada. Un uso más amplio exigiría
+revisar identidad, consentimiento de terceros y autorización por evento antes
+de ampliar el alcance.
 
 ## Envío manual de galerías y estado de verificación
 
@@ -802,15 +1055,18 @@ La prueba real a un buzón corporativo autorizado confirmó llegada a la bandeja
 de entrada, resultados `pass` de SPF, DKIM y DMARC, y apertura del enlace HTTPS
 con carga de la galería privada. El recibo del arnés acreditó ese recorrido y
 su limpieza. Este resultado respalda la entrega a ese destinatario, pero no
-satisface por sí solo el criterio de dos proveedores independientes: la
-verificación multiproveedor continúa pendiente en la issue #98.
+satisface por sí solo el criterio de dos proveedores independientes. El
+23 de octubre, el equipo confirmó expresamente el cumplimiento de ese criterio
+y solicitó el cierre de [#98](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360).
+La aceptación multiproveedor procede de esa confirmación manual; no se
+atribuye al run de un destinatario ni a nuevos envíos de esta revisión.
 
 La configuración de SES utilizada por Cognito se conserva como una decisión
 independiente del envío de galerías. Las invitaciones administrativas mantienen
 su propio flujo de alta y recuperación, sin almacenar contraseñas temporales
 en la infraestructura. La implementación del envío manual está integrada y la
-issue #86 cerrada; ese cierre no se extiende al pendiente de entregabilidad de la
-issue #98.
+issue #86 cerrada; #98 también está cerrada, con la procedencia de la
+confirmación multiproveedor diferenciada de los ensayos automatizados.
 
 El [anexo de trazabilidad del correo](#anexo-trazabilidad-del-correo) reúne las
 revisiones, ejecuciones y límites de cada evidencia, conservando el detalle
@@ -836,7 +1092,7 @@ automáticamente a ese esquema más seguro.
 
 ## Seguridad de acceso a los datos
 
-Ningún bucket de Findly admite jamás una política de acceso público: las
+La configuración de los buckets de Findly bloquea las políticas de acceso público: las
 cuatro banderas de bloqueo de acceso público están activas en todos ellos,
 con cifrado por defecto del lado del servidor. El acceso a las imágenes se
 concede exclusivamente mediante URLs firmadas de vida muy corta, nunca
@@ -844,98 +1100,100 @@ reutilizables más allá de su vigencia, y el acceso a la aplicación web se
 restringe a las peticiones firmadas por la distribución de CloudFront
 correspondiente. Cada función de cómputo tiene su propio rol de permisos
 mínimos, sin compartir acciones ni recursos más allá de lo estrictamente
-necesario para su propia responsabilidad, y el token de acceso a la galería
-privada se trata como un dato sensible por sí mismo: ni el token en claro ni
-la cabecera que lo transporta llegan nunca a los registros del sistema.
+necesario para su propia responsabilidad. El token de galería se trata como
+dato sensible: el logger estructurado descarta esos campos y se revisan las
+rutas de registro para evitar su exposición.
 
 # Costes y FinOps
 
-## Premisas y escenarios
+## Modelo reproducible y escenarios
 
-El modelo de coste de Findly se diseñó bajo dos escenarios: un entorno de
-desarrollo y pruebas que debe mantenerse dentro de la capa gratuita de AWS,
-y un entorno de demostración con un presupuesto máximo de cinco dólares al
-mes. Se ha definido un presupuesto a nivel de cuenta que avisa al ochenta
-por ciento del umbral, excluyendo créditos y reembolsos del cálculo. Su
-configuración está cubierta por planes y contratos; la entrega del canal
-SNS se verificó en AWS, pero no se observó el disparo propio de Budgets.
-El control diseñado alerta sobre el gasto: no interrumpe ni elimina recursos
-al superar el umbral.
+El objetivo presupuestario de demo es 5 USD/mes; no equivale a gasto observado.
+Para contrastar su viabilidad se calcula un mes de actividad con tarifas
+públicas de AWS para `eu-west-1`, consultadas el 25 de octubre de 2026, y
+CloudFront en Europa. El [modelo reproducible](../../evidence/finops-2026-10-25/README.md)
+conserva tarifas, SKU, unidades, fuentes, supuestos, calculadora Python y CSV.
+No descuenta capa gratuita ni créditos y expresa USD antes de impuestos.
+Es una estimación de los servicios modelados, no una factura ni una exportación
+de AWS Pricing Calculator.
 
-## Coste por servicio
+Se suponen fotos de 3 MiB, selfies de 0,5 MiB, una cara por foto, cinco descargas
+y cinco coincidencias por asistente, retención de un mes y un correo manual
+por participante. La SPA añade almacenamiento S3, peticiones y transferencia
+CloudFront; las fotos se descargan directamente desde S3. Se incluyen cuatro
+MAU hipotéticos de Cognito Essentials, cuatro alarmas, dos métricas activas
+y logs; el tercer escenario amplía a cinco métricas como sensibilidad. Los
+tiempos Lambda son supuestos de cálculo, no resultados experimentales.
 
-### API Gateway y Lambda
+<!-- prettier-ignore -->
+| Escenario supuesto | Rekognition | CloudWatch | Resto de servicios | Total modelado |
+| --- | ---: | ---: | ---: | ---: |
+| 20 asistentes / 100 fotos | $0.2202 | $1.0120 | $0.1037 | **$1.3359** |
+| 100 asistentes / 500 fotos | $1.1010 | $1.0480 | $0.2747 | **$2.4237** |
+| 100 asistentes / 500 fotos / 10 altas tardías | $11.1010 | $1.9600 | $0.3277 | **$13.3887** |
 
-La pasarela de API y las funciones de cómputo se facturan exclusivamente por
-petición y por duración de ejecución respectivamente, sin ninguna capacidad
-reservada de antemano: si no hay tráfico, no hay coste alguno en estos dos
-componentes.
+El desglose CSV comprende Rekognition, S3, transferencia, CloudFront, Cognito,
+DynamoDB, Lambda, HTTP API, SQS estándar/FIFO, SES, SNS y Scheduler. SNS se
+estima sin notificaciones de alarma o rebote. Se excluyen dominio y DNS por
+falta de factura, soporte, actividad de Terraform/CI, reintentos y otras rutas
+no modeladas. El plan real de Cognito/SES tampoco se ha contrastado. Por ello,
+estos importes no acreditan que la factura completa sea inferior a 5 USD.
 
-### DynamoDB
+## Rekognition y sensibilidad al backfill
 
-La base de datos se configura en modo de facturación por petición, sin
-capacidad de lectura o escritura aprovisionada por adelantado, de modo que
-el coste escala directamente con el volumen real de operaciones y de
-almacenamiento.
+El coste incluye dos partidas distintas: análisis y **almacenamiento de
+metadatos faciales en las colecciones**. Para A asistentes, N fotos, R altas
+tardías y F caras por foto, se aproximan las operaciones Group 1 como
+`A + N × (1 + R) × (1 + F)`: indexación de selfies, indexación temporal de
+fotos y búsquedas por rostro. Con las tarifas del primer tramo del modelo,
+el análisis cuesta 0,001 USD por operación y el almacenamiento 0,00001 USD
+por vector-mes. Así, cien rostros inscritos retenidos un mes añaden 0,001 USD;
+no se confunden con el almacenamiento de las imágenes originales en S3.
+Las [tarifas de Rekognition](https://aws.amazon.com/rekognition/pricing/)
+distinguen ambas partidas.
 
-### S3 y CloudFront
+Las caras temporales se eliminan tras la búsqueda; el modelo omite su breve
+residencia y los reintentos. Diez altas tardías sobre quinientas fotos añaden
+cinco mil recorridos de foto, con diez mil operaciones Group 1 si F=1: solo
+ese análisis adicional suma 10 USD. El número de rostros y el orden de llegada
+pueden dominar el coste; un evento con fotografías grupales requiere ajustar F.
 
-El almacenamiento de imágenes y de los ficheros estáticos de la aplicación
-web se factura por gigabyte almacenado y por petición; la distribución de
-contenido a través de CloudFront se factura por transferencia de datos y
-por petición, sin ningún compromiso mínimo de capacidad.
+## Contraste y control operativo
 
-### Rekognition
+El contraste parcial en [AWS Pricing Calculator](https://calculator.aws/#/estimate?id=052dd6f3544a78368ff9a2097138042393c4437e)
+para Rekognition, con 600 IndexFaces, 500 SearchFaces y cien rostros-mes en
+Irlanda, devuelve 2,201 USD frente a 1,101 USD del modelo. Su desglose suma
+dos veces las mismas 1.100 operaciones Group 1; el almacenamiento coincide.
+Se conservan [capturas y parámetros](../../evidence/finops-2026-10-25/README.md).
+Esta discrepancia queda pendiente de aclaración; no se utiliza el contraste
+parcial para validar el total ni se oculta la diferencia.
 
-El reconocimiento facial se factura por imagen procesada, tanto en la
-indexación de selfies como en cada comparación de fotografía de evento;
-dado que cada fotografía con varias personas requiere varias llamadas al
-servicio, este es uno de los componentes cuyo coste crece más directamente
-con el volumen de fotografías del evento, aunque sigue sin tener ningún
-componente fijo.
+El equipo comunica el 26 de octubre de 2026 un gasto de **1,41 EUR en
+Rekognition y 0,30 EUR en S3: 1,71 EUR en las partidas declaradas**, y confirma
+que no superó su límite de gasto asociado a la capa gratuita. Es una declaración
+del equipo; no se adjuntó factura ni intervalo de facturación. No se convierten
+esos euros a los dólares del modelo ni se deduce que otros servicios costaran
+cero. Para una comparación homogénea faltan periodo, volúmenes, impuestos,
+créditos y alcance de las partidas.
 
-### Correo transaccional
+La comparación con tarifas públicas permite reproducir el cálculo, pero falta
+conciliarlo con facturación atribuible al proyecto o con una estimación completa
+exportada de AWS Pricing Calculator. Esa conciliación debe incluir dominio/DNS,
+planes efectivos, región, intervalo, consumo bruto y créditos por separado.
+No se presenta la ausencia de factura como prueba de coste cero.
 
-El envío manual añade consumo de SES por mensajes y datos enviados, junto
-con las invocaciones Lambda y peticiones SQS/SNS que coordinan la operación
-y su feedback. La implementación no solicita IP dedicadas ni complementos
-de entregabilidad. El importe depende del plan regional y del uso según
-las [tarifas oficiales de SES](https://aws.amazon.com/ses/pricing/); esta
-aceptación no aporta una medición del coste de facturación.
+Terraform define un presupuesto de cuenta de 5 USD con aviso al 80 %, excluyendo
+créditos y reembolsos. Su configuración tiene validación estática; el recurso
+no se ha aplicado en una cuenta real según la [evidencia de FinOps](../../evidence/issue-13-observability-finops.md).
+Sí se verificó el canal SNS mediante la alarma de DLQ. El presupuesto diseñado
+alerta, no detiene recursos. Almacenamiento, métricas y alarmas pueden facturar
+sin usuarios activos.
 
-### CloudWatch y otros servicios
-
-Los registros de observabilidad generan consumo por ingestión y
-almacenamiento, acotado por su retención. Las alarmas se facturan por las
-horas durante las que existen, sujetas a las condiciones de capa gratuita;
-pueden generar consumo aunque no haya tráfico de usuarios. La cola y el
-planificador añaden sus peticiones y ejecuciones. Las condiciones vigentes
-se detallan en las [tarifas de CloudWatch](https://aws.amazon.com/cloudwatch/pricing/).
-
-## Coste total
-
-El coste total combina ejecuciones, peticiones y envíos con almacenamiento
-persistente y observabilidad. La arquitectura evita servidores y capacidad
-de cómputo aprovisionada; los objetos conservados en
-[S3](https://aws.amazon.com/s3/pricing/), los registros retenidos y las
-alarmas pueden generar consumo durante periodos sin usuarios activos. El
-importe depende también de la región, el plan y la capa gratuita aplicable.
-Al 15 de octubre de 2026 no se han contrastado los importes con una factura
-real ni con una estimación completa de la calculadora de AWS para el correo
-desplegado. Las cifras de diseño son objetivos presupuestarios y órdenes de
-magnitud, pendientes de esa comprobación.
-
-## Control de costes
-
-El diseño del control de coste combina tres mecanismos: un presupuesto
-a nivel de cuenta previsto para avisar antes de superar el umbral de cada
-escenario; un etiquetado obligatorio de todo
-recurso de infraestructura por proyecto, entorno, responsable de gestión,
-centro de coste y clase de dato, que permite atribuir el gasto real a su
-origen; y la destrucción completa y automática de cada entorno de prueba
-asociado a una pull request al finalizar su verificación, de modo que
-ninguna ejecución de integración continua deje infraestructura facturando
-entre una comprobación y la siguiente.
+Las etiquetas por proyecto y entorno permiten atribuir consumo; la retención
+limita datos conservados, y los workflows destruyen los entornos efímeros tras
+su verificación. Una interrupción de la limpieza requiere revisión operativa.
+El control más relevante para el modelo es limitar el tamaño del evento y
+observar la amplificación del backfill sin sacrificar su convergencia funcional.
 
 # Conclusiones
 
@@ -957,8 +1215,7 @@ ha traducido en acciones concretas, no en una declaración de intenciones:
   del sistema —el borrado de datos de un asistente— se diseñaron para ser
   repetibles sin error ante un fallo parcial.
 - **Eficiencia del rendimiento**: el modelo de datos resuelve por clave e índice
-  las dos consultas más frecuentes del sistema —qué inscripción corresponde a un
-  rostro y qué eventos administra un organizador— sin recorrer nunca la tabla
+  las consultas de inscripción por rostro y del catálogo administrativo de eventos sin recorrer nunca la tabla
   completa.
 - **Optimización de costes**: se evita capacidad de cómputo y red dedicada, se
   usan servicios por petición y se destruyen los entornos efímeros. El
@@ -972,10 +1229,9 @@ Dicho esto, esta memoria no presenta el proyecto como una implementación cerrad
 y exenta de limitaciones operativas: aunque los recorridos nucleares, el disparo
 del planificador de retención, las alertas de observabilidad y la entrega de
 correo en producción con autenticación criptográfica estricta han sido
-demostrados en AWS real, persisten límites empíricos concretos. Entre ellos: la
-comprobación de entregabilidad se acota a un único buzón corporativo autorizado
-sin contrastar aún proveedores comerciales externos (como Google Workspace o
-Microsoft 365); la descarga directa de ficheros desde URLs prefirmadas de S3
+demostrados en AWS real, persisten límites empíricos concretos. Entre ellos: el
+recibo automatizado de entregabilidad cubre un buzón, mientras que la aceptación
+multiproveedor se apoya en la confirmación manual del equipo; la descarga directa de ficheros desde URLs prefirmadas de S3
 presenta incidencias de temporización en motores WebKit frente al comportamiento
 validado en Chromium y Firefox; y las carreras concurrentes conservan límites
 específicos que se describen a continuación.
@@ -1011,7 +1267,7 @@ AWS efímero superó el recorrido funcional estándar, incluido el borrado de un
 foto con coincidencia y el rechazo de la operación de subida ya eliminada, y
 se destruyeron los 147 recursos gestionados por Terraform. Las pausas
 deterministas antes y durante la barrera y los casos dedicados de TTL lógico
-siguen acreditados por unitarias y Floci. Por decisión del responsable del
+siguen acreditados por unitarias y Floci. Por decisión del equipo del
 23-oct-2026, la aceptación AWS específica se aplaza como mejora de validación
 para una próxima etapa, sin fecha comprometida; #166 permanece abierta con ese
 criterio sin verificar. La corrección ya integrada no se presenta como trabajo
@@ -1064,11 +1320,11 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    borrado completo de evento con backfill o correo en curso son otra línea de
    mejora, fuera de #166. El borrado por lotes, sus reintentos y el timeout de
    60 s tampoco son capacidades por implementar.
-3. **Verificación de entregabilidad multiproveedor**:
-   extender la aceptación del servicio de correo transaccional de galerías
-   verificando la llegada efectiva a la bandeja de entrada y la ausencia de
-   desvíos a correo no deseado en cuentas gestionadas por dos proveedores independientes, manteniendo el criterio de #98; la
-   prueba existente no acredita por sí sola esa diversidad.
+3. **Ampliar la evidencia experimental y económica**: ejecutar el protocolo
+   de p95 y éxito agregado con autorización operativa y contrastar el modelo
+   de costes con consumo atribuible al proyecto. La confirmación multiproveedor
+   ya cerró #98; ampliar ensayos automatizados de correo sería una mejora de
+   reproducibilidad, no el mismo criterio pendiente.
 4. **Unificación de contratos HTTP ante recursos expirados**: armonizar el
    código de respuesta (`404 Not Found` frente a `410 Gone`) entre los puntos de
    entrada de inscripción pública y carga administrativa de fotografías ante
@@ -1149,6 +1405,22 @@ Una continuación natural del proyecto debería, por orden de prioridad:
     2016/679 (Reglamento General de Protección de Datos)_.
     <https://eur-lex.europa.eu/eli/reg/2016/679/oj>.
 
+25. Simon Brown. _The C4 model for visualising software architecture_.
+    <https://c4model.com/diagrams>. Consulta: 25-oct-2026.
+26. Waldo Photos. _Special events_.
+    <https://waldophotos.com/special-events/>. Consulta: 25-oct-2026.
+27. SpotMyPhotos. _How SpotMyPhotos delivers guests their photos_.
+    <https://help.spotmyphotos.com/en/articles/15831042-how-spotmyphotos-delivers-guests-their-photos>.
+    Consulta: 25-oct-2026.
+28. Photier. _Event photo distribution_. <https://photier.com/>.
+    Consulta: 25-oct-2026.
+29. Microsoft Azure. _Azure AI Face pricing_.
+    <https://azure.microsoft.com/en-us/pricing/details/cognitive-services/face-api/>.
+    Consulta: 25-oct-2026.
+30. Google Cloud. _Detect faces_.
+    <https://cloud.google.com/vision/docs/detecting-faces>.
+    Consulta: 25-oct-2026.
+
 # Anexo: trazabilidad del correo
 
 Esta tabla complementa la sección de envío manual de galerías. Separa las
@@ -1157,17 +1429,23 @@ una validación de infraestructura no se interpreta como entrega al buzón.
 Los identificadores corresponden a los ensayos históricos citados en la
 evidencia del repositorio, no a nuevas ejecuciones de esta revisión documental.
 
-| Hito y referencia                                                                                                                                                                                                                                                         | Resultado observado                                                                                                                                                             | Alcance y límite                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Preparación regional y [plan OIDC 38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625)                                                                                                                                                        | SES de producción habilitado; identidad, DKIM y MAIL FROM verificados; SPF, DMARC y HTTPS disponibles. Plan: 36 altas, 15 modificaciones y cero borrados, sin aplicar.          | Preparación de dominio e infraestructura; no demuestra entrega.                           |
-| Integración [PR #133](https://github.com/upc-malvaviscos/findly/pull/133), [plan revisado 38780832909](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909) y [despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488) | Se conserva el remitente SES de Cognito. Despliegue: 36 altas, 13 modificaciones y cero destrucciones; circuito de correo, feedback, alarmas y HTTPS habilitados.               | Publicación técnica; la recepción se verifica por separado.                               |
-| Correcciones del arnés: [PR #134](https://github.com/upc-malvaviscos/findly/pull/134), [#135](https://github.com/upc-malvaviscos/findly/pull/135) y [#136](https://github.com/upc-malvaviscos/findly/pull/136)                                                            | Ajustes de URL de API, comprobación S3 con permisos limitados, sufijo de foto y consulta de logs. 651 pruebas locales y cinco checks remotos, con ciclo AWS efímero.            | Correcciones de contratos de prueba sin ampliar permisos de producción.                   |
-| Worker: [PR #137](https://github.com/upc-malvaviscos/findly/pull/137) y [despliegue 38808198446](https://github.com/upc-malvaviscos/findly/actions/runs/38808198446)                                                                                                      | Alias de TTL corregido en dos condiciones DynamoDB, con regresión. 653 pruebas locales; despliegue de 17 actualizaciones, sin altas ni borrados.                                | Corrige el fallo previo al envío; no acredita todavía todo el arnés.                      |
-| [Aceptación 38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703) y [corrección PR #140](https://github.com/upc-malvaviscos/findly/pull/140)                                                                                                   | El escenario de supresión falló por subaddressing y clasificación de BadRequestException. Se corrigieron la dirección sintética, el diagnóstico y los contratos del manifiesto. | La ejecución fallida interrumpió la limpieza; no se contabiliza como aceptación completa. |
-| [Aceptación sintética 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818)                                                                                                                                                                    | Nueve escenarios del arnés correctos, incluyendo envío, rebote, queja, supresión, fallo de plantilla, idempotencia y token; limpieza estricta confirmada.                       | Servicios AWS reales y destinatarios sintéticos; no sustituye la recepción externa.       |
-| [Entrega real 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584)                                                                                                                                                                            | Un buzón corporativo autorizado recibió el mensaje en inbox con SPF/DKIM/DMARC pass; se abrió la galería HTTPS y se purgaron los datos temporales.                              | Evidencia de un destinatario; no demuestra dos proveedores independientes.                |
-| Invitaciones administrativas, [issue #105](https://github.com/upc-malvaviscos/findly/issues/105)                                                                                                                                                                          | Se conserva SES en Cognito; reemisión con AdminCreateUser/RESEND y recepción y acceso confirmados el 20 de octubre de 2026.                                                     | Flujo independiente de galerías; sin publicar contraseñas ni ampliar IAM.                 |
-| Sincronización [PR #142](https://github.com/upc-malvaviscos/findly/pull/142)                                                                                                                                                                                              | Documentación y evidencias integradas con nueve checks correctos; cierre de #86. #98 conserva el pendiente multiproveedor.                                                      | El cierre de implementación no amplía el alcance de la evidencia de recepción.            |
+<!-- prettier-ignore -->
+| Hito y referencia | Resultado observado | Alcance y límite |
+| --- | --- | --- |
+| Preparación regional y [plan OIDC 38769498625](https://github.com/upc-malvaviscos/findly/actions/runs/38769498625) | SES de producción habilitado; identidad, DKIM y MAIL FROM verificados; SPF, DMARC y HTTPS disponibles. Plan: 36 altas, 15 modificaciones y cero borrados, sin aplicar. | Preparación de dominio e infraestructura; no demuestra entrega. |
+| Integración [PR #133](https://github.com/upc-malvaviscos/findly/pull/133), [plan revisado 38780832909](https://github.com/upc-malvaviscos/findly/actions/runs/38780832909) y [despliegue 38781070488](https://github.com/upc-malvaviscos/findly/actions/runs/38781070488) | Se conserva el remitente SES de Cognito. Despliegue: 36 altas, 13 modificaciones y cero destrucciones; circuito de correo, feedback, alarmas y HTTPS habilitados. | Publicación técnica; la recepción se verifica por separado. |
+| Correcciones del arnés: [PR #134](https://github.com/upc-malvaviscos/findly/pull/134), [#135](https://github.com/upc-malvaviscos/findly/pull/135) y [#136](https://github.com/upc-malvaviscos/findly/pull/136) | Ajustes de URL de API, comprobación S3 con permisos limitados, sufijo de foto y consulta de logs. 651 pruebas locales y cinco checks remotos, con ciclo AWS efímero. | Correcciones de contratos de prueba sin ampliar permisos de producción. |
+| Worker: [PR #137](https://github.com/upc-malvaviscos/findly/pull/137) y [despliegue 38808198446](https://github.com/upc-malvaviscos/findly/actions/runs/38808198446) | Alias de TTL corregido en dos condiciones DynamoDB, con regresión. 653 pruebas locales; despliegue de 17 actualizaciones, sin altas ni borrados. | Corrige el fallo previo al envío; no acredita todavía todo el arnés. |
+| [Aceptación 38808775703](https://github.com/upc-malvaviscos/findly/actions/runs/38808775703) y [corrección PR #140](https://github.com/upc-malvaviscos/findly/pull/140) | El escenario de supresión falló por subaddressing y clasificación de BadRequestException. Se corrigieron la dirección sintética, el diagnóstico y los contratos del manifiesto. | La ejecución fallida interrumpió la limpieza; no se contabiliza como aceptación completa. |
+| [Aceptación sintética 38950320818](https://github.com/upc-malvaviscos/findly/actions/runs/38950320818) | Nueve escenarios del arnés correctos, incluyendo envío, rebote, queja, supresión, fallo de plantilla, idempotencia y token; limpieza estricta confirmada. | Servicios AWS reales y destinatarios sintéticos; no sustituye la recepción externa. |
+| [Entrega real 38955016584](https://github.com/upc-malvaviscos/findly/actions/runs/38955016584) | Un buzón corporativo autorizado recibió el mensaje en inbox con SPF/DKIM/DMARC pass; se abrió la galería HTTPS y se purgaron los datos temporales. | Evidencia de un destinatario; no demuestra dos proveedores independientes. |
+| Invitaciones administrativas, [issue #105](https://github.com/upc-malvaviscos/findly/issues/105) | Se conserva SES en Cognito; reemisión con AdminCreateUser/RESEND y recepción y acceso confirmados el 20 de octubre de 2026. | Flujo independiente de galerías; sin publicar contraseñas ni ampliar IAM. |
+| Sincronización [PR #142](https://github.com/upc-malvaviscos/findly/pull/142) | Documentación y evidencias integradas con nueve checks correctos; cierre de #86. #98 conservaba entonces el pendiente multiproveedor. | El cierre de implementación no amplía el alcance de la evidencia de recepción. |
+
+El 23 de octubre de 2026 se añadió la
+[confirmación manual del equipo](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360)
+sobre recepción en dos proveedores y se cerró #98. Este hito posterior
+completa el criterio; no amplía el alcance del recibo de un destinatario.
 
 Detalle de contratos y evidencias:
 [ADR-019](../../adr/ADR-019-manual-gallery-email-capabilities.md) y

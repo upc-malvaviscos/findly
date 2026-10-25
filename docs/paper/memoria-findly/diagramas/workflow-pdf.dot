@@ -1,0 +1,24 @@
+digraph workflow_pdf {
+  graph [rankdir=TB, bgcolor="white", pad=0.32, nodesep=0.4, ranksep=0.48,
+         fontname="Helvetica", fontsize=20, labelloc=t,
+         label="Memoria PDF · validación y release"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12,
+        margin="0.18,0.12", penwidth=1.3];
+  edge [fontname="Helvetica", fontsize=10, color="#475569", penwidth=1.4, arrowsize=0.75];
+
+  pr [label="PR con cambios en entradas PDF\nCompilación validada; no publica preview", fillcolor="#dbeafe", color="#2563eb"];
+  merge [label="Cambio relevante integrado en main", fillcolor="#dcfce7", color="#15803d"];
+  trigger [label="push o callback tras CI / Ephemeral PR / CodeQL\nRecuperación manual verificada disponible", fillcolor="#f0fdf4", color="#15803d"];
+  select [label="Resolver PR integrada, SHA y rutas\nUsar checkout de main como automatización", fillcolor="#f0fdf4", color="#15803d"];
+  dedup [shape=diamond, style=filled, label="¿Release existente\npara ese SHA?", fillcolor="#fffbea", color="#a16207", margin="0.16,0.08"];
+  existing [label="Devolver enlace\nsin export ni build", fillcolor="#f8fafc", color="#64748b"];
+  export [label="Exportar sólo datos del commit integrado\nCompilar con toolchain PDF fijada", fillcolor="#f0fdf4", color="#15803d"];
+  release [label="Publicar memoria.pdf\nen GitHub Release", fillcolor="#dcfce7", color="#15803d"];
+  queue [shape=note, label="Cola estándar: una ejecución activa y una pendiente.\nUna ejecución nueva puede reemplazar la pendiente; no se garantiza una release por cada merge intermedio.", fillcolor="#fffbea", color="#a16207", fontsize=10];
+  pr -> merge [style=dashed, label="si los cambios se integran"];
+  merge -> trigger -> select -> dedup;
+  dedup -> existing [label="sí"];
+  dedup -> export [label="no"];
+  export -> release;
+  release -> queue [style=dashed, arrowhead=none];
+}

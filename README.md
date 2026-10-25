@@ -224,8 +224,8 @@ parcial con un buzón no completa el requisito de dos proveedores. Diseño aprob
 [ADR-019](docs/adr/ADR-019-manual-gallery-email-capabilities.md), configuración en
 [runbook SES](docs/runbooks/gallery-email-ses-acens.md) y pruebas/pendientes en
 [evidencia #86](docs/evidence/issue-86-gallery-email.md). La issue #49 está
-cerrada y mantiene DynamoDB (ADR-022). #98 se reabre por falta de evidencia
-de recepción/apertura en un segundo proveedor; #166 incorpora una barrera
+cerrada y mantiene DynamoDB (ADR-022). #98 está cerrada tras confirmación manual del equipo sobre dos proveedores
+(el ensayo automatizado conserva alcance de un buzón); #166 incorpora una barrera
 previa a la limpieza y revalidación atómica de tombstone/TTL de foto, integradas
 en #168 y probadas con unitarias/Floci y smoke AWS efímero con teardown; quedan
 pendientes las carreras/TTL específicos en AWS y su publicación permanente. Transactional Outbox

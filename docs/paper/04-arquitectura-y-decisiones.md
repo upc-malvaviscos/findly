@@ -30,13 +30,18 @@ flowchart LR
   W --> G[API Gateway HTTP]
   G --> API[Lambdas]
   API <--> D[(DynamoDB on-demand)]
-  API -->|PUT selfie condicional y PUT foto| S[S3 cargas privado]
+  API -->|devuelve URL prefirmada| W
+  W -->|PUT directo; selfie condicional| S[S3 cargas privado]
   S -->|.selfie.jpg| E[Lambda inscripción]
   E --> R[Rekognition por entorno y evento]
   S -->|.photo.jpg| Q[SQS fotos y DLQ]
   Q --> M[Lambda matching]
   M --> R
   E --> D
+  E -->|tras ENROLLED| BQ[SQS backfill y DLQ]
+  BQ --> BF[Lambda backfill]
+  BF -->|fotos previas| R
+  BF --> D
   M --> D
   EB[EventBridge] --> X[Lambda retención]
   X --> S
@@ -73,7 +78,7 @@ flowchart LR
 > borrado, además, queda marcado "aplazado, no implementado" (capítulo 9). Toda
 > referencia a **ADR-011** en este capítulo apunta al fichero vigente,
 > `ADR-011-public-enrollment-capability.md`. La colisión de numeración en sí no
-> se ha resuelto — es una decisión pendiente de la persona responsable.
+> se ha resuelto — es una decisión pendiente del equipo.
 
 ### Catálogo de servicios e integraciones
 
@@ -220,7 +225,7 @@ sirva a los dos flujos de notificación S3 (ADR-012).
 ### Colecciones de Rekognition
 
 `${project}-${environment}-event-{eventId}` (ADR-015): aísla por entorno y
-evento, para que un handler de `sandbox` nunca pueda consultar o borrar caras
+evento, para reducir el riesgo de que un handler de `sandbox` consulte o borre caras
 de `demo`/`production`. Las colecciones creadas antes de esta decisión
 (`findly-event-{eventId}`, sin sufijo de entorno) requieren una migración
 explícita, no ejecutada (capítulo 9).

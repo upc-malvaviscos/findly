@@ -1,0 +1,18 @@
+digraph workflow_pr {
+  graph [rankdir=TB, bgcolor="white", pad=0.32, nodesep=0.38, ranksep=0.44,
+         fontname="Helvetica", fontsize=20, labelloc=t,
+         label="Workflow de PR · entorno AWS efímero"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=12,
+        margin="0.18,0.12", penwidth=1.3];
+  edge [fontname="Helvetica", fontsize=10, color="#475569", penwidth=1.4, arrowsize=0.75];
+
+  pr [label="Pull request no borrador\ncon origen en el repositorio", fillcolor="#dbeafe", color="#2563eb"];
+  ci [label="CI y verificación de elegibilidad\nCambios sólo documentales pueden omitir AWS", fillcolor="#eff6ff", color="#2563eb"];
+  oidc [label="Rama interna autorizada\nOIDC asume rol de CI efímero", fillcolor="#eff6ff", color="#2563eb"];
+  provision [label="Plan y apply de Terraform\nRecursos aislados por número de PR", fillcolor="#eff6ff", color="#2563eb"];
+  verify [label="Aceptación desplegada en AWS\nDatos de prueba sintéticos", fillcolor="#eff6ff", color="#2563eb"];
+  cleanup [label="Destroy del entorno PR\nsi se asumió el rol, también tras fallo", fillcolor="#fff4e7", color="#b36b00"];
+  skip [label="Elegibilidad excluye AWS\nno crea infraestructura", fillcolor="#f8fafc", color="#64748b"];
+  pr -> ci -> oidc -> provision -> verify -> cleanup;
+  ci -> skip [label="no requiere despliegue", style=dashed];
+}

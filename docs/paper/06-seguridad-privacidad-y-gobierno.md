@@ -32,17 +32,17 @@ ADR-003). Findly minimiza por diseño lo que persiste de una selfie:
 La política de contraseña del User Pool exige 12 caracteres mínimo con
 mayúsculas, minúsculas, números y símbolos. El JWT emitido se valida en API
 Gateway mediante un autorizador nativo (`aws_apigatewayv2_authorizer` tipo
-`JWT`, audiencia = App Client), no dentro del código de cada Lambda: una ruta
-mal configurada falla de forma cerrada en la propia puerta de entrada, antes
-de invocar ninguna función.
+`JWT`, audiencia = App Client), no dentro del código de cada Lambda: las rutas asociadas al autorizador rechazan JWT inválidos antes de invocar
+la función. Una ruta sin autorizador no queda protegida por este mecanismo;
+los contratos IaC deben comprobar esa asociación explícita.
 
 ### Tokens opacos de galería (ADR-005)
 
 El token que recibe el asistente es aleatorio; DynamoDB sólo guarda su hash
 SHA-256 como clave de partición (`TOKEN#{tokenHash}`). Ni el token en claro ni
 la cabecera `X-Gallery-Token` se registran en ningún log: la lista cerrada de
-campos del logger estructurado (capítulo 7) no tiene un campo para él, así
-que no puede llegar a CloudWatch por un descuido futuro. La URL de galería no
+campos del logger estructurado (capítulo 7) no tiene un campo para él, lo que
+reduce el riesgo en esa vía; deben revisarse también otras vías de registro. La URL de galería no
 codifica identidad, correo ni `registrationId`.
 
 ## Acceso privado a objetos S3
@@ -205,3 +205,13 @@ ampliación y su aceptación se registran por separado en la evidencia de #105.
 El 2026-10-20 se confirmó la recepción de la clave temporal por los usuarios
 autorizados y su primer acceso satisfactorio al sistema en producción, completando
 todos los criterios de la issue #105.
+
+## Amenazas del MVP y límites de identidad
+
+La memoria académica incorpora una matriz de suplantación con selfie ajena,
+filtración del enlace, exposición e indexación temporal de terceros y acceso
+administrativo global. No hay prueba de vida, ocultación automática de terceros
+ni propiedad individual de eventos. Las colecciones de Rekognition almacenan
+vectores aunque DynamoDB solo conserve FaceId. La demo usa adultos y material
+autorizado; esos controles operativos no se presentan como garantías técnicas.
+Véase [el análisis de amenazas](memoria-findly/memoria-postgrado.md#amenazas-controles-y-riesgo-residual).

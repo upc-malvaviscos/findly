@@ -1,0 +1,38 @@
+{
+  "as_of": "2026-10-26",
+  "revision": "075f76c7905df6cd19ad61d03b53ec5a7761a86a",
+  "method": "git log --no-merges 075f76c --format=%an; current issue assignees via gh issue list --state all --limit 300",
+  "first_commit": {
+    "sha": "397abdf",
+    "date": "2026-06-26",
+    "subject": "Initial commit"
+  },
+  "excluded_bot_commits": 22,
+  "people": [
+    {
+      "name": "Anyul Rivas",
+      "github": "anyulled",
+      "non_merge_commits": 263,
+      "assigned_issues": [86, 70, 54, 53, 52, 51, 17, 16, 14, 9, 5, 4, 2, 1]
+    },
+    {
+      "name": "Renato Luzuriaga",
+      "github": "orLuzuriaga",
+      "non_merge_commits": 39,
+      "assigned_issues": [88, 87, 61, 49, 47, 46, 22, 11]
+    },
+    {
+      "name": "Martí Fabregat Pous",
+      "github": "raati5674",
+      "non_merge_commits": 58,
+      "assigned_issues": [107, 105, 89, 18, 15, 13, 12, 10, 8, 6, 3]
+    },
+    {
+      "name": "Santiago Oliver Surinyach",
+      "github": "surinyach",
+      "non_merge_commits": 0,
+      "assigned_issues": [121, 45, 7]
+    }
+  ],
+  "limits": "Commit counts reflect recorded authorship, not hours or proportional effort. PR #72 authored by surinyach contains commits attributed to anyulled. Assignments reflect current state, not historical completion ownership."
+}

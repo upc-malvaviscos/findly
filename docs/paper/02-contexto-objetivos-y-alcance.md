@@ -17,7 +17,7 @@ capacidad de cómputo/red dedicada (ADR-002). No implica factura cero: el
 almacenamiento y la observabilidad pueden generar consumo sin tráfico.
 
 Quedan fuera del alcance la vigilancia o el vídeo en tiempo real, imágenes no
-autorizadas, menores sin consentimiento documentado del tutor, alta
+autorizadas, menores, incluso con autorización de tutor, alta
 disponibilidad o multirregión, RDS, EC2, VPC, NAT, EKS y comunicaciones
 masivas por correo o SMS.
 
@@ -189,3 +189,7 @@ esa entrega académica ya está cerrada. En la revisión del 23-oct-2026 se reab
 \#98 al comprobar que su criterio de dos proveedores no está demostrado por la
 prueba de un único buzón. #86, #87, #89 y #49 conservan los cierres respaldados,
 con sus límites documentados.
+
+La confirmación manual posterior del equipo del 23-oct-2026 completó el
+criterio multiproveedor y cerró #98; véase la
+[evidencia actualizada](../evidence/issue-98-ses-production.md).

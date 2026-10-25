@@ -1,0 +1,21 @@
+digraph contexto {
+  graph [rankdir=TB, bgcolor="white", pad=0.28, nodesep=0.7, ranksep=0.8,
+         fontname="Helvetica", fontsize=19, labelloc=t,
+         label="C4 · contexto del sistema"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=13,
+        margin="0.2,0.14", penwidth=1.5];
+  edge [fontname="Helvetica", fontsize=10, color="#475569", penwidth=1.5, arrowsize=0.8];
+
+  assistant [label="Asistente\nPersona que consiente y consulta\nsu galería privada", fillcolor="#dbeafe", color="#2563eb"];
+  organizer [label="Organizador\nGestiona eventos y carga fotografías\ncon acceso autenticado", fillcolor="#dbeafe", color="#2563eb"];
+  findly [label="Findly\nAplicación web para inscripción,\nmatching facial y galería privada", fillcolor="#dcfce7", color="#15803d", penwidth=2.0];
+  email [label="Servicio de correo (opcional)\nEnvío manual de galerías elegibles", fillcolor="#f1f5f9", color="#64748b"];
+
+  face [label="Amazon Rekognition\nIndexación y búsqueda facial", fillcolor="#f1f5f9", color="#64748b"];
+  identity [label="Amazon Cognito\nIdentidad administrativa", fillcolor="#f1f5f9", color="#64748b"];
+  findly -> face [label="Rostros por evento"];
+  findly -> identity [label="Autenticación de organizadores"];
+  assistant -> findly [label="Se inscribe con consentimiento;\nconsulta coincidencias"];
+  organizer -> findly [label="Administra eventos y carga fotos"];
+  findly -> email [label="Invitación manual opcional\n(según configuración) ", style=dashed];
+}

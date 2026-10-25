@@ -15,8 +15,8 @@ Las Lambdas escriben en CloudWatch Logs una línea JSON por evento, con un
 invocación de Lambda o del mensaje de SQS. El registro admite una lista cerrada
 de metadatos (`eventId`, `photoId`, `statusCode`, `durationMs`, el nombre de la
 clase de error y contadores): no existe un campo para nombres, correos, tokens de
-galería, `faceId`, `registrationId` ni mensajes de error, de modo que no pueden
-llegar a los logs por descuido. Las respuestas de error devuelven ese mismo
+galería, `faceId`, `registrationId` ni mensajes de error, lo que reduce el riesgo de registrarlos; no acredita por sí solo la ausencia
+de datos sensibles en cualquier salida. Las respuestas de error devuelven ese mismo
 identificador como `requestId`, lo que permite localizar en los logs el fallo que
 reporta un usuario. Cada Lambda declara su grupo de logs con retención de 14
 días, para que el almacenamiento no crezca sin límite.
@@ -46,7 +46,7 @@ del error.
 
 ## FinOps
 
-AWS Budgets vigila el gasto mensual real y avisa al 80 % de un límite de 5 USD,
+La configuración de AWS Budgets prevé vigilar el gasto mensual real y avisa al 80 % de un límite de 5 USD,
 la cifra de demostración de la especificación de alcance. El presupuesto es de
 ámbito de cuenta, no de entorno, y excluye créditos y reembolsos para que una
 cuenta con créditos de capa gratuita no mida un coste neto de cero. Este control
@@ -55,10 +55,10 @@ avisa, no frena: no corta recursos al superar el límite.
 Estado de validación: la configuración se verificó con un `terraform plan` sin
 conexión a AWS y con pruebas automatizadas; el recurso nunca se ha aplicado en
 una cuenta real. El desvío a la DLQ y la alarma sí están verificados en AWS
-real (capítulo 8), con entrega SNS real. La persona responsable decidió
+real (capítulo 8), con entrega SNS real. El equipo decidió
 (2026-10-14) aceptar ese canal SNS ya acreditado como evidencia suficiente en
 vez de exigir observar el disparo propio del servicio Budgets, dado que
-forzarlo exige gasto real adicional, descartado por el responsable.
+forzarlo exige gasto real adicional, descartado por el equipo.
 Detalle en `docs/evidence/issue-13-observability-finops.md`.
 
 ### Correo desplegado y consumo persistente — 2026-10-15
@@ -84,7 +84,7 @@ uno en el código:
 | Facturación por petición, no por capacidad reservada | 02             | DynamoDB `PAY_PER_REQUEST`; Lambda por invocación y duración.                                 |
 | Purga automática de datos que ya no aportan valor    | 02, 09         | TTL de DynamoDB + `retentionPurger` programado, no acumulación indefinida.                    |
 | Retención de logs acotada                            | 12             | 14 días en cada grupo de CloudWatch Logs; sin retención infinita por omisión.                 |
-| Aislamiento de coste por entorno efímero             | 15 (ADR-008)   | Cada PR crea y destruye su propio stack; nada queda facturando entre ejecuciones.             |
+| Aislamiento de coste por entorno efímero             | 15 (ADR-008)   | Las PR elegibles crean y destruyen su stack; se deben revisar fallos de limpieza.             |
 | Alerta antes de exceder el presupuesto, no después   | 12             | AWS Budgets al 80 % del gasto real (pendiente de confirmación en AWS, ver arriba).            |
 
 ### Sostenibilidad
@@ -96,6 +96,21 @@ propiedad alineada con el pilar de sostenibilidad del Well-Architected
 Framework: al facturar y ejecutar por petición, no reserva capacidad de
 cómputo inactiva a la espera de tráfico — a diferencia de una instancia EC2 o
 RDS encendida 24/7 e infrautilizada la mayor parte del tiempo. La destrucción
-garantizada de cada entorno efímero de PR (capítulo 5) tiene el mismo efecto
+prevista de cada entorno efímero de PR (capítulo 5) tiene el mismo efecto
 en la fase de desarrollo: no hay infraestructura de prueba corriendo sin uso
 entre una ejecución de CI y la siguiente.
+
+## Estimación cuantificada — 25 de octubre de 2026
+
+El [modelo reproducible](../evidence/finops-2026-10-25/README.md) conserva tarifas
+públicas regionales, supuestos y cálculo offline. Estima aproximadamente
+1,34 USD para 20 asistentes/100 fotos, 2,42 USD para 100/500 y 13,39 USD
+para 100/500 con diez altas tardías. Incluye metadatos faciales de Rekognition,
+almacenamiento, observabilidad, distribución y correo. Son servicios modelados,
+sin capa gratuita ni créditos, no una factura completa: dominio/DNS, planes
+efectivos y gasto real siguen pendientes de conciliación.
+
+El equipo declara el 26 de octubre 1,41 EUR de Rekognition y 0,30 EUR de S3,
+sin aportar todavía factura ni periodo. El contraste parcial de Rekognition
+en AWS Pricing Calculator muestra una discrepancia documentada en el modelo;
+no se presenta como conciliación completa.

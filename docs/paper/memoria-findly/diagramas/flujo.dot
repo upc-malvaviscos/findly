@@ -1,27 +1,22 @@
-digraph flujo {
-  rankdir=TB;
-  bgcolor="white";
-  pad=0.4;
-  nodesep=0.6;
-  ranksep=0.7;
-  fontname="Helvetica";
-  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=15,
-        width=3.0, height=1.5, margin="0.25,0.18",
-        color="#2b4c7e", fillcolor="#eef3fb", penwidth=1.4];
-  edge [color="#2b4c7e", penwidth=1.8, arrowsize=1.0, fontname="Helvetica", fontsize=12];
+digraph recorrido {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.42, ranksep=0.62,
+         fontname="Helvetica", fontsize=19, labelloc=t,
+         label="Findly · recorrido funcional"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=13,
+        margin="0.18,0.12", color="#31547d", fillcolor="#edf4fb", penwidth=1.4];
+  edge [color="#31547d", penwidth=1.5, arrowsize=0.8, fontname="Helvetica", fontsize=10];
 
-  p1 [label="1. Inscripción\n\nEl asistente acepta el\nconsentimiento biométrico\ny sube una selfie"];
-  p2 [label="2. Carga de fotos\n\nEl organizador (autenticado)\nsube las fotos del evento"];
-  p3 [label="3. Coincidencias\n\nFindly busca el rostro del\nasistente en las fotos"];
-  p4 [label="4. Galería privada\n\nEl asistente recibe un enlace\ntemporal a sus fotos"];
-  p5 [label="Retirada de datos\n\nBorrado automático al caducar\no a petición del asistente",
-      fillcolor="#fdf1e3", color="#b36b00"];
+  participant [label="Asistente\nconsiente y se inscribe"];
+  selfie [label="Selfie\nsubida directa a S3"];
+  enrolled [label="ENROLLED\nidentidad facial indexada"];
+  organizer [label="Organizador\nautenticado carga fotos"];
+  photos [label="Fotos del evento\nsubida directa a S3"];
+  gallery [label="Galería privada\ncoincidencias y enlace temporal"];
+  erase [label="Retirada / caducidad\nborrado de datos asociados", fillcolor="#fff4e7", color="#b36b00"];
 
-  { rank=same; p1; p2; p3; }
-  { rank=same; p5; p4; }
-
-  p1 -> p2;
-  p2 -> p3;
-  p3 -> p4;
-  p5 -> p4 [dir=back, style=dashed, color="#b36b00", label="  caducidad"];
+  participant -> selfie -> enrolled;
+  organizer -> photos;
+  enrolled -> gallery [label="backfill de fotos previas"];
+  photos -> gallery [label="matching al llegar cada foto"];
+  gallery -> erase [style=dashed, color="#b36b00", label="retención o solicitud"];
 }

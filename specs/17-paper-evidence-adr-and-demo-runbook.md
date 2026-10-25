@@ -125,3 +125,26 @@ smoke AWS efímero y teardown pasaron (147 recursos Terraform destruidos);
 los ensayos AWS específicos de carreras/TTL y su publicación permanente no se
 presentan como completados. Véase la
 [evidencia de #166](../docs/evidence/issue-166-photo-matching-barrier.md).
+
+## Revisión académica de la memoria (#192)
+
+La revisión del 25-oct-2026 incorpora resumen, fuentes primarias, matriz de
+requisitos, amenazas y vistas C4/secuencias/infraestructura/CI-CD fieles a los
+contratos existentes. El cronograma y las contribuciones se trazan a PR;
+las horas no registradas quedan pendientes de declaración del equipo. El
+modelo de costes separa tarifas y supuestos de la facturación observada.
+
+La aplicación desplegada y funcional con dominio registrado está confirmada
+por el equipo; la demo de defensa está prevista. El estado histórico del
+nivel 3 del runbook anterior no significa que la aplicación actual carezca de
+despliegue. La disponibilidad no acredita automáticamente la revisión exacta
+ni todos los escenarios concurrentes.
+
+No hay observaciones suficientes para acreditar p95 y éxito agregado. La
+revisión retira además la interpretación de `enrolledAfterMs` de #87 como
+latencia S3 PUT → ENROLLED: sus cronómetros no delimitan esa operación. Se
+preserva la aceptación funcional y se documenta el protocolo de medición.
+No se cambian objetivos ni se ejecuta AWS para completar cifras.
+
+Seguimiento: [#192](https://github.com/upc-malvaviscos/findly/issues/192).
+Evidencia y validaciones: [revisión #192](../docs/evidence/issue-192-academic-memory-review.md).

@@ -435,11 +435,12 @@
     {
       "id": "REQ-PAPER-RUNBOOK",
       "description": "Memoria y runbook trazados a evidencia y al stack vigente.",
-      "issues": [18],
+      "issues": [18, 192],
       "spec": "specs/17-paper-evidence-adr-and-demo-runbook.md",
       "implementation": [
         "docs/paper/05-implementacion-y-cicd.md",
-        "docs/runbooks/demo-runbook.md"
+        "docs/runbooks/demo-runbook.md",
+        "docs/paper/memoria-findly/memoria-postgrado.md"
       ],
       "verification": [
         {
@@ -456,9 +457,17 @@
         {
           "file": "docs/evidence/2026-10-23-code-truth-sync.md",
           "environment": "static"
+        },
+        {
+          "file": "docs/evidence/issue-192-academic-memory-review.md",
+          "environment": "static"
         }
       ],
-      "documentation": ["docs/README.md", "README.md"]
+      "documentation": [
+        "docs/README.md",
+        "README.md",
+        "docs/paper/memoria-findly/README.md"
+      ]
     },
     {
       "id": "REQ-MANUAL-GALLERY-EMAIL",

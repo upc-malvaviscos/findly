@@ -1,0 +1,297 @@
+{
+  "metadata": {
+    "currency": "USD",
+    "region": "eu-west-1",
+    "as_of": "2026-10-25",
+    "source_method": "AWS public Price List regional JSON catalogs, no authenticated AWS access; Python stdlib calculator; Free Tier/credits not deducted; VAT, custom domain/DNS, support, KMS, Terraform idle/log traffic, retries and SNS notification delivery excluded or stated separately. CloudFront and Cognito use their global AWS offer indexes and Europe/eu-west-1 product rows; SES uses classic $0.10/1000 per recipient assuming direct SendEmail, while deployed SES plan is unknown."
+  },
+  "prices": {
+    "rekognition_group1": {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRekognition/current/eu-west-1/index.json",
+      "unit": "image processed",
+      "tiers": [
+        [1000000, 0.001],
+        [5000000, 0.0008],
+        [35000000, 0.0006],
+        [null, 0.0004]
+      ],
+      "sku": "U6CM79GGF87J2Y36 EUW1-Group1-ImagesProcessed",
+      "note": "IndexFaces operation + SearchFacesById operation; one IndexFaces per selfie plus one per processed event photo; DeleteFaces excluded from Group 1."
+    },
+    "rekognition_face_vector_month": {
+      "rate": 1e-5,
+      "unit": "face-vector-month",
+      "sku": "BNVT6AWJCPFW9Z97 EU-FaceVectorsStored",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRekognition/current/eu-west-1/index.json"
+    },
+    "s3_standard_gb_month": {
+      "rate": 0.023,
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json",
+      "sku": "4AJHPB29ZPVFADXP EU-TimedStorage-ByteHrs",
+      "unit": "GB-month"
+    },
+    "s3_put_per_1000": {
+      "rate": 0.005,
+      "sku": "578M9UJHH6X5PZVC EU-Requests-Tier1",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json",
+      "unit": "1000 requests"
+    },
+    "s3_get_per_10000": {
+      "rate": 0.004,
+      "sku": "ZCQD4CM637S7D8U5 EU-Requests-Tier2",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json",
+      "unit": "10000 requests"
+    },
+    "s3_get_request": {
+      "rate": 4e-7,
+      "unit": "request",
+      "computed_from": "$0.004/10,000 GET",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json"
+    },
+    "dynamodb_read_request_unit": {
+      "rate": 1.415e-7,
+      "sku": "3ERQSZWPAMX2JWHN EU-ReadRequestUnits",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDynamoDB/current/eu-west-1/index.json",
+      "unit": "read request unit"
+    },
+    "dynamodb_write_request_unit": {
+      "rate": 7.05e-7,
+      "sku": "F4EZE5SAMS3D49NJ EU-WriteRequestUnits",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDynamoDB/current/eu-west-1/index.json",
+      "unit": "write request unit"
+    },
+    "dynamodb_storage_gb_month": {
+      "rate": 0.283,
+      "sku": "E6MS5SS3AMMHBJC6 EU-TimedStorage-ByteHrs",
+      "note": "catalog rate applies beyond first 25 GB; applied to all bytes to avoid free-tier deduction",
+      "unit": "GB-month",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDynamoDB/current/eu-west-1/index.json"
+    },
+    "lambda_request": {
+      "rate": 2e-7,
+      "sku": "B5V2RNHAWGVJBZD3 EU-Request",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/eu-west-1/index.json",
+      "unit": "request"
+    },
+    "lambda_gb_second": {
+      "rate": 1.66667e-5,
+      "sku": "SGGKTWDV7PGMPPSJ EU-Lambda-GB-Second",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/eu-west-1/index.json",
+      "unit": "GB-second"
+    },
+    "ses_email": {
+      "rate": 0.0001,
+      "unit": "recipient",
+      "sku": "P7V48X5R37626GSK EU-Recipients (SendEmail/SendRawEmail, non-EC2 origin)",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSES/current/eu-west-1/index.json",
+      "note": "Classic outbound direct SendEmail rate $0.10/1000; assumes no attachments. Current SES plan selection unknown; newer Essentials SKU differs."
+    },
+    "sqs_standard_request": {
+      "rate": 4e-7,
+      "sku": "SSZJAF3K6XY544ES EU-Requests-Tier1",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/eu-west-1/index.json",
+      "unit": "request"
+    },
+    "sns_api_request": {
+      "rate": 5e-7,
+      "sku": "ZVCRD326SNFYPYWV EU-Requests-Tier1",
+      "note": "conservative rate applied to all sends; no SNS delivery expected absent alarm",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSNS/current/eu-west-1/index.json",
+      "unit": "request"
+    },
+    "cloudwatch_log_ingest_gb": {
+      "rate": 0.57,
+      "sku": "KJBTQPDHW2H92B8Y EU-DataProcessing-Bytes",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json",
+      "unit": "GB"
+    },
+    "cloudwatch_log_storage_gb_month": {
+      "rate": 0.03,
+      "sku": "M93YPPU987S2T6U9 EU-TimedStorage-ByteHrs",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json",
+      "unit": "GB-month"
+    },
+    "cloudwatch_alarm_metric_month": {
+      "rate": 0.1,
+      "sku": "GDMKAEDCSYJAKBZQ EU-CW:AlarmMonitorUsage",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json",
+      "unit": "alarm metric-month"
+    },
+    "cloudwatch_custom_metric_month": {
+      "rate": 0.3,
+      "sku": "58YXNUN4MF8JD9ZA EU-CW:MetricMonitorUsage",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json",
+      "unit": "metric-month"
+    },
+    "internet_egress_gb": {
+      "rate": 0.09,
+      "url": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "note": "AWS published aggregate data transfer out to Internet rate, charged here without the 100 GB/month included allocation. Event photo downloads are direct S3.",
+      "unit": "GB"
+    },
+    "api_gateway_http_request": {
+      "rate": 1.11e-6,
+      "sku": "WPZ6JK7P27W4K4QK EU-ApiGatewayHttpRequest",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonApiGateway/current/eu-west-1/index.json",
+      "note": "HTTP API first 300M requests; used because Terraform protocol_type=HTTP",
+      "unit": "request"
+    },
+    "cognito_essentials_mau": {
+      "rate": 0.015,
+      "unit": "MAU",
+      "sku": "3GVVE46F3BD9CRPA EU-CognitoEssentialsMAU",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCognito/current/index.json",
+      "note": "Assumed Essentials tier; do not infer deployed pool tier. Charge all assumed 4 MAU without 10k free tier."
+    },
+    "sqs_fifo_request": {
+      "rate": 5e-7,
+      "unit": "request",
+      "sku": "6H4FT9UZM5YGT53K EU-Requests-FIFO-Tier1",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/eu-west-1/index.json"
+    },
+    "cloudfront_https_request": {
+      "rate": 1.2e-6,
+      "unit": "request",
+      "sku": "YA5QZD7XG45UGHCH EU-Requests-Tier2-HTTPS",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudFront/current/index.json",
+      "note": "Europe edge, HTTPS GET/HEAD, $0.012/10,000."
+    },
+    "cloudfront_europe_egress_gb": {
+      "rate": 0.085,
+      "unit": "GB",
+      "sku": "VU3485RNDU6HBQF6 EU-DataTransfer-Out-Bytes",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudFront/current/index.json",
+      "note": "Europe first 10 TB tier; applies to SPA assets only, not direct-S3 event photos."
+    },
+    "scheduler_invocation": {
+      "rate": 1e-6,
+      "unit": "invocation",
+      "sku": "E82DKZKPTKQ3W532 EU-ScheduledInvocation",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSEvents/current/eu-west-1/index.json",
+      "note": "Use paid per-invocation rate gross, ignoring the 14M included tier."
+    }
+  },
+  "assumptions": {
+    "average_faces_per_event_photo": 1,
+    "matches_per_attendee_storage": 5,
+    "photo_metadata_bytes": 500,
+    "registration_metadata_bytes": 1024,
+    "match_item_bytes": 1024,
+    "ddb_match_transaction_put_wru_per_match_pair": 4,
+    "ddb_transactional_condition_read_ru_per_match": 4,
+    "query_photo_item_bytes": 1024,
+    "late_backfill_page_size": 25,
+    "api_requests_per_attendee": 8,
+    "api_requests_per_photo": 1,
+    "api_fixed_requests": 10,
+    "api_lambda_ms": 150,
+    "api_lambda_memory_mb": 256,
+    "photo_lambda_ms_per_photo_pass": 1200,
+    "photo_lambda_memory_mb": 512,
+    "enrollment_lambda_ms_per_attendee": 2000,
+    "enrollment_lambda_memory_mb": 512,
+    "backfill_lambda_fixed_ms_per_page": 300,
+    "backfill_lambda_memory_mb": 512,
+    "downloads_per_attendee": 5,
+    "sns_sends_per_month": 0,
+    "retention_months": 1,
+    "cognito_mau": 4,
+    "frontend_https_requests_per_visitor": 25,
+    "cloudfront_cache_hit_ratio": 0.8,
+    "monthly_frontend_deploy_puts": 10,
+    "gallery_email_status_api_calls_per_email": 2,
+    "gallery_email_worker_ms": 2000,
+    "gallery_email_worker_memory_mb": 256,
+    "gallery_email_sqs_requests_per_email": 3,
+    "retention_purger_monthly_invocations": 30,
+    "retention_purger_ms": 1000,
+    "retention_purger_memory_mb": 512,
+    "image_mib": 3,
+    "selfie_mib": 0.5,
+    "frontend_static_mib_per_visitor": 2,
+    "frontend_s3_origin_mib": 10
+  },
+  "scenarios": [
+    {
+      "name": "demo_20_personas_100_fotos",
+      "attendees": 20,
+      "photos": 100,
+      "late_registrations": 0,
+      "log_ingest_gb": 0.02,
+      "cloudwatch_custom_metrics": 2,
+      "cloudwatch_alarms": 4
+    },
+    {
+      "name": "demo_100_personas_500_fotos",
+      "attendees": 100,
+      "photos": 500,
+      "late_registrations": 0,
+      "log_ingest_gb": 0.08,
+      "cloudwatch_custom_metrics": 2,
+      "cloudwatch_alarms": 4
+    },
+    {
+      "name": "sensibilidad_10_altas_tardias",
+      "attendees": 100,
+      "photos": 500,
+      "late_registrations": 10,
+      "log_ingest_gb": 0.1,
+      "cloudwatch_custom_metrics": 5,
+      "cloudwatch_alarms": 4
+    }
+  ],
+  "sources": [
+    {
+      "service": "S3",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json"
+    },
+    {
+      "service": "DynamoDB",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDynamoDB/current/eu-west-1/index.json"
+    },
+    {
+      "service": "Lambda",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/eu-west-1/index.json"
+    },
+    {
+      "service": "API Gateway",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonApiGateway/current/eu-west-1/index.json"
+    },
+    {
+      "service": "SES",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSES/current/eu-west-1/index.json"
+    },
+    {
+      "service": "SQS",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/eu-west-1/index.json"
+    },
+    {
+      "service": "SNS",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonSNS/current/eu-west-1/index.json"
+    },
+    {
+      "service": "CloudWatch",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json"
+    },
+    {
+      "service": "Rekognition",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRekognition/current/eu-west-1/index.json"
+    },
+    {
+      "service": "Data transfer out",
+      "url": "https://aws.amazon.com/ec2/pricing/on-demand/"
+    },
+    {
+      "service": "CloudFront",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudFront/current/index.json"
+    },
+    {
+      "service": "Cognito",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCognito/current/index.json"
+    },
+    {
+      "service": "EventBridge Scheduler",
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSEvents/current/eu-west-1/index.json"
+    }
+  ]
+}

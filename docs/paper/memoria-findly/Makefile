@@ -11,9 +11,16 @@ venv:
 	$(PIP) install -q -r requirements.txt
 
 diagrams: venv
-	$(PY) diagramas/arquitectura.py
+	dot -Tpng diagramas/arquitectura.dot -o img/arquitectura.png
+	$(PY) diagramas/secuencia-matching.py
 	$(PY) diagramas/correo.py
 	dot -Tpng diagramas/flujo.dot -o img/flujo.png
+	dot -Tpng diagramas/contexto-c4.dot -o img/contexto-c4.png
+	dot -Tpng diagramas/contenedores-c4.dot -o img/contenedores-c4.png
+	dot -Tpng diagramas/despliegue.dot -o img/despliegue.png
+	dot -Tpng diagramas/workflow-pr.dot -o img/workflow-pr.png
+	dot -Tpng diagramas/workflow-deploy.dot -o img/workflow-deploy.png
+	dot -Tpng diagramas/workflow-pdf.dot -o img/workflow-pdf.png
 	$(PY) diagramas/portada.py
 	$(PY) diagramas/portada_abstracta.py
 	$(PY) -c "import cairosvg; cairosvg.svg2pdf(url='img/upc-logo.svg', write_to='img/upc-logo.pdf')"

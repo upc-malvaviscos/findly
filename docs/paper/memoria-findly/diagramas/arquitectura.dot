@@ -1,0 +1,43 @@
+digraph arquitectura {
+  graph [rankdir=TB, bgcolor="white", pad=0.35, nodesep=0.55, ranksep=0.75,
+         fontname="Helvetica", fontsize=19, labelloc=t,
+         label="Findly · ingesta asíncrona y matching"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11,
+        margin="0.17,0.12", penwidth=1.3, color="#31547d", fillcolor="#edf4fb"];
+  edge [fontname="Helvetica", fontsize=9, color="#475569", penwidth=1.3, arrowsize=0.75];
+
+  assistant [label="Asistente\n(navegador)", fillcolor="#dbeafe"];
+  organizer [label="Organizador\n(navegador)", fillcolor="#dbeafe"];
+  uploads [label="Bucket S3 privado único\nselfies y fotos de evento", fillcolor="#dcfce7", color="#15803d"];
+  { rank=same; assistant; organizer; }
+  assistant -> uploads [label="PUT con URL prefirmada"];
+  organizer -> uploads [label="PUT con URL prefirmada"];
+
+  selfie [label="SelfieIndexer\nLambda"];
+  photo_queue [label="SQS fotos\n+ DLQ"];
+  uploads -> selfie [label="evento S3\n*.selfie.jpg"];
+  uploads -> photo_queue [label="evento S3\n*.photo.jpg"];
+
+  backfill_queue [label="SQS backfill\n+ DLQ"];
+  matcher [label="PhotoMatcher\nLambda"];
+  backfill [label="RegistrationBackfill\nLambda"];
+  photo_queue -> matcher [label="reintentos; fallos a DLQ"];
+  selfie -> backfill_queue [label="sólo tras ENROLLED"];
+  backfill_queue -> backfill [label="reintentos; fallos a DLQ"];
+
+  rekognition [label="Amazon Rekognition\nIndexFaces / SearchFaces / DeleteFaces"];
+  table [label="Amazon DynamoDB\ninscripciones y coincidencias"];
+  selfie -> rekognition [label="IndexFaces"];
+  selfie -> table [label="faceId + ENROLLED"];
+  matcher -> rekognition [label="IndexFaces + SearchFaces\nS3Object de foto"];
+  matcher -> table [label="coincidencias"];
+  backfill -> rekognition [label="indexar / buscar fotos previas"];
+  backfill -> table [label="reconciliar"];
+
+  scheduler [label="EventBridge Scheduler"];
+  retention [label="RetentionPurger\nLambda"];
+  scheduler -> retention [label="caducidad"];
+  retention -> uploads [label="borrar objetos"];
+  retention -> rekognition [label="DeleteCollection"];
+  retention -> table [label="borrar registros"];
+}
