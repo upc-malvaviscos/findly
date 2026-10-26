@@ -155,12 +155,21 @@ verde.
    los dos es el contrato correcto antes de cambiar ninguno.
 4. Decidir y documentar en un ADR la migración de colecciones Rekognition
    heredadas a nombres aislados por entorno (ADR-015).
-5. Implementar el patrón _Transactional Outbox_ (mediante DynamoDB Streams y
-   EventBridge Pipes) para desacoplar transaccionalmente la persistencia en
-   DynamoDB de la publicación de mensajes en SQS en la indexación de selfies
-   (disparo de backfill) y en la orden de envío de correos. Streams y Pipes son
-   una propuesta pendiente de ADR y evaluación de coste y recuperación;
-   la entrega al menos una vez sigue requiriendo consumidores idempotentes.
+5. Implementar el patrón _Transactional Outbox_ para resolver la escritura
+   doble que hoy existe entre DynamoDB y SQS en la indexación de selfies
+   (disparo de _backfill_) y en la orden de envío de correos: ambos flujos
+   confirman el cambio de estado en DynamoDB y encolan el mensaje en una
+   llamada aparte, sin transacción conjunta, de forma que un fallo posterior
+   a la escritura deja el estado y la publicación desalineados. La propuesta
+   consiste en dejar de llamar a SQS desde la propia función y aprovechar
+   Amazon DynamoDB Streams como registro nativo de los cambios de la tabla,
+   con Amazon EventBridge Pipes filtrando las transiciones relevantes y
+   publicándolas en la cola correspondiente, con reintentos y DLQ gestionados
+   por el propio servicio. Streams y Pipes ofrecen entrega al menos una vez,
+   por lo que los consumidores de backfill y correo seguirían necesitando las
+   mismas condiciones de idempotencia que ya aplican hoy. La adopción de
+   Streams/Pipes es una propuesta pendiente de ADR y de evaluación de coste y
+   recuperación.
 6. Fuera del alcance de este MVP académico, y no planificado: revisión legal
    formal de protección de datos, campañas de marketing por correo o SMS a los
    asistentes, escalado más allá de un evento concurrente y operación en

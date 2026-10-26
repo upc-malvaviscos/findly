@@ -1187,25 +1187,52 @@ orientan las mejoras de la siguiente fase.
 Una continuación natural del proyecto debería, por orden de prioridad:
 
 1. **Adopción del patrón _Transactional Outbox_ para resolver las escrituras
-   dobles**: En la arquitectura actual existen dos flujos críticos donde una
-   función sin servidor persiste un cambio en DynamoDB e intenta inmediatamente
-   encolar un mensaje en Amazon SQS: la transición a `ENROLLED` en la indexación
-   de selfies (que debe disparar el proceso de _backfill_ contra las fotos ya
-   existentes del evento) y la solicitud manual de envío de correos de galería
-   (que crea el registro de operación antes de encolar el trabajo). Si la
-   llamada a SQS falla tras haberse confirmado la escritura en DynamoDB —por un
-   fallo transitorio de red, limitación de tasa o interrupción de la función—,
-   se produce una inconsistencia de escritura doble: la inscripción queda en
-   `ENROLLED` pero el _backfill_ se omite silenciosamente al ser tratado como un
-   esfuerzo secundario (_best-effort_), o la operación de correo queda en estado
-   `RUNNING` delegando su recuperación exclusivamente en que el cliente
-   reintente la petición. La implementación del patrón _Transactional Outbox_
-   mediante Amazon DynamoDB Streams y Amazon EventBridge Pipes permitiría
-   escribir el evento en la misma transacción atómica de DynamoDB y desacoplar
-   la emisión del mensaje hacia SQS con garantías de entrega _at-least-once_,
-   reduciendo estas ventanas de incoherencia. La adopción de Streams/Pipes es
-   una propuesta pendiente de ADR y de evaluación de coste y recuperación; el
-   consumidor seguiría necesitando idempotencia ante duplicados.
+   dobles**: en la arquitectura actual existen dos flujos donde una función
+   sin servidor persiste un cambio de estado en DynamoDB y a continuación
+   intenta encolar un mensaje en Amazon SQS mediante una llamada
+   independiente: la transición a `ENROLLED` en la indexación de selfies, que
+   debe disparar el proceso de _backfill_ contra las fotos ya existentes del
+   evento, y la solicitud manual de envío de correos de galería, que crea el
+   registro de operación antes de encolar el trabajo. Ese patrón de
+   escritura doble (_dual write_) no cuenta con una transacción conjunta
+   entre ambos sistemas: si la llamada a SQS falla tras confirmarse la
+   escritura en DynamoDB, por un fallo transitorio de red, una limitación de
+   tasa o la interrupción de la función durante la invocación, el estado
+   persistido y el evento que debía propagarlo quedan desalineados. La
+   inscripción permanece en `ENROLLED` mientras el _backfill_ se omite al
+   tratarse de un intento de mejor esfuerzo (_best-effort_), y la operación de
+   correo queda en `RUNNING` dependiendo de que el cliente reintente la
+   petición para que el trabajo avance.
+
+   El patrón _Transactional Outbox_ resuelve esta inconsistencia desplazando
+   el punto donde ocurre la publicación. La función deja de llamar a SQS
+   directamente y se limita a confirmar el cambio de estado en DynamoDB; ese
+   cambio queda registrado de forma nativa en Amazon DynamoDB Streams, el
+   flujo ordenado de modificaciones por clave de partición que la propia
+   tabla expone sin coste de escritura adicional. Amazon EventBridge Pipes
+   puede tomar ese stream como origen, filtrar las transiciones relevantes
+   (la actualización a `ENROLLED` o la creación del registro de operación de
+   correo) y entregarlas como mensaje a la cola SQS correspondiente, con
+   reintentos y una cola de mensajes fallidos (DLQ) gestionados por el propio
+   servicio. La escritura de dominio y la intención de publicar quedan así
+   unidas por la misma operación atómica de DynamoDB, mientras que la entrega
+   a SQS ocurre de forma asíncrona y puede reintentarse sin comprometer el
+   estado ya persistido.
+
+   Streams y Pipes garantizan una entrega _at-least-once_: una interrupción
+   durante el procesamiento del stream puede hacer que el mismo cambio llegue
+   más de una vez a la cola. El consumidor del backfill y el procesador de
+   correo necesitarían seguir aplicando condiciones de idempotencia
+   equivalentes a las que ya usan hoy (`attribute_not_exists(PK)` en el
+   match, o la condición de progreso de la operación de envío) para tolerar
+   esos duplicados. Incorporar Streams/Pipes añade además un servicio que hay
+   que dimensionar, monitorizar y facturar, y su filtro de eventos debería
+   mantenerse sincronizado con cualquier cambio posterior en el modelo de
+   datos. Por eso queda como una propuesta pendiente de ADR y de una
+   evaluación de coste y recuperación frente al comportamiento best-effort
+   actual, que ya mitiga parcialmente el riesgo mediante reintentos del
+   cliente y estados observables (`RUNNING`, `STALLED`).
+
 2. **Ampliación de la aceptación del borrado en una próxima etapa**: se aplazan
    los ensayos AWS específicos de carreras y TTL lógico de #166, sin fecha
    comprometida. La barrera `deletedAt` y la revalidación de caducidad ya están
