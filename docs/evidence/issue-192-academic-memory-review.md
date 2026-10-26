@@ -140,3 +140,29 @@ compilación del PDF y revisión visual de sus 38 páginas completadas.
 Las tablas de costes y la explicación del modelo usan punto para los miles
 y coma para los decimales. El README de la memoria documenta esta convención
 para las siguientes ediciones; los formatos de intercambio mantienen su sintaxis.
+
+## Comentarios de revisión sobre el PDF
+
+Se aplican los once comentarios del equipo sobre la versión de 38 páginas:
+
+- Comentarios 1–2: retirada de la sección «Estado de referencia de esta memoria».
+- Comentario 3: retirada de la fecha de la comparación de alternativas.
+- Comentarios 4–5: tabla del equipo reducida a integrante/contribuciones y
+  retirada del bloque de asignaciones, recuento de commits y explicación.
+- Comentarios 6–7: defensa fechada el 26 de octubre de 2026 y retirada del
+  párrafo sobre cálculo de desviaciones de esfuerzo/plazo.
+- Comentario 8: retirada del protocolo de acreditación del cuerpo de la memoria.
+  Su planificación operativa conserva seguimiento en #193 y su documento propio.
+- Comentario 9: identificación expresa de Amazon CloudWatch Logs, grupos
+  de logs por función y retención definida en Terraform.
+- Comentarios 10–11: retirada del punto de mejora sobre migración de
+  colecciones faciales heredadas y renumeración de la lista.
+
+La matriz y la tabla de resultados mantienen las métricas pendientes con su
+alcance de evidencia. Las fuentes técnicas y la planificación operativa
+permanecen disponibles en sus documentos de trabajo.
+
+Validación de los comentarios: los once cambios solicitados se comprobaron
+en el Markdown y el PDF. Compilación correcta; 36 páginas renderizadas y
+revisadas, con inspección ampliada de la tabla del equipo y Observabilidad.
+Markdown (146 ficheros), trazabilidad (22 requisitos) y enlaces locales correctos.

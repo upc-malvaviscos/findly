@@ -71,25 +71,6 @@ reproducibles, con conclusiones acotadas a los escenarios medidos.
 **Palabras clave:** computación en la nube, serverless, reconocimiento facial,
 privacidad, infraestructura como código, evaluación experimental.
 
-# Estado de referencia de esta memoria {.unnumbered}
-
-Revisión documental: 25 de octubre de 2026. El equipo confirma que la aplicación
-está desplegada y funcional en [www.findly.barcelona](https://www.findly.barcelona),
-con dominio registrado, y que realizará una demo durante la defensa. Esta
-confirmación describe disponibilidad funcional. La campaña de rendimiento y
-la identificación de la revisión exacta de cada Lambda desplegada requieren
-evidencia específica. Una comprobación HTTPS de la página pública realizada el
-25 de octubre devolvió HTTP 200; solo acredita la entrega del documento web.
-La demostración de defensa figura como actividad prevista.
-
-La memoria conserva las fechas y entornos de cada evidencia. La corrección de
-borrado y matching integrada en `main` mediante #168 superó el recorrido AWS
-efímero y su destrucción; las carreras deterministas y el TTL lógico conservan
-aceptación AWS específica pendiente. La aceptación de los casos concurrentes requiere los ensayos específicos
-descritos en sus criterios.
-La matriz de requisitos y la sección experimental distinguen resultados
-medidos, confirmaciones del equipo y validaciones todavía pendientes.
-
 # Introducción
 
 ## Contexto y problema
@@ -126,7 +107,7 @@ observabilidad que permanecen entre eventos.
 ## Estado del arte y alternativas
 
 La entrega personalizada de fotografías de eventos ya existe como categoría de
-producto. La revisión siguiente, realizada el 25 de octubre de 2026, compara
+producto. La revisión siguiente compara
 capacidades declaradas por sus proveedores. Su alcance es una comparación
 documental de funcionalidades; evaluar precisión, seguridad y coste total
 requiere ensayos específicos.
@@ -317,7 +298,7 @@ enlazadas conservan los escenarios, ejecuciones y límites de cada resultado.
 | Correo manual (20) | Nueve escenarios AWS, recibo de un buzón y confirmación manual multiproveedor. | [#98](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6361540360) cerrada; fuentes de evidencia diferentes. |
 | CI y entorno efímero (13–16) | Aprovisionamiento, pruebas y limpieza en ejecuciones identificadas. | [#166](../../evidence/issue-166-photo-matching-barrier.md): smoke y 147 recursos destruidos. No acredita despliegue idéntico en producción. |
 | Memoria y publicación (17) | PDF compilado y release automática verificada. | [#186](../../evidence/issue-186-memoria-pdf-releases.md); revisión documental actual en [#192](https://github.com/upc-malvaviscos/findly/issues/192). |
-| Inscripción > 98 % y galería p95 < 500 ms (00) | No hay muestra agregada acreditada en las fuentes revisadas. | Pendiente; método definido en evaluación experimental. |
+| Inscripción > 98 % y galería p95 < 500 ms (00) | No hay muestra agregada acreditada en las fuentes revisadas. | Acreditación pendiente. |
 | Selfie < 3 s y similitud $\geq$ 95 % (00) | Medición del intervalo de selfie pendiente; similitud configurada en 95 %. | Tiempo objetivo pendiente de acreditación; el 95 % corresponde al umbral de comparación. |
 | Presupuesto de demo $\leq$ 5 USD (00, 12) | Modelo estimado y canal SNS probado; conciliación de factura completa pendiente. | Estimación separada de gasto real. Budgets proporciona avisos de consumo. |
 
@@ -328,42 +309,16 @@ enlazadas conservan los escenarios, ejecuciones y límites de cada resultado.
 ### Equipo y contribuciones verificables
 
 Anyul Rivas, Renato Luzuriaga, Martí Fabregat Pous y Santiago Oliver Surinyach
-trabajaron sobre un backlog compartido. La siguiente tabla identifica ejemplos
-de entregables trazables a sus cuentas de GitHub. La autoría de PR, las
-asignaciones y la actividad de commits describen aspectos complementarios
-de su participación.
+trabajaron sobre un backlog compartido. La siguiente tabla resume sus
+contribuciones al proyecto.
 
 <!-- prettier-ignore -->
-| Integrante | Contribuciones documentadas | Evidencia representativa |
-| --- | --- | --- |
-| Anyul Rivas | Controles de despliegue y correo, barrera de borrado y automatización de la memoria. | [#102](https://github.com/upc-malvaviscos/findly/pull/102), [#168](https://github.com/upc-malvaviscos/findly/pull/168), [#187](https://github.com/upc-malvaviscos/findly/pull/187). |
-| Renato Luzuriaga | Inscripción pública, matching en ambos órdenes, benchmark de fan-out y reintento de cargas. Diagnóstico de errores del ensayo SES. | [#60](https://github.com/upc-malvaviscos/findly/pull/60), [#129](https://github.com/upc-malvaviscos/findly/pull/129), [#141](https://github.com/upc-malvaviscos/findly/pull/141), [#149](https://github.com/upc-malvaviscos/findly/pull/149), [diagnóstico](https://github.com/upc-malvaviscos/findly/issues/98#issuecomment-6222459968). |
-| Martí Fabregat Pous | Observabilidad y FinOps, administración de eventos/fotos, pruebas de descarga y sincronización de resultados académicos. | [#64](https://github.com/upc-malvaviscos/findly/pull/64), [#120](https://github.com/upc-malvaviscos/findly/pull/120), [#130](https://github.com/upc-malvaviscos/findly/pull/130), [#159](https://github.com/upc-malvaviscos/findly/pull/159). |
-| Santiago Oliver Surinyach | Cobertura de integración del indexador con S3/DynamoDB emulados y Rekognition simulado; preparación del bloque funcional y demo de la defensa. | [#72](https://github.com/upc-malvaviscos/findly/pull/72), [preparación de defensa](../../evidence/2026-10-23-code-truth-sync.md). |
-
-La asignación actual de issues complementa la autoría de PR: Anyul tiene
-asignadas, entre otras, #1/#2/#4/#5/#9/#14/#16/#17 y #86; Renato, #11/#22/#46/#47/#49/#61/#87/#88; Martí, #3/#6/#8/#10/#12/#13/#15/#18
-y #89/#105/#107; Santiago, #7/#45/#121. La asignación identifica la coordinación de cada tarea; las PR y la
-evidencia de aceptación documentan su implementación y cierre.
-
-Como aproximación a la actividad de desarrollo solicitada por el equipo, el
-[recuento reproducible](../../evidence/team-activity-2026-10-26.json) sobre
-`075f76c` contabiliza commits sin merges y excluye 22 commits del bot:
-
-<!-- prettier-ignore -->
-| Integrante | Commits con autor registrado | Issues asignadas |
-| --- | --- | --- |
-| Anyul Rivas | 263 | 14 |
-| Renato Luzuriaga | 39 | 8 |
-| Martí Fabregat Pous | 58 | 11 |
-| Santiago Oliver Surinyach | 0 | 3 |
-
-El recuento refleja la autoría registrada en Git. La PR #72, abierta por
-Santiago, contiene commits atribuidos a Anyul y muestra el carácter
-complementario de ambas fuentes. La participación incluye también revisiones,
-pruebas manuales, coordinación y preparación de la defensa. Cuantificar horas
-y porcentajes de esfuerzo requiere un registro de dedicación individual,
-pendiente de aportar.
+| Integrante | Contribuciones documentadas |
+| --- | --- |
+| Anyul Rivas | Controles de despliegue y correo, barrera de borrado y automatización de la memoria. |
+| Renato Luzuriaga | Inscripción pública, matching en ambos órdenes, benchmark de fan-out y reintento de cargas. Diagnóstico de errores del ensayo SES. |
+| Martí Fabregat Pous | Observabilidad y FinOps, administración de eventos/fotos, pruebas de descarga y sincronización de resultados académicos. |
+| Santiago Oliver Surinyach | Cobertura de integración del indexador con S3/DynamoDB emulados y Rekognition simulado; preparación del bloque funcional y demo de la defensa. |
 
 ### Cronograma observado y desviaciones
 
@@ -383,12 +338,7 @@ validación; las auditorías y los fallos observados introdujeron iteraciones.
 | 4–15 octubre | Demo, dominio y publicación del circuito de correo ([#98](../../evidence/issue-98-ses-production.md)). | Resolver permisos y contratos de ensayo; conservar la autenticación de Cognito. |
 | 16–23 octubre | Benchmark de borrado, correcciones y barrera temporal ([#89](../../evidence/issue-89-admin-event-photo-lifecycle.md), [#166](../../evidence/issue-166-photo-matching-barrier.md)). | El timeout y las carreras obligaron a revisar el protocolo; parte de la aceptación concurrente quedó aplazada. |
 | 25 octubre | Publicación automática PDF y recuperación administrativa ([#186](../../evidence/issue-186-memoria-pdf-releases.md), [#175](../../evidence/organizer-recovery.md)). | Verificar la entrega documental y el acceso necesario para la demo. |
-| Defensa, fecha no consignada | Demo de la aplicación desplegada, anunciada por el equipo. | Actividad prevista para la defensa. |
-
-Calcular desviaciones porcentuales de esfuerzo o plazo requiere una línea
-base y un registro de horas por persona, pendientes de aportar. Los hitos
-permiten describir las desviaciones de trabajo observadas: hubo que repetir aceptación,
-corregir contratos y sincronizar documentación después de cierres prematuros.
+| 26 de octubre de 2026 (defensa) | Demo de la aplicación desplegada, anunciada por el equipo. | Actividad prevista para la defensa. |
 
 ### Metodología de trabajo
 
@@ -884,49 +834,11 @@ Cada escenario cronometra un tramo diferente del recorrido. La evidencia
 funcional se conserva y la medición S3 PUT → `ENROLLED` queda pendiente de
 un ensayo que aísle ese intervalo.
 
-### Protocolo de acreditación de p95 y éxito agregado
-
-La siguiente especificación define el protocolo para producir la evidencia
-pendiente. Su ejecución requiere aprobación operativa previa.
-
-1. **Fijar el experimento.** Registrar revisión desplegada, entorno, región,
-   memoria Lambda, ubicación del cliente, tamaños de galería, concurrencia,
-   tasa de llegada, duración y número de repeticiones. Separar arranques fríos
-   y carga sostenida sin eliminar de los resultados los primeros por comodidad.
-2. **Medir galería.** Cronometrar `GET /gallery` con token válido desde el
-   cliente hasta completar la respuesta HTTP; medir por separado la descarga
-   S3 y el render del navegador. Conservar duraciones de solicitudes correctas,
-   errores y timeouts con etiquetas de escenario no sensibles. Para `n`
-   respuestas correctas ordenadas, usar rango más próximo:
-   `p95 = x[ceil(0,95 × n)]`, con índices desde uno. Publicar `n`, p50, p95,
-   p99, errores, timeouts y ventana, con visibilidad conjunta de latencias y fallos.
-3. **Medir inscripción.** Formar una cohorte de solicitudes válidas con
-   consentimiento y selfie autorizada. Declarar antes del ensayo el plazo de
-   observación; numerador = inscripciones que llegan a `ENROLLED` dentro de
-   ese plazo, denominador = todos los intentos válidos de la cohorte,
-   incluidos fallos y timeouts. Los reintentos de una misma inscripción no
-   deben inflar el numerador. Presentar `100 × completadas / intentadas`,
-   denominador e intervalo de confianza binomial.
-4. **Conservar evidencia.** Publicar datos depurados, método de cálculo,
-   resumen por escenario y comprobación de limpieza. No guardar selfies,
-   FaceId, emails, tokens ni URLs firmadas. La cohorte completa
-   requiere correlacionar cada intento con su resultado final.
-5. **Interpretar.** Comparar cada escenario con su objetivo y repetirlo para
-   describir variabilidad. Una demo de defensa prueba funcionalidad bajo sus
-   condiciones; disponibilidad y capacidad a escala requieren ensayos específicos.
-
-La [campaña AWS propuesta](../../evidence/aws-performance-campaign-plan.md),
-seguida en [#193](https://github.com/upc-malvaviscos/findly/issues/193), concreta
-volúmenes, presupuesto, parada, limpieza y aprobación previa. Está preparada
-para revisión antes de su ejecución.
-La acreditación se incorporará cuando existan las observaciones y el recibo
-del ensayo autorizado. Esta revisión mantiene ambos indicadores pendientes
-en la matriz central.
-
 ## Observabilidad
 
-Cada función de cómputo escribe sus registros como una única línea en
-formato estructurado, con un identificador de correlación que enlaza la
+Cada función de cómputo envía sus registros a **Amazon CloudWatch Logs**,
+en un grupo de logs propio y con retención definida en Terraform. Cada
+registro se escribe como una única línea en formato estructurado, con un identificador de correlación que enlaza la
 petición de la pasarela de API, la invocación de la función y, en su caso,
 el mensaje de cola que la originó. Esos registros admiten únicamente una
 lista cerrada de campos técnicos —identificador de evento, identificador de
@@ -1318,16 +1230,12 @@ Una continuación natural del proyecto debería, por orden de prioridad:
    entrada de inscripción pública y carga administrativa de fotografías ante
    eventos cerrados o con retención vencida, acordando un criterio semántico
    único en la especificación de la API.
-5. **Migración formal de colecciones faciales heredadas**: decidir y documentar
-   formalmente en un registro arquitectónico la migración o depuración de las
-   colecciones de reconocimiento facial creadas con anterioridad a la
-   introducción del aislamiento estricto por entorno (ADR-015).
-6. **Particionado concurrente del reprocesamiento de fotografías**: estructurar
+5. **Particionado concurrente del reprocesamiento de fotografías**: estructurar
    la ejecución del proceso de _backfill_ en subtareas paralelas coordinadas
    cuando el volumen previo de imágenes de un evento supere varios miles de
    fotografías, evitando la iteración estrictamente secuencial sobre páginas de
    DynamoDB.
-7. Fuera del alcance de este trabajo académico y sin planificación prevista
+6. Fuera del alcance de este trabajo académico y sin planificación prevista
    quedan, de forma deliberada: una revisión legal formal de protección de
    datos, campañas de marketing por correo o SMS, el escalado a más de un evento
    concurrente, y la operación en producción con soporte continuo.
