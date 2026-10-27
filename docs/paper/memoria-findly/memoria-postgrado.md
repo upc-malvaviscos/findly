@@ -75,6 +75,12 @@ reproducibles, con conclusiones acotadas a los escenarios medidos.
 **Palabras clave:** computación en la nube, serverless, reconocimiento facial,
 privacidad, infraestructura como código, evaluación experimental.
 
+```{=latex}
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+```
+
 # Introducción
 
 ## Contexto y problema
